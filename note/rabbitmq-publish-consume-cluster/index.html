@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Note,RabbitMQ,Docker,Node,Go'><meta name="description" content='Playing with RabbitMQ. Publish and consume messages. Using RabbitMQ in single or cluster mode.'><meta property="og:title" content="Rabbitmq : publish, consume, cluster" />
+<meta property="og:description" content="Playing with **RabbitMQ**. **Publish** and **consume** messages. Using RabbitMQ in single or **cluster** mode." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/rabbitmq-publish-consume-cluster/" />
+<meta property="article:published_time" content="2020-10-12T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-10-12T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Rabbitmq : publish, consume, cluster"/>
+<meta name="twitter:description" content="Playing with **RabbitMQ**. **Publish** and **consume** messages. Using RabbitMQ in single or **cluster** mode."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Rabbitmq : publish, consume, cluster | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup">Install and setup</a></li>
+        <li><a href="#start-rabbitmq">Start RabbitMQ</a></li>
+        <li><a href="#publish-and-consume">Publish and consume</a></li>
+        <li><a href="#using-clustered-rabbitmq">Using clustered RabbitMQ</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">12</span>
+<span class="rest">Oct 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Rabbitmq : publish, consume, cluster</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Running an instance of <a href="https://hub.docker.com/_/rabbitmq">RabbitMQ</a> with Docker</li>
+<li>Publish a message from a <strong>node application</strong></li>
+<li>Post a message from a <strong>go application</strong></li>
+<li>Consume these messages from another node application</li>
+<li>Create a <strong>cluster of 3 instances with automatic replication</strong></li>
+<li>Test the cluster by <strong>simulating an instance crash</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup">Install and setup</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># docker pull, npm install, docker network
+$ make setup
+</code></pre>
+<p>This project will make several docker containers communicate together :</p>
+<ul>
+<li>2 publisher apps</li>
+<li>1 consumer app</li>
+<li>1 to 3 instances of RabbitMQ</li>
+</ul>
+<p>In order for these containers to communicate with each other, the <code>make setup</code> command created a <a href="https://docs.docker.com/network/bridge" target="_blank" rel="noopener">Bridge Network</a> named <strong>rabbitmq</strong> :</p>
+<pre><code class="language-bash">$ docker network create rabbitmq
+</code></pre>
+<h3 id="start-rabbitmq">Start RabbitMQ</h3>
+<p>We start an instance of <a href="https://hub.docker.com/_/rabbitmq" target="_blank" rel="noopener">Rabbitmq</a> with docker :</p>
+<pre><code class="language-bash"># run single rabbitmq
+$ make run-rabbitmq-single
+</code></pre>
+<p>This command executes :</p>
+<pre><code class="language-bash">$ docker run \
+    --detach \
+    --rm \
+    --net rabbitmq \
+    --publish 8000:15672 \
+    --hostname rabbit \
+    --name rabbit \
+    rabbitmq:3-management
+</code></pre>
+<p>After a while, you can access the RabbitMQ interface from <a href="http://localhost:8000" target="_blank" rel="noopener">http://localhost:8000</a> :</p>
+<p><img loading="lazy" src="img/login.png" alt="login"  /></p>
+<p>We use :</p>
+<ul>
+<li>Username : <code>guest</code></li>
+<li>Password : <code>guest</code></li>
+</ul>
+<p>We arrive on the following interface :</p>
+<p><img loading="lazy" src="img/simple-01-one-node.png" alt="simple-01-one-node.png"  /></p>
+<h3 id="publish-and-consume">Publish and consume</h3>
+<p>The project uses 3 applications :</p>
+<ul>
+<li>A <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/node-publisher/publisher.js" target="_blank" rel="noopener">Node application</a> to publish a message</li>
+<li>A <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/go-publisher/publisher.go" target="_blank" rel="noopener">Go application</a> to publish a message</li>
+<li>A <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/node-consumer/consumer.js" target="_blank" rel="noopener">Node application</a> to consume messages</li>
+</ul>
+<p>We build the 3 docker images of these applications :</p>
+<pre><code class="language-bash"># build the images
+$ make build
+</code></pre>
+<p>We will publish a message with the <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/node-publisher/publisher.js" target="_blank" rel="noopener">Node application</a> :</p>
+<ul>
+<li>The application is an <strong>express server</strong> that waits for messages on <code>localhost:3000/publish/:message</code></li>
+<li>The application uses the <a href="https://github.com/squaremo/amqp.node" target="_blank" rel="noopener">amqplib module</a> to interact with RabbitMQ</li>
+</ul>
+<pre><code class="language-js">const app = express()
+
+const HOST = process.env.RABBIT_HOST
+const PORT = process.env.RABBIT_PORT
+const USERNAME = process.env.RABBIT_USERNAME
+const PASSWORD = process.env.RABBIT_PASSWORD;
+
+const open = amqplib.connect(`amqp://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/`)
+
+let channel
+
+open
+.then(conn =&gt; conn.createChannel())
+.then(ch =&gt; { 
+    channel = ch
+    ch.assertQueue('publisher') 
+})
+
+// curl -X POST http://localhost:3000/publish/hello
+app.post('/publish/:message', (req, res) =&gt; {
+    console.log(`message: ${req.params.message}`)
+
+    channel.sendToQueue('publisher', Buffer.from(req.params.message))
+
+    res.send('')
+})
+</code></pre>
+<p>We launch the server :</p>
+<pre><code class="language-bash">$ make run-node-publisher
+</code></pre>
+<p>In a new terminal window :</p>
+<pre><code class="language-bash">$ curl -X POST http://localhost:3000/publish/hello
+</code></pre>
+<p>The <strong>message has been received</strong> :</p>
+<p><img loading="lazy" src="img/simple-02-publish.png" alt="simple-02-publish.png"  /></p>
+<p>We will publish a message with the <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/go-publisher/publisher.go" target="_blank" rel="noopener">Go application</a> :</p>
+<pre><code class="language-go">var HOST = os.Getenv(&quot;RABBIT_HOST&quot;)
+var PORT = os.Getenv(&quot;RABBIT_PORT&quot;) 
+var USERNAME = os.Getenv(&quot;RABBIT_USERNAME&quot;)
+var PASSWORD = os.Getenv(&quot;RABBIT_PASSWORD&quot;)
+
+func main() {
+
+  router := httprouter.New()
+
+  // curl -X POST http://localhost:4000/publish/world
+  router.POST(&quot;/publish/:message&quot;, func(w http.ResponseWriter, r *http.Request, p httprouter.Params){
+    submit(w,r,p)
+  })
+
+  fmt.Println(&quot;Listening on port 4000&quot;)
+  
+  log.Fatal(http.ListenAndServe(&quot;:4000&quot;, router))
+}
+
+func submit(writer http.ResponseWriter, request *http.Request, p httprouter.Params) {
+  message := p.ByName(&quot;message&quot;)
+  
+  fmt.Println(&quot;message: &quot; + message)
+
+  conn, err := amqp.Dial(&quot;amqp://&quot; + USERNAME + &quot;:&quot; + PASSWORD + &quot;@&quot; + HOST + &quot;:&quot; + PORT + &quot;/&quot;)
+
+  ch, err := conn.Channel()
+
+  q, err := ch.QueueDeclare(
+    &quot;publisher&quot;,  // name
+    true,         // durable
+    false,        // delete when unused
+    false,        // exclusive
+    false,        // no-wait
+    nil,          // arguments
+  )
+
+  err = ch.Publish(
+    &quot;&quot;,     // exchange
+    q.Name, // routing key
+    false,  // mandatory
+    false,  // immediate
+    amqp.Publishing {
+      ContentType: &quot;text/plain&quot;,
+      Body:        []byte(message),
+  })
+}
+</code></pre>
+<p>We launch the server :</p>
+<pre><code class="language-bash">$ make run-go-publisher
+</code></pre>
+<p>In a new terminal window :</p>
+<pre><code class="language-bash">$ curl -X POST http://localhost:4000/publish/world
+</code></pre>
+<p>The <strong>new message has been received</strong> :</p>
+<p><img loading="lazy" src="img/simple-03-publish-again.png" alt="simple-03-publish-again.png"  /></p>
+<p><strong>Click the name</strong> of the <code>publisher</code> queue :</p>
+<p><img loading="lazy" src="img/simple-04-queue.png" alt="simple-04-queue.png"  /></p>
+<p>We can <strong>consult the pending messages</strong> :</p>
+<p><img loading="lazy" src="img/simple-05-get-messages.png" alt="simple-05-get-messages.png"  /></p>
+<p>We will <strong>consume the messages</strong> with the <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/node-consumer/consumer.js" target="_blank" rel="noopener">Node application</a> :</p>
+<pre><code class="language-js">const HOST = process.env.RABBIT_HOST
+const PORT = process.env.RABBIT_PORT
+const USERNAME = process.env.RABBIT_USERNAME
+const PASSWORD = process.env.RABBIT_PASSWORD;
+
+(async function() {
+    const open = await amqplib.connect(`amqp://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/`)
+    const channel = await open.createChannel()
+    await channel.assertQueue('publisher')
+
+    channel.consume('publisher', (msg) =&gt; {
+        if (msg !== null) {
+            console.log(msg.content.toString())
+            channel.ack(msg)
+        }
+    })
+}())
+</code></pre>
+<p>We start the application in a new terminal window, <strong>the messages arrive</strong> :</p>
+<pre><code class="language-bash">$ make run-node-consumer
+hello
+world
+</code></pre>
+<p>As soon as <strong>the messages are retrieved, the queue is emptied</strong> :</p>
+<p><img loading="lazy" src="img/simple-06-consume.png" alt="simple-06-consume.png"  /></p>
+<p>This test is finished, we can <strong>stop the docker containers</strong> :</p>
+<pre><code class="language-bash"># stop and remove the containers
+$ make rm-rabbitmq-single
+$ make rm-node-publisher
+$ make rm-go-publisher
+$ make rm-node-consumer
+</code></pre>
+<h3 id="using-clustered-rabbitmq">Using clustered RabbitMQ</h3>
+<p>RabbitMQ is <strong>an essential part for working asynchronously in a distributed system</strong> :</p>
+<ol>
+<li>An application sends some messages</li>
+<li>RabbitMQ stores these messages</li>
+<li>An other application consumes messages stored by RabbitMQ</li>
+</ol>
+<p>In production, it is of course <strong>impossible to have only one working instance</strong> of RabbitMQ.</p>
+<p>Because if it were to fail, the <strong>whole system would collapse</strong> and the <strong>data it contained would be lost</strong>.</p>
+<p>It is therefore necessary to set up a <strong>cluster system with automatic content replication</strong>.</p>
+<p>Our cluster will contain <strong>3 RabbitMQ instances</strong> :</p>
+<ul>
+<li>A <code>rabbit</code> instance available on <a href="http://localhost:8000" target="_blank" rel="noopener">http://localhost:8000</a></li>
+<li>A <code>mirror-1</code> instance available on <a href="http://localhost:8001" target="_blank" rel="noopener">http://localhost:8001</a></li>
+<li>A <code>mirror-2</code> instance available on <a href="http://localhost:8002" target="_blank" rel="noopener">http://localhost:8002</a></li>
+</ul>
+<p>To create a cluster we must :</p>
+<ul>
+<li>Use a <strong>common cookie between all instances</strong>. This is the <a href="https://www.rabbitmq.com/cli.html#erlang-cookie" target="_blank" rel="noopener">RABBITMQ_ERLANG_COOKIE</a></li>
+<li>Use a <strong>configuration file</strong>. This is the <a href="https://www.rabbitmq.com/configure.html#erlang-term-config-file" target="_blank" rel="noopener">RABBITMQ_CONFIG_FILE</a></li>
+</ul>
+<p>Here is our <a href="https://github.com/jeromedecoster/note-rabbitmq-publish-consume-cluster/blob/master/config/rabbitmq.conf" target="_blank" rel="noopener">configuration</a> file :</p>
+<pre><code class="language-ini">loopback_users.guest = false
+listeners.tcp.default = 5672
+
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_classic_config
+cluster_formation.classic_config.nodes.1 = rabbit@rabbit
+cluster_formation.classic_config.nodes.2 = rabbit@mirror-1
+cluster_formation.classic_config.nodes.3 = rabbit@mirror-2
+</code></pre>
+<ul>
+<li>This file defines the peer discovery mechanism. See <a href="https://www.rabbitmq.com/cluster-formation.html#peer-discovery-configuring-mechanism" target="_blank" rel="noopener">Specifying the Peer Discovery Mechanism</a></li>
+<li>This file defines the nodes used. See <a href="https://www.rabbitmq.com/cluster-formation.html#peer-discovery-classic-config" target="_blank" rel="noopener">Classic Peer Discovery Config</a></li>
+</ul>
+<p>To <strong>create a cluster of 3 instances</strong>, we run this command :</p>
+<pre><code class="language-bash">$ make create-cluster
+</code></pre>
+<p>This is how this script <strong>starts the first instance</strong> :</p>
+<pre><code class="language-bash">$ docker run \
+    --rm \
+    --detach \
+    --net rabbitmq \
+    --env RABBITMQ_CONFIG_FILE=/config/rabbitmq \
+    --env RABBITMQ_ERLANG_COOKIE=the-cookie-id \
+    --hostname rabbit \
+    --name rabbit \
+    --publish 8000:15672 \
+    --volume ${PWD}/config/:/config/ \
+    rabbitmq:3-management
+</code></pre>
+<p><strong>Data synchronization between instances</strong> is done using <a href="https://www.rabbitmq.com/ha.html#eager-synchronisation" target="_blank" rel="noopener">Classic Mirrored Queues</a>.</p>
+<p>We <strong>define the type of mirroring</strong> with the variable <a href="https://www.rabbitmq.com/ha.html#mirroring-arguments" target="_blank" rel="noopener">ha-mode</a>.</p>
+<p><code>ha</code> meaning <strong>high availability</strong>.</p>
+<p>We choose the <code>nodes</code> mode.</p>
+<p>With this mode, the queue is mirrored to the <strong>nodes listed in node names</strong>. The nodes are listed with the <code>ha-params</code> parameter.</p>
+<p>For mirroring, we choose a simple and <a href="https://www.rabbitmq.com/ha.html#configuring-synchronisation" target="_blank" rel="noopener">automatic synchronization</a> : <code>&quot;ha-sync-mode&quot;:&quot;automatic&quot;</code></p>
+<p>We use the <a href="https://www.rabbitmq.com/rabbitmqctl.8.html#Runtime_Parameters_and_Policies" target="_blank" rel="noopener">set_policy</a> command of the <a href="https://www.rabbitmq.com/rabbitmqctl.8.html#DESCRIPTION" target="_blank" rel="noopener">rabbitmqctl</a> executable to <strong>configure the cluster</strong> :</p>
+<pre><code class="language-bash">$ docker exec rabbit rabbitmqctl set_policy ha-all \
+    '.*' \
+    '{ &quot;ha-sync-mode&quot;:&quot;automatic&quot;, &quot;ha-mode&quot;:&quot;nodes&quot;, &quot;ha-params&quot;:[&quot;rabbit@rabbit&quot;, &quot;rabbit@mirror-1&quot;, &quot;rabbit@mirror-2&quot;] }' \
+    --priority 1 \
+    --apply-to queues
+</code></pre>
+<p>We connect to the <code>rabbit</code> instance at <a href="http://localhost:8000" target="_blank" rel="noopener">http://localhost:8000</a> :</p>
+<p><img loading="lazy" src="img/cluster-01-nodes.png" alt="cluster-01-nodes.png"  /></p>
+<p>In 2 other tabs of my browser I can connect to :</p>
+<ul>
+<li><code>mirror-1</code> at <a href="http://localhost:8001" target="_blank" rel="noopener">http://localhost:8001</a></li>
+<li><code>mirror-2</code> at <a href="http://localhost:8002" target="_blank" rel="noopener">http://localhost:8002</a></li>
+</ul>
+<p>In the <a href="http://localhost:8000/#/policies" target="_blank" rel="noopener">admin / policies</a> part, we see that the <code>ha-all</code> policy is taken into account :</p>
+<p><img loading="lazy" src="img/cluster-02-policies.png" alt="cluster-02-policies.png"  /></p>
+<p>We will now publish a message using the Go application :</p>
+<pre><code class="language-bash">$ make run-go-publisher
+</code></pre>
+<p>We publish the message <code>hello</code> :</p>
+<pre><code class="language-bash">$ curl -X POST http://localhost:4000/publish/hello
+</code></pre>
+<p>The message is well <strong>received</strong> :</p>
+<p><img loading="lazy" src="img/cluster-03-publish.png" alt="cluster-03-publish.png"  /></p>
+<p>We <strong>simulate the crash of an instance by stopping it</strong> :</p>
+<pre><code class="language-bash">$ docker rm --force rabbit
+</code></pre>
+<p>The first tab of my browser, <strong>disconnected</strong> from the <code>rabbit</code> instance, <strong>stops refreshing</strong>.</p>
+<p>But in my second tab, connected to <code>mirror-1</code> at <a href="http://localhost:8001" target="_blank" rel="noopener">http://localhost:8001</a> we see the disconnection :</p>
+<p><img loading="lazy" src="img/cluster-04-disconnect.png" alt="cluster-04-disconnect.png"  /></p>
+<p>We <strong>click the name</strong> of the <code>publisher</code> queue :</p>
+<p><img loading="lazy" src="img/cluster-05-queue.png" alt="cluster-05-queue.png"  /></p>
+<p>We observe that :</p>
+<ul>
+<li>The <code>rabbit</code> node has <strong>disappeared</strong></li>
+<li>The <code>mirror-1</code> node has become the <strong>main node</strong></li>
+<li>The <code>mirror-2</code> node is therefore the <strong>only mirror</strong></li>
+</ul>
+<p><img loading="lazy" src="img/cluster-06-queue-details.png" alt="cluster-06-queue-details.png"  /></p>
+<p>We <strong>force the shutdown</strong> of the Go application :</p>
+<pre><code class="language-bash">$ make rm-go-publisher
+</code></pre>
+<p>Now we <strong>relaunch</strong> the Go application by <strong>targeting</strong> the <code>mirror-1</code> instance :</p>
+<pre><code class="language-bash">$ docker run \
+    --rm \
+    --net rabbitmq \
+    --env RABBIT_HOST=mirror-1 \
+    --env RABBIT_PORT=5672 \
+    --env RABBIT_USERNAME=guest \
+    --env RABBIT_PASSWORD=guest \
+    --name go-publisher \
+    --publish 4000:4000 \
+    go-publisher
+</code></pre>
+<p>We publish a <strong>new message</strong> :</p>
+<pre><code class="language-bash">$ curl -X POST http://localhost:4000/publish/world
+</code></pre>
+<p>The message is well <strong>received</strong> again :</p>
+<p><img loading="lazy" src="img/cluster-07-publish-again.png" alt="cluster-07-publish-again.png"  /></p>
+<p>We <strong>manually restart</strong> the <code>rabbit</code> instance :</p>
+<pre><code class="language-bash">$ docker run \
+    --rm \
+    --detach \
+    --net rabbitmq \
+    --env RABBITMQ_CONFIG_FILE=/config/rabbitmq \
+    --env RABBITMQ_ERLANG_COOKIE=the-cookie-id \
+    --hostname rabbit \
+    --name rabbit \
+    --publish 8000:15672 \
+    --volume ${PWD}/config/:/config/ \
+    rabbitmq:3-management
+</code></pre>
+<p>The <strong>reconnection to the cluster is automatic</strong> :</p>
+<p><img loading="lazy" src="img/cluster-08-connexion.png" alt="cluster-08-connexion.png"  /></p>
+<p>The connection is now effective. The instance has also been <strong>synchronized</strong> :</p>
+<p><img loading="lazy" src="img/cluster-09-connected.png" alt="cluster-09-connected.png"  /></p>
+<p>By going to see the details of the queue we can see that :</p>
+<ul>
+<li>The <code>mirror-1</code> node is still the <strong>main node</strong></li>
+<li>The <code>mirror-2</code> node is <strong>no longer the only mirror</strong></li>
+<li>The <code>rabbit</code> node is <strong>now a mirror</strong></li>
+</ul>
+<p><img loading="lazy" src="img/cluster-10-queue-details.png" alt="cluster-10-queue-details.png"  /></p>
+<p>We start the <strong>consumer application</strong>, <strong>pointing to</strong> <code>mirror-2</code> :</p>
+<pre><code class="language-bash">$ docker run \
+    --rm \
+    --net rabbitmq \
+    --env RABBIT_HOST=mirror-2 \
+    --env RABBIT_PORT=5672 \
+    --env RABBIT_USERNAME=guest \
+    --env RABBIT_PASSWORD=guest \
+    --name node-consumer \
+    node-consumer
+hello
+world
+</code></pre>
+<p>We have <strong>received the 2 messages</strong>. They were <strong>removed from the queue</strong> :</p>
+<p><img loading="lazy" src="img/cluster-11-consume.png" alt="cluster-11-consume.png"  /></p>
+<p>This test was done <strong>manually</strong> :</p>
+<ul>
+<li>We <strong>manually restarted the RabbitMQ intance</strong> which was stopped.</li>
+<li>We <strong>manually changed the node where we published</strong> a new message.</li>
+</ul>
+<p>We are therefore <strong>missing 2 essential parts for the cluster</strong> to be functional :</p>
+<ul>
+<li>An <strong>orchestrator that automatically manages</strong> the startup of containers</li>
+<li>A <strong>discovery service that routes messages</strong> to active containers</li>
+</ul>
+<p>But these points are outside the scope of this article.</p>
+<p>The demonstration is over. We can delete our cluster with this command :</p>
+<pre><code class="language-bash">$ docker rm --force rabbit mirror-1 mirror-2 go-publisher node-consumer
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/go/">go</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/rabbitmq/">rabbitmq</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

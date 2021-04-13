@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Bash on Jérôme Decoster</title>
+    <link>/tags/bash/</link>
+    <description>Recent content in Bash on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 03 Dec 2019 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/bash/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Docker &#43; Bash</title>
+      <link>/note/docker-bash/</link>
+      <pubDate>Tue, 03 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/note/docker-bash/</guid>
+      <description>
+      
+      Some tips and helpers for **Docker**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

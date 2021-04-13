@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>CodeBuild on Jérôme Decoster</title>
+    <link>/tags/codebuild/</link>
+    <description>Recent content in CodeBuild on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 22 Apr 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/codebuild/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>GitOps &#43; Terraform</title>
+      <link>/aws/gitops-terraform/</link>
+      <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitops-terraform/</guid>
+      <description>
+      
+      Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
+      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <description>
+      
+      Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Codesuite pipeline &#43; Terraform</title>
+      <link>/aws/codesuite-pipeline-terraform/</link>
+      <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/codesuite-pipeline-terraform/</guid>
+      <description>
+      
+      Building a C&#43;&#43; program after each commit using **CodeCommit**, **CodeBuild** and **CodePipeline**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

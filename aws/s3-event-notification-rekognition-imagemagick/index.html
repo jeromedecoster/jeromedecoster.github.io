@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Terraform,S3,S3 Event Notification,Lambda,Rekognition,ImageMagick'><meta name="description" content='Detect Bird, Cat and Dog in images with Rekognition then draw the bounding box with ImageMagick.'><meta property="og:title" content="S3 Event Notification &#43; Rekognition &#43; ImageMagick" />
+<meta property="og:description" content="Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/s3-event-notification-rekognition-imagemagick/" />
+<meta property="article:published_time" content="2020-02-05T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-05T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="S3 Event Notification &#43; Rekognition &#43; ImageMagick"/>
+<meta name="twitter:description" content="Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>S3 Event Notification &#43; Rekognition &#43; ImageMagick | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#exploring-the-project">Exploring the project</a></li>
+        <li><a href="#run-the-project">Run the project</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">05</span>
+<span class="rest">Feb 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">S3 Event Notification &#43; Rekognition &#43; ImageMagick</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>This project uses <a href="https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html">Rekognition</a> to detect the presence of a <strong>bird</strong>, a <strong>cat</strong> or a <strong>dog</strong> in an image. Then, using ImageMagick, he draws the <a href="https://www.imagemagick.org/Usage/draw/#primitives">bounding box</a> of the detected animal.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/rekognition.svg" alt="rekognition.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick" target="_blank" rel="noopener">github repository</a> :</p>
+<ul>
+<li><a href="/aws/terraform-s3-s3-event-notification-lambda/#install-terraform">Terraform</a> and <a href="https://stedolan.github.io/jq/" target="_blank" rel="noopener">jq</a> must be installed.</li>
+</ul>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick.git \
+    /tmp/aws
+
+# cd and setup
+$ cd /tmp/aws &amp;&amp; make init
+</code></pre>
+<p>We also need to install <a href="https://github.com/TylerBrock/saw" target="_blank" rel="noopener">saw</a> :</p>
+<pre><code class="language-bash"># download
+$ curl --location \
+  --remote-name \
+  https://github.com/TylerBrock/saw/releases/download/v0.2.2/saw_0.2.2_linux_amd64.tar.gz
+
+# extract and install
+$ sudo tar \
+  --extract \
+  --directory /usr/local/bin \
+  --file saw_0.2.2_linux_amd64.tar.gz \
+  saw
+
+# installed with success
+$ saw version
+v0.2.2
+</code></pre>
+<h3 id="exploring-the-project">Exploring the project</h3>
+<p>Let&rsquo;s look at some parts of the source code.</p>
+<p>In the <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/terraform/s3.tf" target="_blank" rel="noopener">s3.tf</a> file we :</p>
+<ul>
+<li>Create two <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html" target="_blank" rel="noopener">S3 Notifications Event</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource aws_s3_bucket_notification bucket_upload_notification {
+  bucket = aws_s3_bucket.bucket.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.upload_function.arn
+    events              = [&quot;s3:ObjectCreated:*&quot;]
+    filter_prefix = &quot;uploads/&quot;
+  }
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.label_function.arn
+    events              = [&quot;s3:ObjectCreated:*&quot;]
+    filter_prefix = &quot;labels/&quot;
+  }
+}
+</code></pre>
+<p>In the Lambda <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/lambda/upload.js" target="_blank" rel="noopener">upload.js</a> file we :</p>
+<ul>
+<li>Call <a href="https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Rekognition.html#detectLabels-property" target="_blank" rel="noopener">Rekognition .detectLabels</a>.</li>
+<li>Find the first <strong>bird</strong>, <strong>cat</strong> or <strong>dog</strong> with a <a href="https://docs.aws.amazon.com/rekognition/latest/dg/API_BoundingBox.html" target="_blank" rel="noopener">BoundingBox</a>.</li>
+<li>Save the JSON data received from Rekognition on S3.</li>
+</ul>
+<pre><code class="language-js">exports.handler = async (event) =&gt; {
+  let record = event.Records[0]
+  let key = record.s3.object.key
+  let basename = path.basename(key, path.extname(key))
+
+  let data = {
+    region: record.awsRegion,
+    bucket: record.s3.bucket.name,
+    key,
+    output: `labels/${basename}.json`,
+  }
+
+  try {
+
+    await detectLabels(data)
+    await parseLabels(data)
+    await putObject(data)
+
+    return {
+      statusCode: 200,
+      body: `https://${data.bucket}.s3.${data.region}.amazonaws.com/${data.output}`,
+    }
+
+  } catch (err) {
+    throw new Error(err)
+  }
+}
+
+// call rekognition to detect labels 
+async function detectLabels(data) {
+  let labels = await rekognition
+    .detectLabels({
+      Image: {
+        S3Object: {
+          Bucket: data.bucket,
+          Name: data.key
+        }
+      }
+    })
+    .promise()
+
+  data.labels = labels
+  return Promise.resolve(data)
+}
+
+// is there bird, cat or dog ?
+async function parseLabels(data) {
+
+  let found = data.labels.Labels
+    .find(e =&gt; e.Name == 'Bird' || e.Name == 'Cat' || e.Name == 'Dog')
+
+  if (found != null &amp;&amp; found.Instances.length &gt; 0) {
+    data.name = found.Name
+    data.instance = found.Instances[0]
+  }
+  return Promise.resolve(data)
+}
+</code></pre>
+<p>In the Lambda <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/lambda/label.js" target="_blank" rel="noopener">label.js</a> file we :</p>
+<ul>
+<li>Get the uploaded image and JSON labels from S3.</li>
+<li>Draw a colored Bounding Box if an animal was detected. <strong>Blue</strong> for a bird, <strong>Red</strong> for a cat and <strong>Green</strong> for a dog.</li>
+<li>Convert the image to <strong>black and white</strong> if none of these animals have been detected.</li>
+</ul>
+<pre><code class="language-js">async function draw(data) {
+  let cmd = ''
+  if (data.instance != null) {
+    cmd = `/opt/bin/convert ${data.input} ` +
+      `\\\( +clone -fill white -colorize 100 -fill ${data.draw.color} -draw &quot;rectangle ${data.draw.outleft},${data.draw.outtop} ${data.draw.outwidth},${data.draw.outheight}&quot; ` +
+      `-fill white -draw &quot;rectangle ${data.draw.left},${data.draw.top} ${data.draw.width},${data.draw.height}&quot;  \\\) -compose multiply -composite ${data.output}`
+
+  } else {
+    cmd = `/opt/bin/convert ${data.input} -colorspace Gray ${data.output}`
+  }
+
+  return exec(cmd)
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/scripts/" target="_blank" rel="noopener">scripts directory</a> have some files to :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/scripts/watch-uploads.sh" target="_blank" rel="noopener">Watch</a> the CloudWatch logs with saw :</li>
+</ul>
+<pre><code class="language-bash">saw watch \
+    --region $REGION \
+    $UPLOAD_LOG_GROUP
+</code></pre>
+<ul>
+<li><a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/scripts/invoque-upload.sh" target="_blank" rel="noopener">Invoque</a> a Lambda function from CLI with a <a href="https://github.com/jeromedecoster/aws-s3-notification-rekognition-imagemagick/blob/master/scripts/s3-put-payload.sh" target="_blank" rel="noopener">dynamically generated payload</a> :</li>
+</ul>
+<pre><code class="language-bash">EVENT=$(cat &lt;&lt;EOF
+{
+  &quot;Records&quot;: [
+    {
+      &quot;eventVersion&quot;: &quot;2.0&quot;,
+      &quot;eventSource&quot;: &quot;aws:s3&quot;,
+      &quot;awsRegion&quot;: &quot;REGION&quot;,
+      &quot;eventTime&quot;: &quot;EVENT_TIME&quot;,
+      &quot;eventName&quot;: &quot;ObjectCreated:Put&quot;,
+      &quot;userIdentity&quot;: {
+        &quot;principalId&quot;: &quot;EXAMPLE&quot;
+      },
+      &quot;requestParameters&quot;: {
+        &quot;sourceIPAddress&quot;: &quot;127.0.0.1&quot;
+      },
+      &quot;responseElements&quot;: {
+        &quot;x-amz-request-qid&quot;: &quot;EXAMPLE123456789&quot;,
+        &quot;x-amz-id-2&quot;: &quot;EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH&quot;
+      },
+      &quot;s3&quot;: {
+        &quot;s3SchemaVersion&quot;: &quot;1.0&quot;,
+        &quot;configurationId&quot;: &quot;testConfigRule&quot;,
+        &quot;bucket&quot;: {
+          &quot;name&quot;: &quot;BUCKET&quot;,
+          &quot;ownerIdentity&quot;: {
+            &quot;principalId&quot;: &quot;EXAMPLE&quot;
+          },
+          &quot;arn&quot;: &quot;arn:aws:s3:::BUCKET&quot;
+        },
+        &quot;object&quot;: {
+          &quot;key&quot;: &quot;KEY&quot;,
+          &quot;size&quot;: &quot;SIZE&quot;,
+          &quot;eTag&quot;: &quot;ETAG&quot;,
+          &quot;sequencer&quot;: &quot;0A1B2C3D4E5F678901&quot;
+        }
+      }
+    }
+  ]
+}
+EOF
+)
+
+echo &quot;$EVENT&quot; | sed \
+  --expression &quot;s|REGION|$REGION|&quot; \
+  --expression &quot;s|BUCKET|$BUCKET|&quot; \
+  --expression &quot;s|KEY|$KEY|&quot; \
+  --expression &quot;s|SIZE|$SIZE|&quot; \
+  --expression &quot;s|ETAG|$ETAG|&quot; \
+  --expression &quot;s|EVENT_TIME|$EVENT_TIME|&quot;
+</code></pre>
+<h3 id="run-the-project">Run the project</h3>
+<p>We use make commands to run the project :</p>
+<pre><code class="language-bash"># initialise
+$ make init
+
+# deploy with terraform
+$ make apply
+</code></pre>
+<p>In <strong>2 new terminal windows</strong>, tail the CloudWatch logs :</p>
+<pre><code class="language-bash"># watch the `upload` Lambda logs
+$ make watch-uploads
+
+# watch the `label` Lambda logs
+$ make watch-labels
+</code></pre>
+<p>Upload the images :</p>
+<pre><code class="language-bash"># upload images to S3
+$ make bird1.jpg bird1.jpg \
+    cat1.jpg cat2.jpg \
+    dog1.jpg dog2.jpg \
+    squirrel.jpg
+</code></pre>
+<p>Download the converted images :</p>
+<pre><code class="language-bash"># download converted images from S3 
+$ make download
+</code></pre>
+<p>And we get these results :</p>
+<p><img loading="lazy" src="img/bird1.jpg" alt="bird1.jpg"  /></p>
+<p><img loading="lazy" src="img/bird1-converted.jpg" alt="bird1-converted.jpg"  /></p>
+<p><img loading="lazy" src="img/cat1.jpg" alt="cat1.jpg"  /></p>
+<p><img loading="lazy" src="img/cat1-converted.jpg" alt="cat1-converted.jpg"  /></p>
+<p><img loading="lazy" src="img/dog1.jpg" alt="dog1.jpg"  /></p>
+<p><img loading="lazy" src="img/dog1-converted.jpg" alt="dog1-converted.jpg"  /></p>
+<p><img loading="lazy" src="img/squirrel.jpg" alt="squirrel.jpg"  /></p>
+<p><img loading="lazy" src="img/squirrel-converted.jpg" alt="squirrel-converted.jpg"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/imagemagick/">imagemagick</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/rekognition/">rekognition</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3/">s3</a>
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3-event-notification/">s3-event-notification</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

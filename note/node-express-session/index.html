@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Note,Node,Express,session'><meta name="description" content='Testing the cookie-session and express-session middlewares.'><meta property="og:title" content="Node &#43; Express &#43; session" />
+<meta property="og:description" content="Testing the **cookie-session** and **express-session** middlewares." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/node-express-session/" />
+<meta property="article:published_time" content="2020-01-16T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-01-16T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Node &#43; Express &#43; session"/>
+<meta name="twitter:description" content="Testing the **cookie-session** and **express-session** middlewares."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Node &#43; Express &#43; session | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-start-the-application">Install and start the application</a></li>
+        <li><a href="#test-cookie-session">Test cookie-session</a></li>
+        <li><a href="#test-express-session">Test express-session</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">16</span>
+<span class="rest">Jan 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Node &#43; Express &#43; session</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Create <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attr-enctype">multipart/form-data</a> and <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/Forms/Sending_forms_through_JavaScript">application/x-www-form-urlencoded</a> forms. Manage the server side with <a href="https://expressjs.com/en/4x/api.html">express</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<h3 id="install-and-start-the-application">Install and start the application</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-express-session" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the project
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-express-session.git \
+    /tmp/note
+
+# cd + install
+$ cd /tmp/note &amp;&amp; npm install
+</code></pre>
+<h3 id="test-cookie-session">Test cookie-session</h3>
+<p><a href="https://github.com/expressjs/cookie-session" target="_blank" rel="noopener">cookie-session</a> is simple cookie-based session implementation. All the session info is <strong>stored on the client</strong>, in a simple <strong>base64 string</strong>, in <a href="https://en.wikipedia.org/wiki/HTTP_cookie" target="_blank" rel="noopener">a cookie</a>.</p>
+<p>If you look at <a href="https://github.com/jeromedecoster/note-express-session/blob/master/with-cookie-session.js" target="_blank" rel="noopener">with-cookie-session.js</a>, the code is really simple :</p>
+<pre><code class="language-js">const cookiesession = require('cookie-session')
+
+// ...
+
+// we setup the cookie-session middleware
+app.use(cookiesession({
+    name: 'session',
+    // cookie is signed with `keys[0]`, we use a random name
+    keys: [`key-${Math.random().toString().substr(7)}`],
+    // `req.cookies` will become `undefined` 8 seconds after the last page shown
+    maxAge: 8000 // 8 seconds
+}))
+
+// we define a middleware function to manage `req.session.data`
+app.use((req, res, next) =&gt; {
+    console.log('middleware call at:', (new Date().toISOString()).substr(11, 12), 'for url:', req.url)
+
+    // default values for `req.session.data`
+    var data = { views: 1, user: null }
+    // update values if `req.session.data` has already been defined
+    if (req.session.data != undefined) {
+        data = {
+            views: req.session.data.views + 1,
+            user: req.session.data.user
+        }
+    }
+    req.session.data = data
+
+    console.log('middleware set req.session.data:', req.session.data)
+    next()
+})
+
+// render the index page, sending `data` to the ejs template
+app.get('/', (req, res) =&gt; {
+    console.log('GET / req.session.data:', req.session.data)
+
+    res.render('index', { data: req.session.data, /* ... */ })
+})
+</code></pre>
+<p>Let&rsquo;s start the server :</p>
+<pre><code class="language-bash"># start the server
+$ node with-cookie-session
+</code></pre>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see this <strong>homepage</strong> :</p>
+<ul>
+<li>The <code>req.cookies</code> value is currently <code>undefined</code></li>
+<li>The <code>req.session.data</code> has the default values</li>
+</ul>
+<p><img loading="lazy" src="img/index.png" alt="index.png"  /></p>
+<p>If you <strong>reload your browser</strong> you should see :</p>
+<ul>
+<li>The <code>req.cookies</code> value is now defined with our <code>session</code> cookie name</li>
+<li>In <code>req.session.data</code>, <code>views</code> is incremented</li>
+</ul>
+<p><img loading="lazy" src="img/reload.png" alt="reload.png"  /></p>
+<p><strong>Important</strong> : the <code>session</code> value is a simple <strong>base64 string</strong>. There is <strong>no security</strong> :</p>
+<pre><code class="language-bash">$ echo eyJkYXRhIjp7InZpZXdzIjoxLCJ1c2VyIjpudWxsfX0= | base64 --decode
+{&quot;data&quot;:{&quot;views&quot;:1,&quot;user&quot;:null}}
+</code></pre>
+<p>If you click the <strong>Log in</strong> button, you should see this <a href="http://localhost:3000/login" target="_blank" rel="noopener">/login</a> page :</p>
+<p>Two users are availables :</p>
+<ol>
+<li>With username <code>a</code> and password <code>a</code></li>
+<li>With username <code>b</code> and password <code>b</code></li>
+</ol>
+<p><img loading="lazy" src="img/login.png" alt="login.png"  /></p>
+<p>If you click the <strong>Send</strong> button, you should see this <strong>logged</strong> <a href="http://localhost:3000" target="_blank" rel="noopener">homepage</a> :</p>
+<p><img loading="lazy" src="img/index-logged.png" alt="index-logged.png"  /></p>
+<p>If you click the <strong>Go to /rectricted</strong> link, you should see this <strong>logged</strong> <a href="http://localhost:3000/restricted" target="_blank" rel="noopener">/restricted</a> page :</p>
+<p><img loading="lazy" src="img/restricted-logged.png" alt="restricted-logged.png"  /></p>
+<p>If you click the <strong>Log out</strong> button, you should go back to the <strong>Not logged</strong> <a href="http://localhost:3000" target="_blank" rel="noopener">homepage</a> :</p>
+<ul>
+<li>The <code>req.cookies</code> value is now <code>undefined</code></li>
+<li>The <code>req.session.data</code> has the default values</li>
+</ul>
+<p><img loading="lazy" src="img/index-logout.png" alt="index-logout.png"  /></p>
+<p>If you click the <strong>Go to /rectricted</strong> link, you should see this <strong>Not logged</strong> <a href="http://localhost:3000/restricted" target="_blank" rel="noopener">/restricted</a> page :</p>
+<p><img loading="lazy" src="img/restricted-logout.png" alt="restricted-logout.png"  /></p>
+<p><strong>Important</strong> : you can play with this demo site in different browsers (regular and incognito mode) and see the different sessions.</p>
+<h3 id="test-express-session">Test express-session</h3>
+<p><a href="https://github.com/expressjs/session" target="_blank" rel="noopener">express-session</a> is <strong>more advanced</strong>. By default, all the session info are stored in the <a href="https://github.com/expressjs/session/blob/master/session/memory.js" target="_blank" rel="noopener">MemoryStore</a>.</p>
+<p>But if you follow the <strong>stateless architecture</strong> principle or if you have a <strong>cluster of servers</strong> you know that storing session data <strong>in a database</strong> is essential.</p>
+<p>This middleware allows the use of numerous <a href="https://github.com/expressjs/session#compatible-session-stores" target="_blank" rel="noopener">externalized stores</a>.</p>
+<p>For this demo we will stay with the <strong>default MemoryStore</strong>.</p>
+<p>If you look at <a href="https://github.com/jeromedecoster/note-express-session/blob/master/with-express-session.js" target="_blank" rel="noopener">with-express-session.js</a>, the code is really simple :</p>
+<pre><code class="language-js">const expresssession = require('express-session')
+
+// ...
+
+app.use(expresssession({
+    name: 'session',
+    /*
+     * This is the secret used to sign the session ID cookie.
+     * We use a random name.
+     */
+    secret: `secret-${Math.random().toString().substr(7)}`,
+    /*
+     * Forces a session that is &quot;uninitialized&quot; to be saved to the store. 
+     * A session is uninitialized when it is new but not modified. 
+     * Choosing false is useful for implementing login sessions, reducing server storage 
+     * usage, or complying with laws that require permission before setting a cookie.
+     * The default value is true.
+     */
+    saveUninitialized: false,
+    /*
+     * Forces the session to be saved back to the session store, even if
+     * the session was never modified during the request.
+     * The default value is true, but using the default has been deprecated, 
+     * as the default will change in the future.
+     * Typically, you'll want false.
+     */
+    resave: false,
+    cookie: {
+        // `req.cookies.session` will be deleted 8 seconds after the last page shown
+        maxAge: 8000 // 8 seconds
+    }
+}))
+</code></pre>
+<p>Let&rsquo;s start the server :</p>
+<pre><code class="language-bash"># start the server
+$ node with-express-session
+</code></pre>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see this <strong>homepage</strong> :</p>
+<ul>
+<li>The <code>req.cookies</code> value is currently <code>undefined</code></li>
+<li>The <code>req.session.data</code> has the default values</li>
+</ul>
+<p><img loading="lazy" src="img/index.png" alt="index.png"  /></p>
+<p>If you <strong>reload your browser</strong> you should see :</p>
+<ul>
+<li>The <code>req.cookies</code> value is now defined with our <code>session</code> cookie name</li>
+<li>The <code>session</code> value is different than with <strong>cookie-session</strong> : the value is <strong>longer</strong>. The value starts with the <strong>prefix <code>s:</code></strong></li>
+<li>In <code>req.session.data</code>, <code>views</code> is incremented</li>
+</ul>
+<p><img loading="lazy" src="img/express-reload.png" alt="express-reload.png"  /></p>
+<p><strong>Important</strong> : now the <code>session</code> value is like a <strong>hash identifier</strong>. There is no data stored in the cookie. It&rsquo;s <strong>safe</strong>.</p>
+<p>You can play with this demo site in different browsers (regular and incognito mode) and see the different sessions.</p>
+<p>The experience remains the same as before.</p>
+<p>In another article we will see how to use <strong>external storage</strong>. This is where this middleware will <strong>start to shine</strong>.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/express/">express</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/session/">session</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

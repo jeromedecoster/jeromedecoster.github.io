@@ -1,0 +1,352 @@
+@font-face {
+  font-family: 'Inter var';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+  font-named-instance: 'Regular';
+  src: url('/fonts/inter/Inter-roman.var.woff2?v=3.13') format('woff2');
+}
+@font-face {
+  font-family: 'Inter var';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: italic;
+  font-named-instance: 'Italic';
+  src: url('/fonts/inter/Inter-italic.var.woff2?v=3.13') format('woff2');
+}
+
+@font-face {
+  font-family: noto-serif;
+  src: url("/fonts/noto-serif/notoserif-regular.woff2") format("woff2"), 
+       url("/fonts/noto-serif/notoserif-regular.woff") format("woff");
+  font-style: normal;
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: noto-serif;
+  src: local("Noto Serif"), local("NotoSerif"), 
+    url("/fonts/noto-serif/notoserif-regular.woff2") format("woff2"), 
+    url("/fonts/noto-serif/notoserif-regular.woff") format("woff");
+  font-style: normal;
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: noto-serif;
+  src: local("Noto Serif Italic"), local("NotoSerif-Italic"), 
+    url("/fonts/noto-serif/notoserif-italic.woff2") format("woff2"), 
+    url("/fonts/noto-serif/notoserif-italic.woff") format("woff");
+  font-style: italic;
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: noto-serif;
+  src: local("Noto Serif Bold"), local("NotoSerif-Bold"), 
+    url("/fonts/noto-serif/notoserif-bold.woff2") format("woff2"), 
+    url("/fonts/noto-serif/notoserif-bold.woff") format("woff");
+  font-style: normal;
+  font-weight: bold;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: noto-serif;
+  src: local("Noto Serif Bold Italic"), local("NotoSerif-BoldItalic"), 
+    url("/fonts/noto-serif/notoserif-bolditalic.woff2") format("woff2"), 
+    url("/fonts/noto-serif/notoserif-bolditalic.woff") format("woff");
+  font-style: italic;
+  font-weight: bold;
+  font-display: swap;
+}
+
+body {
+  font-family: "Inter var";
+  font-size: 1.2em;
+  line-height: 1.5;
+  font-weight: 400;
+  padding: 15px;
+}
+
+.goal {
+  max-width: 800px;
+  margin: 0 auto;
+  margin-bottom: 1.25em;
+  background-color: #f6f7f9;
+  padding: 1rem 1.5em;
+  border-bottom: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+}
+.goal .goal-title {
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+}
+
+.post .title.small a {
+  font-family: 'Inter var';
+  font-weight: 700;
+  font-size: 1.8rem;
+}
+
+#title a:hover {
+  color: #39a1f8;
+}
+
+a {
+  color: #0066bc;
+  font-weight: 500;
+}
+a:hover {
+  color:#39a1f8;
+}
+
+.icons:hover {
+  color: #39a1f8;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #222;
+}
+
+header, footer, .post-header, .tags, .tag-cloud, .pagination {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.pagination {
+  margin-bottom: 2rem;
+}
+
+header {
+  margin-bottom: 30px;
+}
+
+.markdown p:not(.with-img), .markdown ul, .markdown ol, .markdown h3, .markdown h4 {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+pre {
+  max-width: 1000px;
+  margin: 2.5rem auto !important;
+  border: 1px solid rgb(191, 201, 204);
+  box-shadow: 2px 2px 0px 0px rgba(203, 213, 216, 0.5);
+}
+
+.markdown p.with-img {
+  max-width: 1032px;
+  margin: 2.5rem auto !important;
+}
+
+.markdown .with-img img {
+  margin: 2.5rem auto;
+  border: 1px solid rgb(191, 201, 204);
+  box-shadow: 2px 2px 0px 0px rgba(203, 213, 216, 0.5);
+}
+
+b, strong {
+  font-family: "Inter var";
+  font-weight: 700;
+}
+
+p {
+  margin-top: .8em !important;
+  margin-bottom: .8em !important;
+}
+
+.post-header {
+  color: #222;
+}
+
+.post-header h1.title {
+  font-family: 'Inter var';
+  font-weight: 800;
+}
+
+.markdown h3 {
+  font-weight: 800;
+  font-size: 1.75em;
+  margin-top: .8em;
+  margin-bottom: .35em;
+  position: relative;
+  cursor: pointer;
+}
+
+.markdown h3 .hash {
+  position: absolute;
+  color: #39a1f8;
+  left: -1.8rem;
+} 
+
+@media screen and (max-width: 900px) {
+  .markdown h3 .hash {
+    display: none;
+  }
+}
+
+.markdown h4 {
+  font-weight: 700;
+  font-size: 1.5em;
+  margin-top: .8em;
+  margin-bottom: .35em;
+}
+
+.markdown h3:hover {
+  color:#39a1f8
+}
+
+.markdown ol {
+  padding-top: .25em;
+  padding-bottom: .25em;
+}
+
+.markdown ol > li {
+  line-height: 1.6;
+}
+
+.post ol li {
+	margin-bottom: 10px;
+}
+
+.markdown ul {
+  padding: .25em 0;
+}
+
+.markdown ul > li {
+  line-height: 1.6;
+}
+
+.markdown p code, .markdown li code, .markdown .goal code  {
+	padding: .2em .4em;
+	font-size: 90%;
+	color: #f8395b;
+	position: relative;
+	top: -1px;
+	border: 1px solid #cbd5d8;
+	border-radius: 4px;
+	background-color: #f6f7f9;
+}
+
+.markdown a {
+	text-decoration: underline #39a1f8;
+  color: #0066bc;
+  font-weight: 500;
+}
+.markdown a:hover {
+  color:#39a1f8;
+}
+
+.post .tags a, .tag-cloud a {
+  border-radius: 3px;
+  color: #fff;
+  font-size: 1em;
+  text-decoration: none;
+  margin: 8px 10px 0 0;
+  background-color: #0594cb;
+  padding: .7em .9em ;
+}
+
+.post .tags a:hover, .tag-cloud a:hover {
+  background-color:#39a1f8;
+  border: none;
+}
+
+.post .tags a.category, .tag-cloud a.category {
+  background-color: #d56f04;
+}
+
+.post .tags a.category:hover, .tag-cloud a.category:hover {
+  background-color: #e38017;
+}
+
+.tag-cloud {
+  line-height: 3.2em;
+}
+
+.page-title {
+  max-width: 800px;
+  margin: 1em auto;
+}
+
+.title-tag {
+  border-radius: 3px;
+  color: #fff;
+  font-size: 1em;
+  text-decoration: none;
+  margin: 8px 10px 0 0;
+  background-color: #0594cb;
+  padding: .1em .3em ;
+}
+
+.post-header .meta .date {
+  width: 65px;
+}
+
+.post-header .meta .date .day {
+  font-size: 54px;
+  font-family: 'Inter var';
+  font-weight: 400;
+}
+
+.post-header .meta .date .rest {
+  font-size: 13.8px;
+  font-family: 'Inter var';
+  font-weight: 500;
+}
+
+footer {
+  font-family: 'Inter var';
+  font-weight: 400;
+  font-size: .7em;
+}
+
+footer a {
+  font-family: 'Inter var';
+  font-weight: 600;
+  color: #666;
+}
+
+footer a:hover {
+  color: #0594cb;
+}
+
+
+blockquote {
+  border-left: 2px solid #39a1f8;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: noto-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  transform: translateX(-10px);
+  font-size: 21.6px;
+  color: #353f41;
+  margin: 1em auto;
+}
+
+blockquote strong {
+  font-family: noto-serif;
+  font-weight: 600;
+}
+
+a:focus { 
+  outline: none; 
+}
+
+body.about .markdown p {
+  margin-bottom: 15px;
+}
+
+#TableOfContents {
+  display: none;
+}
+
+::selection {
+  background: #ffea00;
+  color: black;
+}

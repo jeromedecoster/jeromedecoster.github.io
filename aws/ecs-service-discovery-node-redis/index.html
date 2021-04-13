@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Docker,ECS,Service Discovery,Cloud Map,Load Balancer,Terraform,Docker Hub'><meta name="description" content='Create 2 services on ECS linked by Service Discovery using Terraform.'><meta property="og:title" content="ECS &#43; Service Discovery &#43; Node &#43; Redis" />
+<meta property="og:description" content="Create **2 services on ECS** linked by **Service Discovery** using **Terraform**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/ecs-service-discovery-node-redis/" />
+<meta property="article:published_time" content="2020-06-19T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-06-19T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ECS &#43; Service Discovery &#43; Node &#43; Redis"/>
+<meta name="twitter:description" content="Create **2 services on ECS** linked by **Service Discovery** using **Terraform**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>ECS &#43; Service Discovery &#43; Node &#43; Redis | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-the-project">Install the project</a></li>
+        <li><a href="#run-the-site-locally">Run the site locally</a></li>
+        <li><a href="#hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</a></li>
+        <li><a href="#using-terraform">Using Terraform</a></li>
+        <li><a href="#service-scaling">Service scaling</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">19</span>
+<span class="rest">Jun 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">ECS &#43; Service Discovery &#43; Node &#43; Redis</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Use <strong>docker-compose</strong> to develop our site <strong>locally</strong></li>
+<li>We have <strong>2 services linked by a network</strong> : a <strong>node</strong> site and a <strong>redis</strong> instance</li>
+<li>Create an docker image optimized for production and host it <strong>on Docker hub</strong></li>
+<li>Use <strong>Terraform</strong> to recreate these 2 services <strong>on ECS</strong></li>
+<li>Use <strong>Service Discovery</strong> (<a href="https://docs.aws.amazon.com/cloud-map/latest/dg/what-is-cloud-map.html">Cloud Map</a>) to link the 2 services</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture0.svg"  /></p>
+<h3 id="install-the-project">Install the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/ecs-service-discovery-node-redis.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="run-the-site-locally">Run the site locally</h3>
+<p>Let&rsquo;s start by seeing the site locally.</p>
+<p>The site uses <a href="https://github.com/expressjs/express" target="_blank" rel="noopener">express</a>, <a href="https://github.com/mde/ejs" target="_blank" rel="noopener">ejs</a> and <a href="https://github.com/axios/axios" target="_blank" rel="noopener">axios</a>.</p>
+<pre><code class="language-json">{
+  &quot;dependencies&quot;: {
+    &quot;axios&quot;: &quot;^0.19.2&quot;,
+    &quot;ejs&quot;: &quot;^3.1.3&quot;,
+    &quot;express&quot;: &quot;^4.17.1&quot;
+  }
+}
+</code></pre>
+<p>We install the packages :</p>
+<pre><code class="language-bash">$ npm install
+</code></pre>
+<p>The <strong>Makefile</strong> allows you to run the <strong>development version</strong> :</p>
+<pre><code class="language-makefile">dev: # local development with docker-compose
+    docker-compose \
+        --file docker-compose.dev.yml \
+        --project-name compose_dev \
+        up
+</code></pre>
+<p>The <strong>development version</strong> use a specific <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/docker-compose.dev.yml" target="_blank" rel="noopener">docker-compose.dev.yml</a> file :</p>
+<pre><code class="language-dockerfile">version: &quot;3&quot;
+
+services:
+  vote:
+    build:
+      context: ./vote
+      dockerfile: dev/Dockerfile
+    volumes:
+      - &quot;./vote:/app&quot;
+    ports:
+      - &quot;3000:3000&quot;
+      - &quot;35729:35729&quot;
+    networks:
+      - backend
+    depends_on:
+      - redis
+    
+  redis:
+    image: redis:alpine
+    ports:
+      - &quot;6379:6379&quot;
+    networks:
+      - backend
+
+networks:
+  backend: {}
+</code></pre>
+<p>The <strong>vote</strong> service also use a specific <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/vote/dev/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> for the <strong>development version</strong> :</p>
+<pre><code class="language-dockerfile">FROM node:14.3-slim AS build
+WORKDIR /app
+ADD package.json .
+RUN npm install
+
+FROM node:14.3-slim
+WORKDIR /app
+COPY --from=build /app .
+ADD . .
+EXPOSE 3000 35729
+CMD [&quot;./dev/cmd.sh&quot;]
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/vote/index.js" target="_blank" rel="noopener">node server</a> uses 2 important environment variables :</p>
+<pre><code class="language-js">const PORT = process.env.PORT || 3000
+const REDIS_HOST = process.env.REDIS_HOST || 'redis'
+
+// ...
+
+const redis = new Redis({
+    port: 6379,
+    host: REDIS_HOST
+})
+
+// ...
+
+app.get('/', async (req, res) =&gt; {
+    const url = process.env.NODE_ENV == 'development'
+        ? `http://127.0.0.1:${PORT}/js/metadata.json`
+        : 'http://169.254.170.2/v2/metadata'
+    const result = await axios.get(url)
+
+    const container = result.data.Containers.find(e =&gt; e.Image.includes('tinyproxy') == false)
+
+    res.render('index', {
+        address: container.Networks[0].IPv4Addresses[0]
+    })
+})
+
+// ...
+
+app.listen(PORT, () =&gt; {
+    console.log(`listening on port ${PORT}`)
+})
+</code></pre>
+<p>We launch the development version :</p>
+<pre><code class="language-bash">$ make dev
+</code></pre>
+<p><img loading="lazy" src="img/site-dev.png" alt="site-dev.png"  /></p>
+<p>It&rsquo;s a simple voting page. The data are stored in a redis instance.</p>
+<p>The development site displays a <strong>mock</strong> of private IP address : <code>10.10.10.10</code>.</p>
+<p>This address came from the <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v2.html" target="_blank" rel="noopener">metadata task</a> returned from the special address <a href="http://169.254.170.2/v2/metadata" target="_blank" rel="noopener">http://169.254.170.2/v2/metadata</a>.</p>
+<p>This is a <a href="https://en.wikipedia.org/wiki/Link-local_address" target="_blank" rel="noopener">link-local address</a>.</p>
+<h3 id="hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</h3>
+<p>You can <strong>modify some variables</strong> in the <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/make.sh" target="_blank" rel="noopener">make.sh</a> file to customize your tests :</p>
+<pre><code class="language-bash">#
+# variables
+#
+
+# AWS variables
+PROFILE=default
+REGION=eu-west-3
+DOCKER_IMAGE=jeromedecoster/vote
+</code></pre>
+<p>We build the <strong>production image</strong> :</p>
+<pre><code class="language-bash">$ make build
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ VERSION=$(jq --raw-output '.version' vote/package.json)
+$ docker image build \
+        --file vote/prod/Dockerfile \
+        --tag $DOCKER_IMAGE:latest \
+        --tag $DOCKER_IMAGE:$VERSION \
+        ./vote
+</code></pre>
+<p>The <strong>production version</strong> of the <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/vote/prod/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> is simple :</p>
+<pre><code class="language-dockerfile">FROM softonic/node-prune AS prune
+
+FROM node:14.3-slim AS build
+WORKDIR /app
+COPY --from=prune /go/bin/node-prune /usr/local/bin/
+ADD . .
+RUN npm install --only=prod
+RUN node-prune
+
+FROM node:14.3-alpine
+ENV NODE_ENV production
+ENV PORT 5000
+WORKDIR /app
+COPY --from=build /app .
+EXPOSE 5000
+CMD [&quot;node&quot;, &quot;index.js&quot;]
+</code></pre>
+<p>We <strong>push this image</strong> to docker hub :</p>
+<pre><code class="language-bash">$ make push
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ VERSION=$(jq --raw-output '.version' package.json)
+$ docker push $DOCKER_IMAGE:latest
+$ docker push $DOCKER_IMAGE:$VERSION
+</code></pre>
+<p><img loading="lazy" src="img/docker-hub.png" alt="docker-hub.png"  /></p>
+<h3 id="using-terraform">Using Terraform</h3>
+<p>We will use terraform to build our <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/tree/master/infra" target="_blank" rel="noopener">entire infrastructure</a> on AWS.</p>
+<p>Let&rsquo;s take a look at some excerpts from Terraform files.</p>
+<p>Creation of the <strong>VPC</strong>, <strong>subnets</strong>, <strong>Internet gateway</strong> and <strong>routing table</strong> in <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/infra/vpc.tf" target="_blank" rel="noopener">vpc.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_vpc vpc {
+  cidr_block           = &quot;10.0.0.0/16&quot;
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+resource aws_subnet subnet_1 {
+  vpc_id = aws_vpc.vpc.id
+
+  cidr_block        = &quot;10.0.0.0/24&quot;
+  availability_zone = &quot;${var.region}a&quot;
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+# ...
+</code></pre>
+<p>Creation of the <strong>load balancer</strong>, <strong>target group</strong> and <strong>listener</strong> in <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/infra/alb.tf" target="_blank" rel="noopener">alb.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_alb alb {
+  name               = local.project_name
+  load_balancer_type = &quot;application&quot;
+  subnets            = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+  security_groups    = [aws_security_group.alb.id]
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+# ...
+</code></pre>
+<p>Creation of the <strong>discovery service</strong> in <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/infra/discovery.tf" target="_blank" rel="noopener">discovery.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_service_discovery_private_dns_namespace dns_namespace {
+  name = local.project_name
+  vpc  = aws_vpc.vpc.id
+}
+
+resource aws_service_discovery_service redis {
+  name = &quot;redis&quot;
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.dns_namespace.id
+
+    dns_records {
+      ttl  = 60
+      type = &quot;A&quot;
+    }
+
+    routing_policy = &quot;MULTIVALUE&quot;
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+</code></pre>
+<p>Creation of the <strong>cluster</strong>, the <strong>tasks definitions</strong> and the <strong>services</strong> in <a href="https://github.com/jeromedecoster/ecs-service-discovery-node-redis/blob/master/infra/ecs.tf" target="_blank" rel="noopener">ecs.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_ecs_task_definition task_node {
+  family = &quot;node&quot;
+
+  container_definitions = &lt;&lt;DEFINITION
+[{
+    &quot;name&quot;: &quot;node&quot;,
+    &quot;image&quot;: &quot;jeromedecoster/vote:latest&quot;,
+    &quot;cpu&quot;: 0,
+    &quot;essential&quot;: true,
+    &quot;networkMode&quot;: &quot;awsvpc&quot;,
+    &quot;privileged&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;environment&quot;: [
+        {
+            &quot;name&quot;: &quot;REDIS_HOST&quot;,
+            &quot;value&quot;: &quot;redis.${local.project_name}&quot;
+        }
+    ],
+    &quot;portMappings&quot;: [
+      {
+        &quot;containerPort&quot;: ${local.node_container_port},
+        &quot;hostPort&quot;: ${local.node_container_port}
+      }
+    ],
+    &quot;logConfiguration&quot;: {
+        &quot;logDriver&quot;: &quot;awslogs&quot;,
+        &quot;options&quot;: {
+            &quot;awslogs-group&quot;: &quot;${aws_cloudwatch_log_group.log_group.name}&quot;,
+            &quot;awslogs-region&quot;: &quot;${var.region}&quot;,
+            &quot;awslogs-stream-prefix&quot;: &quot;node&quot;
+        }
+    }
+}]
+DEFINITION
+
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  network_mode             = &quot;awsvpc&quot;
+  requires_compatibilities = [&quot;FARGATE&quot;]
+  cpu                      = 256
+  memory                   = 512
+}
+
+resource aws_ecs_service service_node {
+  name                = &quot;node&quot;
+  cluster             = aws_ecs_cluster.ecs_cluster.id
+  task_definition     = aws_ecs_task_definition.task_node.arn
+  launch_type         = &quot;FARGATE&quot;
+  desired_count       = var.desired_count
+  scheduling_strategy = &quot;REPLICA&quot;
+
+  network_configuration {
+    subnets          = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+    security_groups  = [aws_security_group.ecs_tasks.id, aws_security_group.alb.id]
+    assign_public_ip = true
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.node.arn
+  }
+
+  load_balancer {
+    target_group_arn = aws_alb_target_group.alb_target_group.arn
+    container_name   = &quot;node&quot;
+    container_port   = local.node_container_port
+  }
+
+  depends_on = [aws_alb_listener.alb_listener]
+}
+</code></pre>
+<p>To <strong>initialize Terraform</strong> we use this command :</p>
+<pre><code class="language-bash">$ make tf-init
+</code></pre>
+<p>To <strong>build the infrastructure</strong>, the cluster and the services we simply execute command :</p>
+<pre><code class="language-bash">$ make tf-apply
+</code></pre>
+<p>We have some information in the terminal :</p>
+<p><img loading="lazy" src="img/terminal.png" alt="terminal.png"  /></p>
+<p>We use the <strong>DNS name URL of the load balancer</strong> in our browser :</p>
+<p><img loading="lazy" src="img/site-prod.png" alt="site-prod.png"  /></p>
+<p>It works correctly :</p>
+<p><img loading="lazy" src="img/site-prod-2.png" alt="site-prod-2.png"  /></p>
+<p>We can go to see <strong>the logs</strong> using the link displayed in our terminal :</p>
+<p><img loading="lazy" src="img/cloudwatch-logs.png" alt="cloudwatch-logs.png"  /></p>
+<p>Our <strong>ECS cluster</strong> shows the <strong>2 services</strong> that work properly :</p>
+<p><img loading="lazy" src="img/cluster-services.png" alt="cluster-services.png"  /></p>
+<p>Let&rsquo;s go see the <a href="https://aws.amazon.com/cloud-map/" target="_blank" rel="noopener">Cloud Map</a> service.</p>
+<p>We have <strong>1 namespace</strong> created :</p>
+<p><img loading="lazy" src="img/cloud-map-1-namespaces.png" alt="cloud-map-1-namespaces.png"  /></p>
+<p>By clicking the link, we see the <strong>2 services</strong> created :</p>
+<p><img loading="lazy" src="img/cloud-map-2-services.png" alt="cloud-map-2-services.png"  /></p>
+<p>By clicking on the <strong>redis service</strong> we arrive on this page :</p>
+<p><img loading="lazy" src="img/cloud-map-3-redis.png" alt="cloud-map-3-redis.png"  /></p>
+<p>Let&rsquo;s see the additions made in <a href="https://aws.amazon.com/route53/" target="_blank" rel="noopener">Route 53</a>.</p>
+<p>We have <strong>1 hosted zone</strong> created :</p>
+<p><img loading="lazy" src="img/route53-1-hosted-zones.png" alt="route53-1-hosted-zones.png"  /></p>
+<p>We have <strong>4 record set</strong> created.</p>
+<p>Note the 2 <code>Type A</code> record set.</p>
+<blockquote>
+<p><strong>A record</strong> or <strong>Address record</strong> (also called <strong>Host record</strong>) <em>maps</em> a <strong>host name</strong> or a <strong>domain name</strong> or a <strong>subdomain</strong> to a 32-bit IPv4 address distributed over four bytes ex: <code>10.0.0.102</code></p>
+</blockquote>
+<p><img loading="lazy" src="img/route53-2-records-sets.png" alt="route53-2-records-sets.png"  /></p>
+<h3 id="service-scaling">Service scaling</h3>
+<p>We go the <strong>node service</strong> from 1 container <strong>to 3 containers</strong> :</p>
+<pre><code class="language-bash">$ make tf-scale-up
+</code></pre>
+<p>The executed shell code is very simple :</p>
+<pre><code class="language-bash">$ export TF_VAR_desired_count=3
+$ tf-apply
+</code></pre>
+<p>New tasks are <strong>provisioning</strong> :</p>
+<p><img loading="lazy" src="img/cluster-tasks-provisionning.png" alt="cluster-tasks-provisionning.png"  /></p>
+<p>After a few moments, <strong>all instances are running</strong> :</p>
+<p><img loading="lazy" src="img/cluster-tasks-runnning.png" alt="cluster-tasks-runnning.png"  /></p>
+<p>The <strong>target group</strong> associated with our <strong>load balancer</strong> have now <strong>3 healthy instances</strong> registered :</p>
+<p><img loading="lazy" src="img/target-group-1-healthy.png" alt="target-group-1-healthy.png"  /></p>
+<p>And we see our 3 instances – 3 separate IP addresses – behind our load balancer if we <strong>reload our browser several times</strong> :</p>
+<p><img loading="lazy" src="img/site-prod-ip-1.png" alt="site-prod-ip-1.png"  /></p>
+<p><img loading="lazy" src="img/site-prod-ip-2.png" alt="site-prod-ip-2.png"  /></p>
+<p><img loading="lazy" src="img/site-prod-ip-3.png" alt="site-prod-ip-3.png"  /></p>
+<p>We can go back <strong>to 1 container</strong> :</p>
+<pre><code class="language-bash">$ make tf-scale-down
+</code></pre>
+<p><strong>Unregistering targets in the load balancer takes several minutes</strong> :</p>
+<p><img loading="lazy" src="img/target-group-2-draining.png" alt="target-group-2-draining.png"  /></p>
+<p>The demonstration is over, we can <strong>destroy our resources</strong> :</p>
+<pre><code class="language-bash">$ make tf-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/cloud-map/">cloud-map</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker-hub/">docker-hub</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecs/">ecs</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/load-balancer/">load-balancer</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/service-discovery/">service-discovery</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

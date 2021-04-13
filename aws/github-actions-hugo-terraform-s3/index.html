@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Hugo,Terraform,S3,Github Actions,Github,GitOps,CI/CD'><meta name="description" content='Creation of a static website with Hugo. Host it on S3 with CloudFront. Use Terraform and Github actions to deploy it in a GitOps way.'><meta property="og:title" content="Github Actions &#43; Hugo &#43; Terraform &#43; S3" />
+<meta property="og:description" content="Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/github-actions-hugo-terraform-s3/" />
+<meta property="article:published_time" content="2020-07-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-07-07T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Github Actions &#43; Hugo &#43; Terraform &#43; S3"/>
+<meta name="twitter:description" content="Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Github Actions &#43; Hugo &#43; Terraform &#43; S3 | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-explore-and-build-the-project">Install, explore and build the project</a></li>
+        <li><a href="#creating-the-s3-bucket">Creating the S3 bucket</a></li>
+        <li><a href="#creating-the-ssl-certificate">Creating the SSL certificate</a></li>
+        <li><a href="#creation-the-cloudfront-cdn">Creation the CloudFront CDN</a></li>
+        <li><a href="#finalization-on-route-53">Finalization on Route 53</a></li>
+        <li><a href="#putting-the-site-online">Putting the site online</a></li>
+        <li><a href="#using-terraform">Using Terraform</a></li>
+        <li><a href="#website-update-with-github-actions">Website update with Github actions</a></li>
+        <li><a href="#infrastructure-update-with-github-actions">Infrastructure update with Github actions</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">07</span>
+<span class="rest">Jul 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Github Actions &#43; Hugo &#43; Terraform &#43; S3</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>static blog</strong> with <a href="https://gohugo.io/documentation/">Hugo</a></li>
+<li>Host it on <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html">S3</a> using a <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html">CloudFront CDN</a> and a domain name managed by <a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html">Route 53</a></li>
+<li>Doing this manually from the web browser interface</li>
+<li>Redoing the same thing with <a href="https://www.terraform.io/docs/providers/aws/index.html">Terraform</a></li>
+<li>Redoing it using <a href="https://docs.github.com/en/actions">Github Actions</a> to <strong>automate the deployment</strong> of new posts</li>
+<li>The <a href="https://www.gitops.tech/">GitOps</a> approach makes it possible to <strong>update the site or the infrastructure according to the path of the commited files</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-explore-and-build-the-project">Install, explore and build the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># create a `tmp` directory in $HOME
+$ mkdir --parents $HOME/tmp
+
+# download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/github-actions-hugo-terraform-s3.git \
+    $HOME/tmp/aws
+
+# cd
+$ cd $HOME/tmp/aws
+</code></pre>
+<p>We launch the site :</p>
+<pre><code class="language-bash">$ make dev
+</code></pre>
+<p>This script performs the following :</p>
+<pre><code class="language-bash">$ hugo server \
+		--buildDrafts \
+		--disableFastRender
+</code></pre>
+<p>We note the use of the <code>--buildDrafts</code> option which <strong>shows us all the posts, even the drafts</strong>, which will not appear in the build version.</p>
+<p>The website at <a href="http://localhost:1313" target="_blank" rel="noopener">http://localhost:1313</a> :</p>
+<p><img loading="lazy" src="img/site-dev-with-draft.png" alt="site-dev-with-draft"  /></p>
+<p>The <code>draft: true</code> attribute is defined in the <a href="https://gohugo.io/content-management/front-matter/" target="_blank" rel="noopener">Front Matter</a> of the last 2 posts.</p>
+<p>Here is the example of the post <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/edit/master/content/posts/black-and-brown-mallard-duck-surrounded-by-grass/index.md" target="_blank" rel="noopener">black-and-brown-mallard-duck-surrounded-by-grass</a> :</p>
+<pre><code class="language-yaml">---
+title: &quot;black and brown mallard duck surrounded by grass&quot;
+description: &quot;black and brown mallard duck surrounded by grass&quot;
+date: &quot;2020-01-04&quot;
+tags: [black, brown]
+draft: true
+---
+
+![duck](duck.jpg)
+</code></pre>
+<p>Here&rsquo;s a blog content page :</p>
+<p><img loading="lazy" src="img/site-dev-content.png" alt="site-dev-content"  /></p>
+<p>To see the site <strong>without the drafts</strong> we can do :</p>
+<pre><code class="language-bash">$ make dev-nodraft
+</code></pre>
+<p>This command simply do this :</p>
+<pre><code class="language-bash">$ hugo server
+</code></pre>
+<p>We see that <strong>the 2 most recent articles have disappeared</strong> :</p>
+<p><img loading="lazy" src="img/site-dev-without-draft.png" alt="site-dev-without-draft"  /></p>
+<h3 id="creating-the-s3-bucket">Creating the S3 bucket</h3>
+<p>I&rsquo;m going to create a static S3 site that will be <strong>associated with my domain name</strong> <code>jeromedecoster.net</code> :</p>
+<p><img loading="lazy" src="img/hosted-zone.png" alt="hosted-zone"  /></p>
+<p>I create a bucket <code>www.jeromedecoster.net</code> :</p>
+<p><img loading="lazy" src="img/s3-1-bucket-create.png" alt="s3-1-bucket-create"  /></p>
+<p>I <strong>authorize all public access</strong> :</p>
+<p><img loading="lazy" src="img/s3-2-public-access.png" alt="s3-2-public-access"  /></p>
+<p>The bucket is created :</p>
+<p><img loading="lazy" src="img/s3-3-bucket-created.png" alt="s3-3-bucket-created"  /></p>
+<p>I <strong>activate the static website hosting</strong> and I indicate the <strong>index page</strong> and the <strong>error page</strong> :</p>
+<p><img loading="lazy" src="img/s3-4-static-site.png" alt="s3-4-static-site"  /></p>
+<h3 id="creating-the-ssl-certificate">Creating the SSL certificate</h3>
+<p>For my site to support HTTPS, I need to:</p>
+<ol>
+<li>Create an SSL certificate on <a href="https://aws.amazon.com/certificate-manager/" target="_blank" rel="noopener">AWS Certificate Manager</a>.</li>
+<li>Create a CloudFront distribution and associate it with this certificate.</li>
+</ol>
+<p>In order <strong>to associate our SSL certificate with our CloudFront distribution</strong>, our certificate <strong>must be created in the <code>us-east-1</code> region</strong> :</p>
+<p><img loading="lazy" src="img/certificate-1-us-east-1.png" alt="certificate-1-us-east-1"  /></p>
+<p>I start creating the certificate :</p>
+<p><img loading="lazy" src="img/certificate-2-request.png" alt="certificate-2-request"  /></p>
+<p>I enter 2 domain names <code>jeromedecoster.net</code> and <code>*.jeromedecoster.net</code> :</p>
+<p><img loading="lazy" src="img/certificate-3-domains.png" alt="certificate-3-domains"  /></p>
+<p>I choose <strong>DNS validation</strong> method :</p>
+<p><img loading="lazy" src="img/certificate-4-validation.png" alt="certificate-4-validation"  /></p>
+<p>The validation is now <strong>awaiting an action</strong> :</p>
+<p><img loading="lazy" src="img/certificate-5-pending.png" alt="certificate-5-pending"  /></p>
+<p>I need to create a specific <code>CNAME</code> record in Route 53.</p>
+<p>I just need to <strong>click this button to validate the 2 domains</strong> at the same time :</p>
+<p><img loading="lazy" src="img/certificate-6-create-record.png" alt="certificate-6-create-record"  /></p>
+<p>I can see that a <code>CNAME</code> record was added in Route 53 after the click :</p>
+<p><img loading="lazy" src="img/certificate-7-route53.png" alt="certificate-7-route53"  /></p>
+<p>After a few seconds, I refresh the interface to see that <strong>my certificate has been validated</strong> :</p>
+<p><img loading="lazy" src="img/certificate-8-issued.png" alt="certificate-8-issued"  /></p>
+<h3 id="creation-the-cloudfront-cdn">Creation the CloudFront CDN</h3>
+<p>We are now creating the CloudFront distribution :</p>
+<p><img loading="lazy" src="img/cloudfront-1-create.png" alt="cloudfront-1-create"  /></p>
+<p><strong>Warning</strong> : for the <strong>Origin Domain Name</strong> parameter, you <strong>MUST NOT CHOOSE</strong> the S3 bucket listed in the drop-down list !</p>
+<p><img loading="lazy" src="img/cloudfront-2-list.png" alt="cloudfront-2-list"  /></p>
+<p>You must indicate <strong>the endpoint of the bucket</strong> given in the S3 properties :</p>
+<p><img loading="lazy" src="img/cloudfront-3-s3-endpoint.png" alt="cloudfront-3-s3-endpoint"  /></p>
+<p>The drop-down list <strong>suggest</strong> :</p>
+<ul>
+<li><code>www.jeromedecoster.net.s3.amazonaws.com</code></li>
+</ul>
+<p>But <strong>you have to indicate</strong> :</p>
+<ul>
+<li><code>www.jeromedecoster.net.s3-website.eu-west-3.amazonaws.com</code></li>
+</ul>
+<p>I also choose <strong>Redirect HTTP to HTTPS</strong> :</p>
+<p><img loading="lazy" src="img/cloudfront-4-origin-redirect.png" alt="cloudfront-4-origin-redirect"  /></p>
+<p>For <strong>Alternate Domain Names</strong>, I indicate <code>www.jeromedecoster.net</code>.</p>
+<p>I choose <strong>Custom SSL Certificate</strong> and I select my certificate :</p>
+<p><img loading="lazy" src="img/cloudfront-5-ssl.png" alt="cloudfront-5-ssl"  /></p>
+<p>I leave the other parameters by default and I validate the creation of the distribution :</p>
+<p><img loading="lazy" src="img/cloudfront-6-in-progress.png" alt="cloudfront-6-in-progress"  /></p>
+<p>I <strong>copy in my clipboard the Domain Name URL</strong> of my distribution :</p>
+<p><img loading="lazy" src="img/cloudfront-7-copy-id.png" alt="cloudfront-7-copy-id"  /></p>
+<h3 id="finalization-on-route-53">Finalization on Route 53</h3>
+<p>I will now <strong>create a Record Set</strong> in Route 53 <strong>to route the traffic to my distribution</strong> :</p>
+<p><img loading="lazy" src="img/route53-1-create.png" alt="route53-1-create"  /></p>
+<p>I indicate <code>www</code> and I create a <code>type A</code> Record Set.</p>
+<p>I choose <code>Alias : Yes</code>.</p>
+<p>I see that my CloudFront distribution <strong>does not appear in the drop-down list</strong>.</p>
+<p>This is not an error. It actually <strong>takes a while for this to become visible</strong> :</p>
+<p><img loading="lazy" src="img/route53-2-no-cloudfront.png" alt="route53-2-no-cloudfront"  /></p>
+<p>I can however directly <strong>paste the URL Domain Name</strong> of my CloudFront distribution that I had <strong>copied to my clipboard a few steps above</strong>.</p>
+<p>I validate by clicking <strong>Create</strong> :</p>
+<p><img loading="lazy" src="img/route53-3-create-a.png" alt="route53-3-create-a"  /></p>
+<p>I do the same thing again to create a <code>type AAAA</code> Record Set :</p>
+<p><img loading="lazy" src="img/route53-4-create-aaaa.png" alt="route53-4-create-aaaa"  /></p>
+<h3 id="putting-the-site-online">Putting the site online</h3>
+<p>I will now <strong>generate the static site</strong> with Hugo :</p>
+<pre><code class="language-bash">$ make build
+</code></pre>
+<p>This command simply executes :</p>
+<pre><code class="language-bash">$ rm public \
+		--force \
+		--recursive
+$ hugo
+</code></pre>
+<p>Files are generated in the <strong>public</strong> directory :</p>
+<pre><code class="language-bash"># -L level : Max display depth of the directory tree.
+# -F : Append a `/' for directories
+# --dirsfirst : List  directories  before  files.
+$ tree public -L 1 -F --dirsfirst
+public
+├── categories/
+├── css/
+├── page/
+├── posts/
+├── tags/
+├── index.html
+├── index.xml
+└── sitemap.xml
+</code></pre>
+<p>I will now <strong>upload these files</strong> to my bucket :</p>
+<pre><code class="language-bash">$ make upload
+</code></pre>
+<p>This command simply executes :</p>
+<pre><code class="language-bash">$ cd public
+$ aws s3 sync --acl public-read . s3://www.$APEX_DOMAIN
+</code></pre>
+<p>The variable <code>$APEX_DOMAIN</code> is declared in the <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/make.sh" target="_blank" rel="noopener">make.sh</a> file :</p>
+<pre><code class="language-bash">#
+# variables
+#
+
+# AWS variables
+AWS_PROFILE=default
+AWS_REGION=eu-west-3
+# project name
+PROJECT_NAME=github-actions-hugo
+# apex domain name
+APEX_DOMAIN=jeromedecoster.net
+</code></pre>
+<p>If I display the URL <a href="https://www.jeromedecoster.net" target="_blank" rel="noopener">https://www.jeromedecoster.net</a> in my browser :</p>
+<p><img loading="lazy" src="img/site-dev-without-draft.png" alt="site-dev-without-draft"  /></p>
+<h3 id="using-terraform">Using Terraform</h3>
+<p>We have just seen all the <strong>manual steps</strong> necessary to put a static site online.</p>
+<p>We are now going to <strong>recreate this site identically</strong> using <code>Terraform</code> and<code> aws cli</code> in order <strong>to automate this task</strong>.</p>
+<p>I start by <strong>destroying all my previously created resources</strong> :</p>
+<ul>
+<li>The CloudFront distribution</li>
+<li>The SSL certificate</li>
+<li>The S3 bucket</li>
+<li>The <code>CNAME</code>, <code>A</code> and <code>AAAA</code> Record Sets</li>
+</ul>
+<p><strong>Important</strong>: I choose to <strong>NOT MANAGE</strong> the creation of the SSL certificate <strong>by Terraform</strong> but to do it <strong>with aws cli</strong>. I also <strong>do NOT CREATE</strong> a Hosted Zone <strong>with Terraform</strong>.</p>
+<p>Even if the creation / destruction of these resources is technically easy to do with Terraform, it seems <strong>preferable to manage it manually or via a bash script</strong> for the following reasons:</p>
+<ol>
+<li>
+<p>You probably <strong>already have an existing a hosted zone</strong>. It is therefore not necessary to <strong>recreate another</strong> dynamically. Especially since <strong>each hosted area is billed monthly</strong>.</p>
+</li>
+<li>
+<p>Il est probable que vous possédiez déjà une hosted zone. Il n&rsquo;est donc pas nécessaire d&rsquo;en recréer une supplémentaire dynamiquement. D&rsquo;autant que chaque hosted zone est facturée mensuellement.</p>
+</li>
+<li>
+<p>Creating a certificate to associate it with a hosted zone is <strong>not a recurring task</strong>. Once created, there is little chance that you will want to delete it. We therefore <strong>avoid removing it unnecessarily by executing <code>terraform destroy</code></strong>.</p>
+</li>
+</ol>
+<p>I create my certificate :</p>
+<pre><code class="language-bash">$ make create-certificate
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash"># create the certificate in us-east-1
+$ CERTIFICATE_ARN=$(aws acm request-certificate \
+    --domain-name $APEX_DOMAIN \
+    --subject-alternative-names *.$APEX_DOMAIN \
+    --validation-method DNS \
+    --query CertificateArn \
+    --region us-east-1 \
+    --output text)
+
+# get the CNAME datas for the DNS valitaion
+$ RESOURCE_RECORD=$(aws acm describe-certificate \
+        --certificate-arn $CERTIFICATE_ARN \
+        --query 'Certificate.DomainValidationOptions[0].ResourceRecord' \
+        --region us-east-1)
+
+$ CNAME_NAME=$(echo &quot;$RESOURCE_RECORD&quot; | jq --raw-output '.Name')
+$ CNAME_VALUE=$(echo &quot;$RESOURCE_RECORD&quot; | jq --raw-output '.Value')
+
+# create the change Record Set file
+$ cat &gt; CNAME.json &lt;&lt; EOF
+{
+  &quot;Comment&quot;: &quot; &quot;,
+  &quot;Changes&quot;: [
+    {
+      &quot;Action&quot;: &quot;CREATE&quot;,
+      &quot;ResourceRecordSet&quot;: {
+        &quot;Name&quot;: &quot;$CNAME_NAME&quot;,
+        &quot;Type&quot;: &quot;CNAME&quot;,
+        &quot;TTL&quot;: 600,
+        &quot;ResourceRecords&quot;: [
+          {
+            &quot;Value&quot;: &quot;$CNAME_VALUE&quot;
+          }
+        ]
+      }
+    }
+  ]
+}
+EOF
+
+# get the hosted zone id
+$ HOSTED_ZONE_ID=$(aws route53 list-hosted-zones-by-name \
+    --dns-name $APEX_DOMAIN \
+    --profile $AWS_PROFILE \
+    --query 'HostedZones[0].Id' \
+    --output text)
+
+# add the CNAME record set
+$ aws route53 change-resource-record-sets \
+    --hosted-zone-id $HOSTED_ZONE_ID \
+    --change-batch file://CNAME.json
+</code></pre>
+<p>We don&rsquo;t want <a href="https://www.terraform.io/docs/state/remote.html" target="_blank" rel="noopener">Terraform State</a> files to be on our machine. We want them to be <strong>hosted on S3</strong>.</p>
+<p>We define it in the <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/main.tf" target="_blank" rel="noopener">main.tf</a> file :</p>
+<pre><code class="language-hcl">terraform {
+  # 'backend-config' options must be passed like :
+  # terraform init -input=false -backend=true \
+  #   [with] -backend-config=&quot;backend.json&quot;
+  #     [or] -backend-config=&quot;backend.tfvars&quot;
+  #     [or] -backend-config=&quot;&lt;key&gt;=&lt;value&gt;&quot;
+  backend &quot;s3&quot; {}
+}
+</code></pre>
+<p>So we <strong>create a specific bucket</strong> to receive the Terraform State files :</p>
+<pre><code class="language-bash">$ make tf-setup-backend
+</code></pre>
+<p>This command simply executes :</p>
+<pre><code class="language-bash"># create a random name
+$ S3_BACKEND=$PROJECT_NAME-$(mktemp --dry-run XXXX | tr '[:upper:]' '[:lower:]')
+
+# write this name as a variable in a settings.sh file
+$ echo &quot;S3_BACKEND=$S3_BACKEND&quot; &gt; settings.sh
+
+# create the bucket
+$ aws s3 mb s3://$S3_BACKEND --region $AWS_REGION
+</code></pre>
+<p>We can now initialize Terraform :</p>
+<pre><code class="language-bash">$ make tf-init
+</code></pre>
+<p>This command simply executes :</p>
+<pre><code class="language-bash"># set $S3_BACKEND
+$ source settings.sh
+
+# initialize terraform
+$ terraform init \
+    -input=false \
+    -backend=true \
+    -backend-config=&quot;region=$AWS_REGION&quot; \
+    -backend-config=&quot;bucket=$S3_BACKEND&quot; \
+    -backend-config=&quot;key=terraform&quot; \
+    -reconfigure
+</code></pre>
+<p>Let&rsquo;s take a look at some excerpts from <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/tree/master/infra" target="_blank" rel="noopener">Terraform files</a>.</p>
+<p>We use <strong>a trick to create resources in 2 different regions</strong> in <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/main.tf" target="_blank" rel="noopener">main.tf</a> :</p>
+<pre><code class="language-hcl">provider aws {
+  region  = var.region
+  profile = var.profile
+}
+
+provider aws {
+  region  = &quot;us-east-1&quot;
+  profile = var.profile
+  alias   = &quot;us_east_1&quot;
+}
+</code></pre>
+<p>I create a Record Set <strong>using an already existing Hosted Zone</strong> in <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/route53.tf" target="_blank" rel="noopener">route53.tf</a> :</p>
+<pre><code class="language-hcl">data aws_route53_zone zone {
+  name = var.apex_domain
+}
+
+resource aws_route53_record A {
+  zone_id = data.aws_route53_zone.zone.zone_id
+  name    = &quot;www.${var.apex_domain}&quot;
+  type    = &quot;A&quot;
+
+  alias {
+    name                   = aws_cloudfront_distribution.distribution.domain_name
+    zone_id                = aws_cloudfront_distribution.distribution.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+</code></pre>
+<p>Creating the <strong>bucket for static website hosting</strong> in <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/s3.tf" target="_blank" rel="noopener">s3.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_s3_bucket bucket {
+  bucket        = &quot;www.${var.apex_domain}&quot;
+  force_destroy = true
+  acl           = &quot;public-read&quot;
+
+  website {
+    index_document = &quot;index.html&quot;
+    error_document = &quot;error.html&quot;
+  }
+}
+
+data aws_iam_policy_document policy {
+  statement {
+    principals {
+      type        = &quot;*&quot;
+      identifiers = [&quot;*&quot;]
+    }
+    actions   = [&quot;s3:GetObject&quot;]
+    resources = [&quot;${aws_s3_bucket.bucket.arn}/*&quot;]
+  }
+}
+
+resource aws_s3_bucket_policy bucket_policy {
+  bucket = aws_s3_bucket.bucket.id
+  policy = data.aws_iam_policy_document.policy.json
+}
+</code></pre>
+<p>Creation of the CloudFront distribution in <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/cloudfront.tf" target="_blank" rel="noopener">cloudfront.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_cloudfront_distribution distribution {
+  provider = aws.us_east_1
+
+  origin {
+    domain_name = aws_s3_bucket.bucket.website_endpoint
+    origin_id   = aws_s3_bucket.bucket.website_endpoint
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = &quot;http-only&quot;
+      origin_ssl_protocols   = [&quot;TLSv1&quot;, &quot;TLSv1.1&quot;, &quot;TLSv1.2&quot;]
+    }
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = &quot;&quot;
+  default_root_object = &quot;index.html&quot;
+
+  aliases = [&quot;www.${var.apex_domain}&quot;]
+
+  default_cache_behavior {
+    allowed_methods  = [&quot;GET&quot;, &quot;HEAD&quot;]
+    cached_methods   = [&quot;GET&quot;, &quot;HEAD&quot;]
+    target_origin_id = aws_s3_bucket.bucket.website_endpoint
+    compress         = true
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = &quot;none&quot;
+      }
+    }
+
+    viewer_protocol_policy = &quot;redirect-to-https&quot;
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = data.aws_acm_certificate.cert.arn
+    ssl_support_method       = &quot;sni-only&quot;
+    minimum_protocol_version = &quot;TLSv1.2_2018&quot;
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = &quot;none&quot;
+    }
+  }
+}
+</code></pre>
+<p>Now we can <strong>create the infrastructure</strong> :</p>
+<pre><code class="language-bash">$ make tf-apply
+</code></pre>
+<p>Then <strong>upload the files</strong> :</p>
+<pre><code class="language-bash">$ make upload
+</code></pre>
+<p>If I display the URL <a href="https://www.jeromedecoster.net" target="_blank" rel="noopener">https://www.jeromedecoster.net</a> in my browser :</p>
+<p><img loading="lazy" src="img/site-dev-without-draft.png" alt="site-dev-without-draft"  /></p>
+<h3 id="website-update-with-github-actions">Website update with Github actions</h3>
+<p>I create a workflow to <strong>rebuild</strong> the site <strong>and deploy it automatically after each update</strong> with <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> :</p>
+<p>Let&rsquo;s look at some excerpts.</p>
+<p>The workflow will <strong>only be triggered if files are modified after a push action in these directories</strong> :</p>
+<pre><code class="language-yml">name: cd
+
+on:
+  push:
+    paths:
+      - &quot;content/**&quot;
+      - &quot;extra/**&quot;
+      - &quot;layouts/**&quot;
+      - &quot;static/**&quot;
+</code></pre>
+<p>We use the <a href="https://github.com/peaceiris/actions-hugo" target="_blank" rel="noopener">peaceiris/actions-hugo</a> action to <strong>install Hugo</strong>.</p>
+<p>Then we <strong>generate the website</strong> very simply :</p>
+<pre><code class="language-yml">- name: Setup Hugo
+  uses: peaceiris/actions-hugo@v2
+
+- name: Build with Hugo
+  run: hugo --minify
+</code></pre>
+<p>We <strong>deploy the files</strong> in the S3 bucket:</p>
+<pre><code class="language-yml">- name: Deploy static site to S3 bucket
+  run: |
+    cd public
+    aws s3 sync \
+      --delete \
+      --acl public-read \
+      . s3://www.jeromedecoster.net
+</code></pre>
+<p>We launch a <strong>CloudFront invalidation on specific files to update our site quickly</strong> :</p>
+<pre><code class="language-yml">- name: Cloudfront invalidation
+  run: |
+    aws cloudfront create-invalidation \
+      --distribution-id ${{ secrets.DISTRIBUTION_ID }} \
+      --paths &quot;/&quot; \
+      &quot;/index.html&quot; \
+      &quot;/posts/&quot; \
+      &quot;/posts/index.html&quot; \
+      &quot;/tags/&quot; \
+      &quot;/tags/index.html&quot;
+</code></pre>
+<p>I create <strong>project specific AWS accesses</strong> :</p>
+<pre><code class="language-bash">$ create-user
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash"># create the user
+$ aws iam create-user \
+        --user-name $PROJECT_NAME
+
+# attach a PowerUserAccess policy
+$ aws iam attach-user-policy \
+        --user-name $PROJECT_NAME \
+        --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
+
+# ... get the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY values ...
+
+# write these values in a secrets.sh file
+cat &gt; secrets.sh &lt;&lt; EOF
+AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+EOF
+</code></pre>
+<p>I add some <strong>secret variables to my github project</strong> :</p>
+<p><img loading="lazy" src="img/actions-secrets.png" alt="actions-secrets"  /></p>
+<p>I modify <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/content/posts/black-and-brown-mallard-duck-surrounded-by-grass/index.md" target="_blank" rel="noopener">a post</a> that had remained in <code>draft: true</code>.</p>
+<p>I set now <code>draft: false</code> :</p>
+<p><img loading="lazy" src="img/actions-draft-false.png" alt="actions-draft-false"  /></p>
+<p>After the commit, the action is executed <strong>quickly</strong> :</p>
+<p><img loading="lazy" src="img/actions-cd.png" alt="actions-cd"  /></p>
+<p>I see the <strong>new blog post</strong>, my website is <strong>updated successfully</strong> :</p>
+<p><img loading="lazy" src="img/actions-site-updated.png" alt="actions-site-updated"  /></p>
+<h3 id="infrastructure-update-with-github-actions">Infrastructure update with Github actions</h3>
+<p>I create a workflow to <strong>update the infrastructure with Terraform</strong> in <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/.github/workflows/infra.yml" target="_blank" rel="noopener">infra.yml</a>.</p>
+<p>Let&rsquo;s look at some excerpts.</p>
+<p>The workflow will <strong>only be triggered if files are modified after a push action in this directory</strong> :</p>
+<pre><code class="language-yml">name: infra
+
+on:
+  push:
+    paths:
+      - &quot;infra/**&quot;
+</code></pre>
+<p>Some of the <strong>variables used by Terraform</strong> are defined :</p>
+<pre><code class="language-yml">env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: eu-west-3
+  TF_VAR_apex_domain: jeromedecoster.net
+</code></pre>
+<p>Terraform is <strong>installed</strong> using the <a href="https://github.com/hashicorp/setup-terraform" target="_blank" rel="noopener">hashicorp/setup-terraform</a> action, and then <strong>initialized with the remote state backend</strong> :</p>
+<pre><code class="language-yml">- name: Setup Terraform
+  uses: hashicorp/setup-terraform@v1.1.0
+
+- name: Terraform Init
+  timeout-minutes: 2
+  run: |
+    terraform init \
+        -input=false \
+        -backend=true \
+        -backend-config=&quot;region=${{ env.AWS_REGION }}&quot; \
+        -backend-config=&quot;bucket=${{ secrets.S3_BACKEND }}&quot; \
+        -backend-config=&quot;key=terraform&quot; \
+        -reconfigure
+</code></pre>
+<p>We apply the transformations :</p>
+<pre><code class="language-yml">- name: Terraform Plan
+  run: terraform plan -out=terraform.plan
+
+- name: Terraform Apply
+  run: terraform apply -auto-approve terraform.plan
+</code></pre>
+<p>To test this action I <strong>create an additional bucket by uncommenting these lines</strong> in the <a href="https://github.com/jeromedecoster/github-actions-hugo-terraform-s3/blob/master/infra/s3.tf" target="_blank" rel="noopener">s3.tf</a> file :</p>
+<pre><code class="language-hcl"># resource aws_s3_bucket bucket_test {
+#  bucket        = &quot;test.${var.apex_domain}&quot;
+#  force_destroy = true
+# }
+</code></pre>
+<p>This bucket is useless for my project, it&rsquo;s just to test the process.</p>
+<p>The action is <strong>quickly executed</strong> successfully :</p>
+<p><img loading="lazy" src="img/actions-infra.png" alt="actions-infra"  /></p>
+<p>The bucket has been created :</p>
+<p><img loading="lazy" src="img/actions-bucket-created.png" alt="actions-bucket-created"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github-actions/">github-actions</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/gitops/">gitops</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/hugo/">hugo</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3/">s3</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

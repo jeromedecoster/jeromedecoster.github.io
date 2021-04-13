@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Lambda,Terraform,Github Actions,CI/CD'><meta name="description" content='Building a continuous deployment for Lambda functions in a multi-stage environment.'><meta property="og:title" content="Lambda &#43; Terraform &#43; Github Actions" />
+<meta property="og:description" content="Building a **continuous deployment** for **Lambda** functions in a **multi-stage environment**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/lambda-terraform-github-actions/" />
+<meta property="article:published_time" content="2021-02-18T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-02-18T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Lambda &#43; Terraform &#43; Github Actions"/>
+<meta name="twitter:description" content="Building a **continuous deployment** for **Lambda** functions in a **multi-stage environment**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Lambda &#43; Terraform &#43; Github Actions | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#creating-the-architecture">Creating the architecture</a></li>
+        <li><a href="#setup-up-the-github-project">Setup up the Github project</a></li>
+        <li><a href="#creating-the-develop-branch">Creating the develop branch</a></li>
+        <li><a href="#updating-the-master-branch">Updating the master branch</a></li>
+        <li><a href="#updating-with-the-github-flow">Updating with the Github flow</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">18</span>
+<span class="rest">Feb 2021</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Lambda &#43; Terraform &#43; Github Actions</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>deployment pipeline for a Lambda function with Terraform</strong></li>
+<li>Use Lambda versions and aliases to define <strong>two environments for development and production</strong></li>
+<li>Use the <strong>API Gateway stageVariables</strong> to target one of these 2 environments</li>
+<li>Use Gihub Actions to automatically update the Lambda function</li>
+<li>A git <strong>push on the develop branch will update the dev version</strong> of the Lambda function</li>
+<li>A git <strong>push on the master branch will update the prod version</strong> of the Lambda function</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/lambda-terraform-github-actions.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># create env + terraform init
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Create an <strong>AWS user</strong> and put the <strong>access keys</strong> in the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/.env.tmpl" target="_blank" rel="noopener">.env file</a></li>
+<li>Initialize <strong>Terraform</strong> from the information defined in the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/tree/master/infra" target="_blank" rel="noopener">infra directory</a></li>
+</ul>
+<h3 id="creating-the-architecture">Creating the architecture</h3>
+<p>To create the architecture, run the following command :</p>
+<pre><code class="language-bash"># terraform plan + apply
+$ make tf-apply
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Create a <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/infra/lambda.tf" target="_blank" rel="noopener">Lambda function</a> that runs a <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/lambda/hello.js" target="_blank" rel="noopener">very simple code</a></li>
+<li>Create an <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/infra/api-gateway.tf" target="_blank" rel="noopener">API Gateway</a> that will allow us to access the Lambda function</li>
+</ul>
+<p>The API Gateway is created :</p>
+<p><img loading="lazy" src="img/api-1-created.png" alt="api-1-created"  /></p>
+<p>The <code>/hello</code> resource has a <code>GET</code> method that <strong>targets our Lambda</strong> :</p>
+<p><img loading="lazy" src="img/api-2-method.png" alt="api-2-method"  /></p>
+<p>We can see in the <strong>Integration Request</strong> box that, by targeting the Lambda function, we associate a <strong>specific version</strong> defined by <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/stage-variables.html" target="_blank" rel="noopener">stageVariable</a> :</p>
+<p><img loading="lazy" src="img/api-3-integration-request.png" alt="api-3-integration-request"  /></p>
+<p><strong>Two stages</strong> have also been published : <code>dev</code> and <code>prod</code>.</p>
+<p>Here is the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/infra/api-gateway.tf" target="_blank" rel="noopener">source code</a> to deploy the stage <code>dev</code> :</p>
+<pre><code class="language-hcl">resource &quot;aws_api_gateway_deployment&quot; &quot;deployment_dev&quot; {
+  depends_on = [
+    aws_api_gateway_integration.lambda
+  ]
+
+  rest_api_id = aws_api_gateway_rest_api.api_gateway.id
+}
+  
+
+resource &quot;aws_api_gateway_stage&quot; &quot;dev&quot; {
+  deployment_id = aws_api_gateway_deployment.deployment_dev.id
+  rest_api_id   = aws_api_gateway_rest_api.api_gateway.id
+  stage_name    = &quot;dev&quot;
+
+  variables = {
+    &quot;stage&quot; = &quot;dev&quot;
+  }
+}
+</code></pre>
+<p>The <strong>stage</strong> <code>dev</code> has a <strong>stageVariable</strong> called <code>stage</code> whose value is <code>dev</code> :</p>
+<p><img loading="lazy" src="img/api-4-stage-variable-dev.png" alt="api-4-stage-variable-dev"  /></p>
+<p>The <strong>stage</strong> <code>prod</code> has a <strong>stageVariable</strong> called <code>stage</code> whose value is <code>prod</code> :</p>
+<p><img loading="lazy" src="img/api-5-stage-variable-prod.png" alt="api-5-stage-variable-prod"  /></p>
+<p>Lambda function is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/lambda-1-created-1.png" alt="lambda-1-created-1"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/lambda/hello.js" target="_blank" rel="noopener">code</a> is <strong>simple</strong> :</p>
+<p><img loading="lazy" src="img/lambda-2-created-2.png" alt="lambda-2-created-2"  /></p>
+<p>Here is the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/infra/lambda.tf" target="_blank" rel="noopener">source code</a> to <strong>create the 2 aliases</strong> :</p>
+<pre><code class="language-hcl">resource &quot;aws_lambda_alias&quot; &quot;alias_dev&quot; {
+  name             = &quot;dev&quot;
+  description      = &quot;dev&quot;
+  function_name    = aws_lambda_function.hello.arn
+  function_version = &quot;$LATEST&quot;
+}
+
+resource &quot;aws_lambda_alias&quot; &quot;alias_prod&quot; {
+  name             = &quot;prod&quot;
+  description      = &quot;prod&quot;
+  function_name    = aws_lambda_function.hello.arn
+  function_version = &quot;$LATEST&quot;
+}
+</code></pre>
+<p>We find these <strong>aliases</strong> in the web interface :</p>
+<p><img loading="lazy" src="img/lambda-3-aliases-1.png" alt="lambda-3-aliases-1"  /></p>
+<p>We can test access to the Lambda function by a curl call :</p>
+<pre><code class="language-bash">$ make hello-dev
+&quot;Hello from Lambda&quot;
+</code></pre>
+<h3 id="setup-up-the-github-project">Setup up the Github project</h3>
+<p>The project uses <a href="https://github.com/features/actions" target="_blank" rel="noopener">Github Actions</a> to <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">automatically deploy</a> updates</p>
+<p>Lambda function <strong>automatic deployment requires AWS credentials</strong></p>
+<p>Here is the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">source code</a> using <strong>the accesses</strong> :</p>
+<pre><code class="language-yaml">- name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+</code></pre>
+<p>These accesses were created previously</p>
+<p>They are located in the <code>.env</code> file which is based on the <code>.env.tmpl</code> <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/.env.tmpl" target="_blank" rel="noopener">template</a></p>
+<p>We add these <a href="https://docs.github.com/en/actions/reference/encrypted-secrets" target="_blank" rel="noopener">secrets</a> in our project :</p>
+<p><img loading="lazy" src="img/github-1-secrets-1.png" alt="github-1-secrets-1"  /></p>
+<p>The secrets have been <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/github-2-secrets-2.png" alt="github-2-secrets-2"  /></p>
+<h3 id="creating-the-develop-branch">Creating the develop branch</h3>
+<p>As a reminder, the deployment of our project is done according to this principle :</p>
+<ul>
+<li>
+<p>A git <strong>push on the <code>develop</code> branch will update the <code>dev</code> version</strong> of the Lambda function</p>
+</li>
+<li>
+<p>A git <strong>push on the <code>master</code> branch will update the <code>prod</code> version</strong> of the Lambda function</p>
+</li>
+</ul>
+<p>At the moment we <strong>only have one</strong> <code>master</code> branch. So we <strong>create</strong> a <code>develop</code> branch from it :</p>
+<p><img loading="lazy" src="img/github-develop-1-create-branch.png" alt="github-develop-1-create-branch"  /></p>
+<p>We edit the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/develop/lambda/hello.js" target="_blank" rel="noopener">code</a> of the Lambda function of the <strong>develop branch</strong> :</p>
+<p><img loading="lazy" src="img/github-develop-2-edit.png" alt="github-develop-2-edit"  /></p>
+<p>We modify the message for <strong>Hello from develop</strong> :</p>
+<p><img loading="lazy" src="img/github-develop-3-modified.png" alt="github-develop-3-modified"  /></p>
+<p>We <strong>commit</strong> directly to the <code>develop</code> branch :</p>
+<p><img loading="lazy" src="img/github-develop-4-commit.png" alt="github-develop-4-commit"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/develop/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> workflow starts :</p>
+<p><img loading="lazy" src="img/github-develop-5-action-started.png" alt="github-develop-5-action-started"  /></p>
+<p>It ends quickly :</p>
+<p><img loading="lazy" src="img/github-develop-6-action-completed.png" alt="github-develop-6-action-completed"  /></p>
+<p>To <strong>test our deployment</strong> we run the following command :</p>
+<pre><code class="language-bash">$ make hello-dev
+</code></pre>
+<p>This command executes a <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/develop/make.sh" target="_blank" rel="noopener">simple curl</a> call :</p>
+<pre><code class="language-bash">$ curl $(terraform output -raw hello_dev)
+</code></pre>
+<p>It <strong>get the URL</strong> from a <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/develop/infra/api-gateway.tf" target="_blank" rel="noopener">Terraform output</a> :</p>
+<pre><code class="language-hcl">output &quot;hello_dev&quot; {
+  value = &quot;${aws_api_gateway_stage.dev.invoke_url}/hello&quot;
+}
+</code></pre>
+<p>Our code modification, on the <code>develop</code> branch, returns the <strong>correct message</strong> :</p>
+<pre><code class="language-bash"># successul return !
+$ make hello-dev
+&quot;Hello from develop&quot;
+</code></pre>
+<h3 id="updating-the-master-branch">Updating the master branch</h3>
+<p>We quickly edit the <strong>master branch</strong> to test the proper functioning of our <strong>continuous deployment</strong> :</p>
+<p><img loading="lazy" src="img/github-master-1-edit.png" alt="github-master-1-edit"  /></p>
+<p>The message is now <strong>Hello from master</strong> :</p>
+<p><img loading="lazy" src="img/github-master-2-modified.png" alt="github-master-2-modified"  /></p>
+<p>We commit in the <strong>master branch</strong>  :</p>
+<p><img loading="lazy" src="img/github-master-3-commit.png" alt="github-master-3-commit"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/develop/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> workflow starts :</p>
+<p><img loading="lazy" src="img/github-master-4-action-started.png" alt="github-master-4-action-started"  /></p>
+<p>It ends quickly. To <strong>test our deployment</strong> we run the following command :</p>
+<pre><code class="language-bash">$ make hello-prod
+&quot;Hello from master&quot;
+</code></pre>
+<p>In the Lambda web interface, we can see that <strong>aliases now point to the published versions of a Lambda function</strong> and no longer to the <code>$LATEST</code> version :</p>
+<p><img loading="lazy" src="img/lambda-4-aliases-updated.png" alt="lambda-4-aliases-updated"  /></p>
+<p>The <code>prod</code> and <code>dev</code> versions have an <code>alias</code> label :</p>
+<p><img loading="lazy" src="img/lambda-5-versions-updated.png" alt="lambda-5-versions-updated"  /></p>
+<p>This <strong>publication and alias association</strong> is performed by this part of the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/publish.sh" target="_blank" rel="noopener">publish.sh</a> script :</p>
+<pre><code class="language-bash">VERSION=$(aws lambda publish-version \
+    --function-name $PROJECT_NAME \
+    --description $1 \
+    --region $AWS_REGION \
+    --query Version \
+    --output text)
+
+aws lambda create-alias \
+    --function-name $PROJECT_NAME \
+    --name $1 \
+    --function-version $VERSION \
+    --region $AWS_REGION
+</code></pre>
+<h3 id="updating-with-the-github-flow">Updating with the Github flow</h3>
+<p>Our project works :</p>
+<ul>
+<li>
+<p>Updating the code on the <code>master</code> branch <strong>deploys a Lambda</strong> accessible via the URL <code>/prod/hello</code></p>
+</li>
+<li>
+<p>Updating the code on the <code>develop</code> branch <strong>deploys a Lambda</strong> accessible via the URL <code>/dev/hello</code></p>
+</li>
+</ul>
+<p>We now want to <strong>simulate a real update</strong> of our project using the <a href="https://guides.github.com/introduction/flow/" target="_blank" rel="noopener">Github flow</a>.</p>
+<p>We will create a <a href="https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests" target="_blank" rel="noopener">Pull Request</a> to <strong>add a new feature</strong> to our function.</p>
+<p>We will name this feature <code>feature-1</code>.</p>
+<p>We edit our <code>hello.js</code> file from our <strong>develop branch</strong> :</p>
+<p><img loading="lazy" src="img/feature-1-edit.png" alt="feature-1-edit"  /></p>
+<p>To <strong>simulate the first version</strong> of our <code>feature-1</code>, we modify our message to <strong>Hello with feature-1-v1</strong> :</p>
+<p><img loading="lazy" src="img/feature-2-modified.png" alt="feature-2-modified"  /></p>
+<p>By committing our code, we choose to <strong>create a new branch</strong> and name it <code>feature-1</code> :</p>
+<p><img loading="lazy" src="img/feature-3-commit.png" alt="feature-3-commit"  /></p>
+<p>The github web interface offers us to <strong>create a Pull Request</strong>.</p>
+<p>We name it <code>feature-1</code> and we indicate that <strong>this branch should be merged into the</strong> <code>develop</code> <strong>branch</strong> :</p>
+<p><img loading="lazy" src="img/feature-4-pull-request-open.png" alt="feature-4-pull-request-open"  /></p>
+<p>The pull request has been created but we <strong>do not merge it right away</strong> :</p>
+<p><img loading="lazy" src="img/feature-5-pull-request-created.png" alt="feature-5-pull-request-created"  /></p>
+<p>We will first update our Lambda function :</p>
+<p><img loading="lazy" src="img/feature-6-edit-again.png" alt="feature-6-edit-again"  /></p>
+<p>It is important to note that the previous commit on the new <code>feature-1</code> branch <strong>did not trigger our continuous deployment workflow</strong>.</p>
+<p>This is because the <a href="https://github.com/jeromedecoster/lambda-terraform-github-actions/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">workflow</a> is configured to be triggered <strong>only after a push action on the</strong> <code>master</code> <strong>or the</strong> <code>develop</code> <strong>branches</strong> :</p>
+<pre><code class="language-yaml">name: cd
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+</code></pre>
+<p>We are changing the message to <strong>Hello with feature-1-v2</strong> :</p>
+<p><img loading="lazy" src="img/feature-7-modified-again.png" alt="feature-7-modified-again"  /></p>
+<p>We commit this update in the <code>feature-1</code> branch :</p>
+<p><img loading="lazy" src="img/feature-8-commit-again.png" alt="feature-8-commit-again"  /></p>
+<p>We are now satisfied with all these modifications, we will be able to <strong>merge the pull request</strong> :</p>
+<p><img loading="lazy" src="img/feature-9-pull-request-merge.png" alt="feature-9-pull-request-merge"  /></p>
+<p>The workflow is started :</p>
+<p><img loading="lazy" src="img/feature-10-action-started.png" alt="feature-10-action-started"  /></p>
+<p>He finishes quickly :</p>
+<p><img loading="lazy" src="img/feature-11-action-completed.png" alt="feature-11-action-completed"  /></p>
+<p>Our new version is <strong>quickly accessible</strong> from the stage <code>dev</code> :</p>
+<pre><code class="language-bash">$ make hello-dev
+&quot;Hello with feature-1-v2&quot;
+</code></pre>
+<p>If we are satisfied with this version, we can <strong>deploy it in production</strong>.</p>
+<p>We just need to <strong>create a new Pull Request to merge the develop branch to the master branch</strong>.</p>
+<p>The deployment will be automatic.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github-actions/">github-actions</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

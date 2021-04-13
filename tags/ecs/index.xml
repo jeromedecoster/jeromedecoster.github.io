@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>ECS on Jérôme Decoster</title>
+    <link>/tags/ecs/</link>
+    <description>Recent content in ECS on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 10 Mar 2021 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/ecs/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Gitlab &#43; ECS &#43; Terraform</title>
+      <link>/aws/gitlab-ecs-terraform/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitlab-ecs-terraform/</guid>
+      <description>
+      
+      Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions &#43; ECR &#43; ECS</title>
+      <link>/aws/github-actions-ecr-ecs/</link>
+      <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-actions-ecr-ecs/</guid>
+      <description>
+      
+      Using **Github actions** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
+      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <description>
+      
+      Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS &#43; Load Balancer &#43; Node &#43; Terraform</title>
+      <link>/aws/ecs-load-balancer-node-terraform/</link>
+      <pubDate>Mon, 15 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-load-balancer-node-terraform/</guid>
+      <description>
+      
+      Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Docker &#43; ECS &#43; Fargate</title>
+      <link>/aws/docker-ecs-fargate/</link>
+      <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/docker-ecs-fargate/</guid>
+      <description>
+      
+      Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

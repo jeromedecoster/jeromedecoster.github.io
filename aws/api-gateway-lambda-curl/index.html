@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,API Gateway,Lambda,curl'><meta name="description" content='Testing API Gateway and Lambda with different type of Integration Request.'><meta property="og:title" content="API Gateway &#43; Lambda &#43; curl" />
+<meta property="og:description" content="Testing **API Gateway** and **Lambda** with different type of **Integration Request**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/api-gateway-lambda-curl/" />
+<meta property="article:published_time" content="2019-12-18T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-12-18T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="API Gateway &#43; Lambda &#43; curl"/>
+<meta name="twitter:description" content="Testing **API Gateway** and **Lambda** with different type of **Integration Request**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>API Gateway &#43; Lambda &#43; curl | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-code">Install and setup the code</a></li>
+        <li><a href="#create-the-lambda">Create the Lambda</a></li>
+        <li><a href="#create-the-api-gateway">Create the API Gateway</a></li>
+        <li><a href="#test-the-aws_proxy-integration-request-type">Test the AWS_PROXY integration request type</a></li>
+        <li><a href="#test-the-aws-integration-request-type">Test the AWS integration request type</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">18</span>
+<span class="rest">Dec 2019</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">API Gateway &#43; Lambda &#43; curl</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>We will test the different ways to <strong>send data with curl</strong> and see how <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/">API Gateway</a> and <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/index.html">Lambda</a> support it with different type of <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/integration-request-basic-setup.html">Integration Request</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<h3 id="install-and-setup-the-code">Install and setup the code</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code hosted in a github repository
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-apigateway-lambda-curl.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, you must edit the <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/settings.sample.sh" target="_blank" rel="noopener">settings file</a> first :</p>
+<pre><code class="language-bash">$ cat settings.sample.sh 
+# Project
+AWS_ID=
+AWS_REGION=eu-west-3
+# API Gateway
+API_NAME=aws-apigateway-lamdba-curl
+API_ID=
+# ...
+</code></pre>
+<p>You can change some values, but the most important thing is to <strong>choose your region</strong>. The default value is :</p>
+<ul>
+<li><strong>AWS_REGION</strong> : <code>eu-west-3</code></li>
+</ul>
+<p>After that you can execute the <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/1-setup.sh" target="_blank" rel="noopener">1-setup.sh</a> script. This will create the <code>settings.sh</code> file :</p>
+<pre><code class="language-bash"># execute the setup
+$ ./1-setup.sh
+</code></pre>
+<h3 id="create-the-lambda">Create the Lambda</h3>
+<p>To create a Lambda we need to execute :</p>
+<pre><code class="language-bash"># create the Lambda
+$ ./2-create-lambda.sh
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/index.js" target="_blank" rel="noopener">code</a> is very simple :</p>
+<pre><code class="language-js">exports.handler = async (event) =&gt; {
+    return {
+        statusCode: 200,
+        body: JSON.stringify(event)
+    }
+}
+</code></pre>
+<h3 id="create-the-api-gateway">Create the API Gateway</h3>
+<p>To create the API Gateway we need to execute :</p>
+<pre><code class="language-bash"># create the API Gateway
+$ ./3-create-apigateway.sh
+</code></pre>
+<p>This will create <strong>2 resources</strong> :</p>
+<p><img loading="lazy" src="img/resources-path.png" alt="upload.png"  /></p>
+<p>The <strong>/with-proxy</strong> resource will give the URL :</p>
+<ul>
+<li>https://<code>api-id</code>.execute-api.<code>region</code>.amazonaws.com/<code>stage</code>/<strong>with-proxy</strong></li>
+</ul>
+<p>The <strong>Integration Request</strong> type for this resource is <strong>LAMBDA_PROXY</strong>.</p>
+<p>This simply means that the checkbox <strong>Use Lambda Proxy Integration</strong> is <strong>checked</strong> :</p>
+<p><img loading="lazy" src="img/with-proxy.png" alt="with-proxy.png"  /></p>
+<p>The <strong>/no-proxy</strong> resource will give the URL :</p>
+<ul>
+<li>https://<code>api-id</code>.execute-api.<code>region</code>.amazonaws.com/<code>stage</code>/<strong>no-proxy</strong></li>
+</ul>
+<p>The <strong>Integration Request</strong> type for this resource is <strong>LAMBDA</strong>.</p>
+<p>This simply means that the checkbox <strong>Use Lambda Proxy Integration</strong> is <strong>NOT checked</strong></p>
+<h3 id="test-the-aws_proxy-integration-request-type">Test the AWS_PROXY integration request type</h3>
+<p>First, we need to deploy the API Gateway with <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/4-deploy-apigateway.sh" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash"># deploy the API Gateway
+$ ./4-deploy-apigateway.sh
+</code></pre>
+<p>We can test the <strong>/with-proxy</strong> path :</p>
+<ul>
+<li>Using <code>AWS_PROXY</code> is very easy. We have <strong>nothing to do</strong> and a large amount of very <strong>useful data is returned</strong>.</li>
+</ul>
+<pre><code class="language-bash"># get some variables
+$ source ./settings.sh
+
+# POST /with-proxy
+$ curl --request POST \
+    --silent \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY&quot; \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.region.amazonaws.com&quot;,
+    &quot;User-Agent&quot;: &quot;curl/7.58.0&quot;,
+    &quot;X-Amzn-Trace-Id&quot;: &quot;Root=1-...&quot;,
+    &quot;X-Forwarded-For&quot;: &quot;...&quot;,
+    &quot;X-Forwarded-Port&quot;: &quot;443&quot;,
+    &quot;X-Forwarded-Proto&quot;: &quot;https&quot;
+  },
+  &quot;multiValueHeaders&quot;: {
+    &quot;accept&quot;: [ &quot;*/*&quot; ],
+    &quot;Host&quot;: [ &quot;api-id.execute-api.region.amazonaws.com&quot; ],
+    &quot;User-Agent&quot;: [ &quot;curl/7.58.0&quot; ],
+    &quot;X-Amzn-Trace-Id&quot;: [ &quot;Root=1-...&quot; ],
+    &quot;X-Forwarded-For&quot;: [ &quot;...&quot; ],
+    &quot;X-Forwarded-Port&quot;: [ &quot;443&quot; ],
+    &quot;X-Forwarded-Proto&quot;: [ &quot;https&quot; ]
+  },
+  &quot;queryStringParameters&quot;: null,
+  &quot;multiValueQueryStringParameters&quot;: null,
+  &quot;pathParameters&quot;: null,
+  &quot;stageVariables&quot;: null,
+  &quot;requestContext&quot;: &quot;{ ... }&quot;,
+  &quot;body&quot;: null,
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<p>Let&rsquo;s send some values using the <a href="https://curl.haxx.se/docs/manpage.html#-d" target="_blank" rel="noopener">-d, &ndash;data <data></a> option :</p>
+<ul>
+<li>We can note that <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type" target="_blank" rel="noopener">Content-Type entity header</a> is defined to <strong>application/x-www-form-urlencoded</strong>.</li>
+<li>If the <a href="https://curl.haxx.se/docs/manpage.html#-d" target="_blank" rel="noopener">&ndash;data</a> option is defined, the request is <strong>automatically defined as POST</strong>. It is not necessary to declare : <code>--request POST</code>.</li>
+<li>We can note the content of the properties <code>content-type</code>, <code>queryStringParameters</code> and <code>body</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --data 'c=3&amp;d=4' \
+    --data 'e=5' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY?a=1&amp;b=2&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;content-type&quot;: &quot;application/x-www-form-urlencoded&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot;,
+    &quot;User-Agent&quot;: &quot;curl/7.58.0&quot;,
+    &quot;X-Amzn-Trace-Id&quot;: &quot;Root=1-...&quot;,
+    &quot;X-Forwarded-For&quot;: &quot;...&quot;,
+    &quot;X-Forwarded-Port&quot;: &quot;443&quot;,
+    &quot;X-Forwarded-Proto&quot;: &quot;https&quot;
+  },
+  &quot;multiValueHeaders&quot;: {
+    &quot;accept&quot;: [ &quot;*/*&quot; ],
+    &quot;content-type&quot;: [ &quot;application/x-www-form-urlencoded&quot; ],
+    &quot;Host&quot;: [ &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot; ],
+    &quot;User-Agent&quot;: [ &quot;curl/7.58.0&quot; ],
+    &quot;X-Amzn-Trace-Id&quot;: [ &quot;Root=1-...&quot; ],
+    &quot;X-Forwarded-For&quot;: [ &quot;...&quot; ],
+    &quot;X-Forwarded-Port&quot;: [ &quot;443&quot; ],
+    &quot;X-Forwarded-Proto&quot;: [ &quot;https&quot; ]
+  },
+  &quot;queryStringParameters&quot;: {
+    &quot;a&quot;: &quot;1&quot;,
+    &quot;b&quot;: &quot;2&quot;
+  },
+  &quot;multiValueQueryStringParameters&quot;: {
+    &quot;a&quot;: [
+      &quot;1&quot;
+    ],
+    &quot;b&quot;: [
+      &quot;2&quot;
+    ]
+  },
+  &quot;pathParameters&quot;: null,
+  &quot;stageVariables&quot;: null,
+  &quot;requestContext&quot;: &quot;{ ... }&quot;,
+  &quot;body&quot;: &quot;c=3&amp;d=4&amp;e=5&quot;,
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<p>Let&rsquo;s send a JSON :</p>
+<ul>
+<li>We can note the content of the properties <code>content-type</code> and <code>body</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    --header 'Content-Type: application/json' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;content-type&quot;: &quot;application/json&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot;,
+    &quot;User-Agent&quot;: &quot;curl/7.58.0&quot;,
+    &quot;X-Amzn-Trace-Id&quot;: &quot;Root=1-...&quot;,
+    &quot;X-Forwarded-For&quot;: &quot;...&quot;,
+    &quot;X-Forwarded-Port&quot;: &quot;443&quot;,
+    &quot;X-Forwarded-Proto&quot;: &quot;https&quot;
+  },
+  &quot;multiValueHeaders&quot;: {
+    &quot;accept&quot;: [ &quot;*/*&quot; ],
+    &quot;content-type&quot;: [ &quot;application/json&quot; ],
+    &quot;Host&quot;: [ &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot; ],
+    &quot;User-Agent&quot;: [ &quot;curl/7.58.0&quot; ],
+    &quot;X-Amzn-Trace-Id&quot;: [ &quot;Root=1-...&quot; ],
+    &quot;X-Forwarded-For&quot;: [ &quot;...&quot; ],
+    &quot;X-Forwarded-Port&quot;: [ &quot;443&quot; ],
+    &quot;X-Forwarded-Proto&quot;: [ &quot;https&quot; ]
+  },
+  &quot;queryStringParameters&quot;: null,
+  &quot;multiValueQueryStringParameters&quot;: null,
+  &quot;pathParameters&quot;: null,
+  &quot;stageVariables&quot;: null,
+  &quot;requestContext&quot;: &quot;{ ... }&quot;,
+  &quot;body&quot;: &quot;{\&quot;a\&quot;:1, \&quot;b\&quot;:true}&quot;,
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<p>Let&rsquo;s send some values using the <a href="https://curl.haxx.se/docs/manpage.html#-F" target="_blank" rel="noopener">-F, &ndash;form &lt;name=content&gt;</a> option :</p>
+<ul>
+<li>We use the <code>--form</code> option to <strong>send a binary file</strong>.</li>
+<li>We can note that <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type" target="_blank" rel="noopener">Content-Type entity header</a> is defined to <strong>multipart/form-data</strong>.</li>
+<li>We can note the content of the properties <code>content-type</code> and <code>body</code>.</li>
+<li>The <code>body</code> content is <strong>raw</strong>. We need to <strong>parse it in the Lambda function to extract the values</strong>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --form 'a=1' \
+    --form 'img=@red.png' \
+    --form 'b=2' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;content-type&quot;: &quot;multipart/form-data; boundary=------------------------164580fc123b7bdb&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot;,
+    &quot;User-Agent&quot;: &quot;curl/7.58.0&quot;,
+    &quot;X-Amzn-Trace-Id&quot;: &quot;Root=1-...&quot;,
+    &quot;X-Forwarded-For&quot;: &quot;...&quot;,
+    &quot;X-Forwarded-Port&quot;: &quot;443&quot;,
+    &quot;X-Forwarded-Proto&quot;: &quot;https&quot;
+  },
+  &quot;multiValueHeaders&quot;: {
+    &quot;accept&quot;: [ &quot;*/*&quot; ],
+    &quot;content-type&quot;: [ &quot;multipart/form-data; boundary=------------------------164580fc123b7bdb&quot; ],
+    &quot;Host&quot;: [ &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot; ],
+    &quot;User-Agent&quot;: [ &quot;curl/7.58.0&quot; ],
+    &quot;X-Amzn-Trace-Id&quot;: [ &quot;Root=1-...&quot; ],
+    &quot;X-Forwarded-For&quot;: [ &quot;...&quot; ],
+    &quot;X-Forwarded-Port&quot;: [ &quot;443&quot; ],
+    &quot;X-Forwarded-Proto&quot;: [ &quot;https&quot; ]
+  },
+  &quot;queryStringParameters&quot;: null,
+  &quot;multiValueQueryStringParameters&quot;: null,
+  &quot;pathParameters&quot;: null,
+  &quot;stageVariables&quot;: null,
+  &quot;requestContext&quot;: &quot;{ ... }&quot;,
+  &quot;body&quot;: &quot;--------------------------164580fc123b7bdb\r\nContent-Disposition: form-data;\
+    name=\&quot;a\&quot;\r\n\r\n1\r\n--------------------------164580fc123b7bdb\r\nContent-Disposition: form-data;\
+    name=\&quot;img\&quot;; filename=\&quot;red.png\&quot;\r\nContent-Type: image/png\r\n\r\n�PNG\r\n\
+    \u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0000d\u0000\u0000\u0000\n\b\u0002\u0000\u0000\u0000�~l)\
+    \u0000\u0000\u0000(IDATH���1\u0001\u0000\u0000\b\u0003 �\u007f�Y��\u0007\&quot;�)�F�,Y�dɒ�@��o\u000b7I\
+    \u0001\u0013lfm�\u0000\u0000\u0000\u0000IEND�B`�\r\n--------------------------164580fc123b7bdb\r\n\
+    Content-Disposition: form-data; name=\&quot;b\&quot;\r\n\r\n2\r\n--------------------------164580fc123b7bdb--\r\n&quot;,
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<p>To parse multipart data we need to use the npm package <a href="https://github.com/myshenin/aws-lambda-multipart-parser" target="_blank" rel="noopener">aws-lambda-multipart-parser</a>.</p>
+<p>We need to update the Lambda function with this <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/5-update-lambda.sh" target="_blank" rel="noopener">new script</a> :</p>
+<pre><code class="language-bash"># update the Lambda function
+$ ./5-update-lambda.sh
+</code></pre>
+<p>The code parse the <code>event</code> argument and define the <code>body</code> property :</p>
+<pre><code class="language-js">const parse = require('aws-lambda-multipart-parser').parse
+
+exports.handler = async (event) =&gt; {
+    var event = { ...event, body: parse(event) }
+    return {
+        statusCode: 200,
+        body: JSON.stringify(event)
+    }
+}
+</code></pre>
+<p>If we execute the same previous <code>curl</code> command, the return is different :</p>
+<ul>
+<li>The <code>body</code> content is <strong>extracted</strong>. This is now an object.</li>
+<li>The <code>content</code> value is a <code>String</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --form 'a=1' \
+    --form 'img=@red.png' \
+    --form 'b=2' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;content-type&quot;: &quot;multipart/form-data; boundary=------------------------4fa8e16a8c63ce67&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot;,
+    &quot;...&quot;: &quot;...&quot;
+  },
+  &quot;multiValueHeaders&quot;: &quot;{ ... }&quot;,
+  &quot;...&quot;: &quot;...&quot;,
+  &quot;requestContext&quot;: &quot;{ ... }&quot;,
+  &quot;body&quot;: {
+    &quot;a&quot;: &quot;1&quot;,
+    &quot;img&quot;: {
+      &quot;type&quot;: &quot;file&quot;,
+      &quot;filename&quot;: &quot;red.png&quot;,
+      &quot;contentType&quot;: &quot;image/png&quot;,
+      &quot;content&quot;: &quot;�PNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0000d\u0000\u0000\u0000\n\b\
+      \u0002\u0000\u0000\u0000�~l)\u0000\u0000\u0000(IDATH���1\u0001\u0000\u0000\b\u0003 �\u007f�Y��\
+      \u0007\&quot;�)�F�,Y�dɒ�@��o\u000b7I\u0001\u0013lfm�\u0000\u0000\u0000\u0000IEND�B`�&quot;
+    },
+    &quot;b&quot;: &quot;2&quot;
+  },
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<p>The npm package <a href="https://github.com/myshenin/aws-lambda-multipart-parser" target="_blank" rel="noopener">aws-lambda-multipart-parser</a> has a <code>spotText</code> option to convert this to a <a href="https://nodejs.org/api/buffer.html" target="_blank" rel="noopener">Buffer</a>.</p>
+<p>The updated code has already a function using this :</p>
+<ul>
+<li><code>handlerWithSpot</code> is using <code>parse(event, true)</code>.</li>
+</ul>
+<pre><code class="language-js">const parse = require('aws-lambda-multipart-parser').parse
+
+exports.handlerWithSpot = async (event) =&gt; {
+    var event = { ...event, body: parse(event, true) }
+    return {
+        statusCode: 200,
+        body: JSON.stringify(event)
+    }
+}
+</code></pre>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/update-function-configuration.html" target="_blank" rel="noopener">update-function-configuration</a> command :</p>
+<pre><code class="language-bash"># just in case...
+$ source ./settings.sh
+
+# update the handler used
+$ aws lambda update-function-configuration \
+    --function-name $LAMBDA_NAME \
+    --handler index.handlerWithSpot
+</code></pre>
+<p>If we execute the same previous <code>curl</code> command, the return is different :</p>
+<ul>
+<li>The <code>content</code> value is a <code>Buffer</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --form 'a=1' \
+    --form 'img=@red.png' \
+    --form 'b=2' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_PROXY&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;resource&quot;: &quot;/with-proxy&quot;,
+  &quot;path&quot;: &quot;/with-proxy&quot;,
+  &quot;httpMethod&quot;: &quot;POST&quot;,
+  &quot;headers&quot;: {
+    &quot;accept&quot;: &quot;*/*&quot;,
+    &quot;content-type&quot;: &quot;multipart/form-data; boundary=------------------------7aba48cf6acf20fd&quot;,
+    &quot;Host&quot;: &quot;api-id.execute-api.eu-west-3.amazonaws.com&quot;,
+    &quot;...&quot;: &quot;...&quot;
+  },
+  &quot;...&quot;: &quot;...&quot;,
+  &quot;body&quot;: {
+    &quot;a&quot;: &quot;1&quot;,
+    &quot;img&quot;: {
+      &quot;type&quot;: &quot;file&quot;,
+      &quot;filename&quot;: &quot;red.png&quot;,
+      &quot;contentType&quot;: &quot;image/png&quot;,
+      &quot;content&quot;: {
+        &quot;type&quot;: &quot;Buffer&quot;,
+        &quot;data&quot;: [
+          253,
+          80,
+          78,
+          71,
+          13,
+          10,
+          26,
+          10,
+          0,
+          &quot;...&quot;
+        ]
+      }
+    },
+    &quot;b&quot;: &quot;2&quot;
+  },
+  &quot;isBase64Encoded&quot;: false
+}
+</code></pre>
+<h3 id="test-the-aws-integration-request-type">Test the AWS integration request type</h3>
+<p>Let&rsquo;s go back to the previous Lamda function :</p>
+<pre><code class="language-bash"># just in case...
+$ source ./settings.sh
+
+# use the previous function
+$ aws lambda update-function-code \
+    --function-name $LAMBDA_NAME \
+    --zip-file fileb://lambda.zip \
+    --output table
+</code></pre>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/update-function-configuration.html" target="_blank" rel="noopener">update-function-configuration</a> command :</p>
+<pre><code class="language-bash"># update the handler used
+$ aws lambda update-function-configuration \
+    --function-name $LAMBDA_NAME \
+    --handler index.handlerSimple \
+    --output table
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/index.js" target="_blank" rel="noopener">code</a> is even simpler than before :</p>
+<pre><code class="language-js">exports.handlerSimple = async (event) =&gt; {
+    return event
+}
+</code></pre>
+<p>We can test the <strong>/no-proxy</strong> path :</p>
+<pre><code class="language-bash"># POST /no-proxy
+$ curl --request POST \
+    --silent \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY&quot; \
+        | jq --monochrome-output
+{}
+</code></pre>
+<p>We can send <strong>JSON data</strong> with a <strong>application/x-www-form-urlencoded</strong> call :</p>
+<ul>
+<li>We receive the <strong>body</strong> values.</li>
+<li>But we have lost the <strong>query string parameters</strong>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY?c=3&amp;d=4&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;a&quot;: 1,
+  &quot;b&quot;: true
+}
+</code></pre>
+<p>If we declare the header in <strong>application/json</strong>, this is the same result :</p>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    --header 'Content-Type: application/json' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY?c=3&amp;d=4&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;a&quot;: 1,
+  &quot;b&quot;: true
+}
+</code></pre>
+<p>We need to create the <strong>Mapping Templates</strong>, and it starts to get <strong>complicated</strong>&hellip;</p>
+<p>We need to use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-integration.html" target="_blank" rel="noopener">update-integration</a> command.</p>
+<p>And the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-integration.html#examples" target="_blank" rel="noopener">&ndash;patch-operations</a> option is hard to use. Take a look at this example below :</p>
+<ul>
+<li>The <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html" target="_blank" rel="noopener">mapping template</a> is a script expressed in <a href="http://velocity.apache.org/engine/devel/vtl-reference.html" target="_blank" rel="noopener">Velocity Template Language (VTL)</a> and applied to the payload using <a href="https://goessner.net/articles/JsonPath/" target="_blank" rel="noopener">JSONPath expressions</a>.</li>
+<li>It&rsquo;s powerful, but it&rsquo;s <strong>not user-friendly</strong>. Having to use this syntax is not my favorite hobby.</li>
+</ul>
+<pre><code class="language-bash">aws apigateway update-integration \
+    --rest-api-id $API_ID \
+    --resource-id $RESOURCE_ID \
+    --http-method POST \
+    --patch-operations op='add',path='/requestTemplates/application~1x-www-form-urlencoded',\
+    value='&quot;{\n    \&quot;type\&quot;:\&quot;form-urlencoded\&quot;,\n    \&quot;the_body\&quot;: $input.body,\n    \
+    \&quot;params\&quot; : {\n    #foreach($param in $input.params().querystring.keySet())\n        \
+    \&quot;$param\&quot;: \&quot;$util.escapeJavaScript($input.params().querystring.get($param))\&quot;\n        \
+    #if ($foreach.hasNext), #end\n    #end\n    }\n}&quot;'
+</code></pre>
+<p>Let&rsquo;s create the template and deploy the API Gateway again with <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-curl/blob/master/6-create-template-urlencoded.sh" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash"># create the template
+$ ./6-create-template-urlencoded.sh
+</code></pre>
+<p>We now have this updated web interface :</p>
+<p><img loading="lazy" src="img/template-urlencoded.png" alt="template-urlencoded.png"  /></p>
+<p>If we execute the same previous <code>curl</code> command, the return is different :</p>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY?c=3&amp;d=4&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;type&quot;: &quot;form-urlencoded&quot;,
+  &quot;body&quot;: {
+    &quot;a&quot;: 1,
+    &quot;b&quot;: true
+  },
+  &quot;params&quot;: {
+    &quot;c&quot;: &quot;3&quot;,
+    &quot;d&quot;: &quot;4&quot;
+  }
+}
+</code></pre>
+<p>But now if we execute the previous <code>curl</code> command with the <strong>application/json</strong> header, we have <strong>an error</strong> :</p>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    --header 'Content-Type: application/json' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY?c=3&amp;d=4&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;message&quot;: &quot;Unsupported Media Type&quot;
+}
+</code></pre>
+<p>This is because we need to add another template for <strong>application/json</strong> :</p>
+<p><img loading="lazy" src="img/template-json.png" alt="template-json.png"  /></p>
+<p>Now it works :</p>
+<pre><code class="language-bash">$ curl --data '{&quot;a&quot;:1, &quot;b&quot;:true}' \
+    --header 'Content-Type: application/json' \
+    &quot;https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_NO_PROXY?c=3&amp;d=4&quot; \
+    --silent \
+        | jq --monochrome-output
+{
+  &quot;type&quot;: &quot;json&quot;,
+  &quot;body&quot;: {
+    &quot;a&quot;: 1,
+    &quot;b&quot;: true
+  },
+  &quot;params&quot;: {
+    &quot;c&quot;: &quot;3&quot;,
+    &quot;d&quot;: &quot;4&quot;
+  }
+}
+</code></pre>
+<p>And we probably need to add another template for <strong>multipart/form-data</strong>.</p>
+<p>Disable <strong>Lambda Proxy Integration</strong> offers <strong>more flexibility</strong> but it is also <strong>much more complex and time consuming</strong>.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+<a href="/tags/api-gateway/">api-gateway</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/curl/">curl</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

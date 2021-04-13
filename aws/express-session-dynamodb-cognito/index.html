@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Express,session,DynamoDB,Cognito'><meta name="description" content='Playing with express-session. Externalize session data in DynamoDB and user account in Cognito.'><meta property="og:title" content="Express &#43; session &#43; DynamoDB &#43; Cognito" />
+<meta property="og:description" content="Playing with **express-session**. Externalize session data in **DynamoDB** and user account in **Cognito**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/express-session-dynamodb-cognito/" />
+<meta property="article:published_time" content="2020-01-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-01-20T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Express &#43; session &#43; DynamoDB &#43; Cognito"/>
+<meta name="twitter:description" content="Playing with **express-session**. Externalize session data in **DynamoDB** and user account in **Cognito**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Express &#43; session &#43; DynamoDB &#43; Cognito | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-application">Install and setup the application</a></li>
+        <li><a href="#storing-sessions-in-dynamodb">Storing sessions in DynamoDB</a></li>
+        <li><a href="#creating-the-cognito-user-pool">Creating the Cognito User Pool</a></li>
+        <li><a href="#managing-users-with-cognito">Managing users with Cognito</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">20</span>
+<span class="rest">Jan 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Express &#43; session &#43; DynamoDB &#43; Cognito</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>We will continue to work on this <a href="/note/node-express-session/">previous project</a> by adding a session storage on <a href="https://aws.amazon.com/dynamodb/">DynamoDB</a> then the management of user accounts on <a href="https://aws.amazon.com/cognito/">Cognito</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-application">Install and setup the application</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito.git \
+    /tmp/aws
+
+# cd + install
+$ cd /tmp/aws &amp;&amp; npm install
+</code></pre>
+<p>To setup the project, you must edit the <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/settings.sample.sh" target="_blank" rel="noopener">settings file</a> first :</p>
+<pre><code class="language-bash">$ cat settings.sample.sh 
+# Project
+AWS_ID=
+USER_NAME=
+ACCESS_KEY_ID=
+SECRET_ACCESS_KEY=
+AWS_REGION=eu-west-3
+# DYNAMOD_DB
+TABLE_NAME=aws-express-session-dynamodb-cognito
+# COGNITO
+COGNITO_REGION=eu-west-1
+POOL_NAME=aws-express-session-dynamodb-cognito
+POOL_ID=
+CLIENT_ID=
+</code></pre>
+<p>You can change some values, but the most important thing is to <strong>choose your regions</strong>. The default values are :</p>
+<ul>
+<li><strong>AWS_REGION</strong> : <code>eu-west-3</code></li>
+<li><strong>COGNITO_REGION</strong> : <code>eu-west-1</code></li>
+</ul>
+<p>Please note that <strong>Cognito is not available in all regions</strong>. This is why we have 2 different regions above.</p>
+<p>After that you can execute the <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/1-setup.sh" target="_blank" rel="noopener">1-setup.sh</a> script :</p>
+<pre><code class="language-bash"># execute the setup
+$ ./1-setup.sh
+</code></pre>
+<p>This will create an <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html" target="_blank" rel="noopener">IAM User</a> with <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/index.html" target="_blank" rel="noopener">AWS CLI</a> :</p>
+<pre><code class="language-bash">USER_NAME=aws-dynamodb-cognito-$(cat /dev/urandom | tr -dc 'a-z' | fold -w 6 | head -n 1)
+
+echo 'iam create-user'
+aws iam create-user \
+    --user-name $USER_NAME
+
+# ...
+</code></pre>
+<p>This will attach an <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/policy.sample.json" target="_blank" rel="noopener">inline policy</a> to restrict this user&rsquo;s <strong>access to a single DynamoDB database</strong> :</p>
+<pre><code class="language-json">{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+        {
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Action&quot;: [
+                &quot;dynamodb:*&quot;
+            ],
+            &quot;Resource&quot;: &quot;arn:aws:dynamodb:&lt;aws-region&gt;:&lt;aws-id&gt;:table/&lt;table-name&gt;&quot;
+        }
+    ]
+}
+</code></pre>
+<p>And this will create the <code>settings.sh</code> file :</p>
+<pre><code class="language-bash"># ...
+
+sed --expression &quot;s|AWS_ID=.*$|AWS_ID=$AWS_ID|&quot; \
+    --expression &quot;s|USER_NAME=.*$|USER_NAME=$USER_NAME|&quot; \
+    --expression &quot;s|ACCESS_KEY_ID=.*$|ACCESS_KEY_ID=$ACCESS_KEY_ID|&quot; \
+    --expression &quot;s|SECRET_ACCESS_KEY=.*$|SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY|&quot; \
+    settings.sample.sh \
+    &gt; settings.sh
+</code></pre>
+<h3 id="storing-sessions-in-dynamodb">Storing sessions in DynamoDB</h3>
+<p>We use the middleware <a href="https://github.com/rafaelrpinto/dynamodb-store" target="_blank" rel="noopener">dynamodb-store</a>.</p>
+<p>If you look at <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/with-dynamodb-store.js" target="_blank" rel="noopener">with-dynamodb-store.js</a>, the code is really simple :</p>
+<pre><code class="language-js">// set variables from `settings.sh` into `process.env`
+env(path.join(__dirname, 'settings.sh'))
+
+// define the DynamDBStore options
+const options = {
+    table: {
+        name: process.env.TABLE_NAME,
+        hashKey: 'id',
+        hashPrefix: '',
+        readCapacityUnits: 2,
+        writeCapacityUnits: 2
+    },
+    dynamoConfig: {
+        accessKeyId: process.env.ACCESS_KEY_ID,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION,
+        endpoint: 'http://dynamodb.' + process.env.AWS_REGION + '.amazonaws.com'
+    },
+    keepExpired: false,
+    touchInterval: 30000,
+    ttl: 8000 // 8 seconds
+}
+
+// setup the `express-session` middleware with the `store`
+app.use(expresssession({
+    name: 'session',
+    secret: `secret-${Math.random().toString().substr(7)}`,
+    /*
+     * Forces a session that is &quot;uninitialized&quot; to be saved to the store. 
+     * A session is uninitialized when it is new but not modified. 
+     * Choosing false is useful for implementing login sessions, reducing server storage 
+     * usage, or complying with laws that require permission before setting a cookie.
+     * The default value is true.
+     */
+    saveUninitialized: false,
+    /*
+     * Forces the session to be saved back to the session store, even if
+     * the session was never modified during the request.
+     * The default value is true, but using the default has been deprecated, 
+     * as the default will change in the future.
+     * Typically, you'll want false.
+     */
+    resave: false,
+    store: new DynamDBStore(options)
+}))
+</code></pre>
+<p>Let&rsquo;s start the server :</p>
+<pre><code class="language-bash"># start the server
+$ node with-dynamodb-store
+</code></pre>
+<p>The dynamodb-store middleware <a href="https://github.com/rafaelrpinto/dynamodb-store/blob/master/lib/DynamoDBStore.js#L104" target="_blank" rel="noopener">creates the table</a> if it is missing.</p>
+<p>If we go to our DynamoDB console we can see the table created :</p>
+<p><img loading="lazy" src="img/dynamodb.png" alt="dynamodb.png"  /></p>
+<p><strong>Important</strong> : the middleware defined the <code>expires</code> attribute to manage time-to-live, but it is <strong>not activated</strong> on the table. You can see it in the screenshot above :</p>
+<ul>
+<li><strong>Time to live attribute</strong> : <code>DISABLED</code></li>
+</ul>
+<p>We will activate the TTL from the terminal :</p>
+<pre><code class="language-bash"># get the variables
+$ source settings.sh
+
+# confirm the current state
+$ aws dynamodb describe-time-to-live \
+    --table-name $TABLE_NAME
+{
+    &quot;TimeToLiveDescription&quot;: {
+        &quot;TimeToLiveStatus&quot;: &quot;DISABLED&quot;
+    }
+}
+
+# define the TTL
+$ aws dynamodb update-time-to-live \
+    --table-name $TABLE_NAME \
+    --time-to-live-specification Enabled=true,AttributeName=expires
+{
+    &quot;TimeToLiveSpecification&quot;: {
+        &quot;Enabled&quot;: true,
+        &quot;AttributeName&quot;: &quot;expires&quot;
+    }
+}
+</code></pre>
+<p>If we reload the console, the state must have changed :</p>
+<ul>
+<li><strong>Time to live attribute</strong> : <code>expires</code></li>
+</ul>
+<p><img loading="lazy" src="img/dynamodb-reload.png" alt="dynamodb-reload.png"  /></p>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see this <strong>homepage</strong> :</p>
+<ul>
+<li>The <code>req.cookies</code> value contains a <strong>hash identifier</strong></li>
+<li>The <code>req.session.data</code> has the default values</li>
+</ul>
+<p><img loading="lazy" src="img/index.png" alt="index.png"  /></p>
+<p>If we click the <strong>Quick log in as « a »</strong> button we can now see the <strong>logged</strong> homepage :</p>
+<ul>
+<li>The <code>req.session.data</code> is updated</li>
+</ul>
+<p><img loading="lazy" src="img/logged.png" alt="logged.png"  /></p>
+<p>If we click the <strong>Go to /rectricted</strong> link, we could see this <strong>logged</strong> <a href="http://localhost:3000/restricted" target="_blank" rel="noopener">/restricted</a> page :</p>
+<p><img loading="lazy" src="img/resticted.png" alt="resticted.png"  /></p>
+<p>We can see the session <strong>item stored in DynamoDB</strong> :</p>
+<p><img loading="lazy" src="img/dynamodb-item.png" alt="dynamodb-item.png"  /></p>
+<p>We can click the item <code>id</code> to <strong>view its content</strong> :</p>
+<p><img loading="lazy" src="img/item-content.png" alt="item-content.png"  /></p>
+<p><strong>Important</strong> : you can play with this demo site in different browsers (regular and incognito mode) and see the different sessions.</p>
+<h3 id="creating-the-cognito-user-pool">Creating the Cognito User Pool</h3>
+<p>Now we can execute the <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/2-cognito.sh" target="_blank" rel="noopener">2-cognito.sh</a> script :</p>
+<pre><code class="language-bash"># execute the setup
+$ ./2-cognito.sh
+</code></pre>
+<p>This will create a <a href="https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html" target="_blank" rel="noopener">User Pool</a> and a <a href="https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-client-apps.html" target="_blank" rel="noopener">App Client</a> with <a href="https://docs.aws.amazon.com/cli/latest/reference/cognito-idp/index.html" target="_blank" rel="noopener">AWS CLI</a> :</p>
+<pre><code class="language-bash">source settings.sh
+
+# create the user pool
+aws cognito-idp create-user-pool \
+    --region $COGNITO_REGION \
+    --pool-name $POOL_NAME \
+    --auto-verified-attributes email \
+    --alias-attributes email \
+    --policies &quot;PasswordPolicy={MinimumLength=6,RequireUppercase=false,\
+    RequireLowercase=true,RequireNumbers=false,RequireSymbols=false}&quot;
+
+# create the app client
+aws cognito-idp create-user-pool-client \
+    --region $COGNITO_REGION \
+    --user-pool-id $POOL_ID \
+    --client-name $POOL_NAME-client \
+    --explicit-auth-flows ALLOW_ADMIN_USER_PASSWORD_AUTH \
+        ALLOW_CUSTOM_AUTH \
+        ALLOW_USER_PASSWORD_AUTH \
+        ALLOW_USER_SRP_AUTH \
+        ALLOW_REFRESH_TOKEN_AUTH
+
+# ...
+</code></pre>
+<p>The <strong>User Pool</strong> and the <strong>App Client</strong> are created :</p>
+<p><img loading="lazy" src="img/app-client.png" alt="app-client.png"  /></p>
+<p>The script also creates 2 <strong>confirmed users</strong> (thanks for <a href="https://stackoverflow.com/a/45253010" target="_blank" rel="noopener">these tips</a>) :</p>
+<pre><code class="language-bash"># create the user : username=a password=aaaaaa email=a@a.com
+aws cognito-idp admin-create-user \
+    --region $COGNITO_REGION \
+    --user-pool-id $POOL_ID \
+    --username a \
+    --temporary-password aaaaaa \
+    --user-attributes=Name=email,Value=a@a.com
+
+# ...
+
+# confirm the user with the challenge
+aws cognito-idp admin-respond-to-auth-challenge \
+    --region $COGNITO_REGION \
+    --user-pool-id $POOL_ID \
+    --client-id $CLIENT_ID \
+    --challenge-name NEW_PASSWORD_REQUIRED \
+    --challenge-responses NEW_PASSWORD=aaaaaa,USERNAME=a \
+    --session &quot;$SESSION&quot;
+</code></pre>
+<p>The <strong>users</strong> are created with the status <code>CONFIRMED</code> :</p>
+<p><img loading="lazy" src="img/cognito.png" alt="cognito.png"  /></p>
+<h3 id="managing-users-with-cognito">Managing users with Cognito</h3>
+<p>We use the module <a href="https://github.com/aws-amplify/amplify-js/tree/master/packages/amazon-cognito-identity-js" target="_blank" rel="noopener">amazon-cognito-identity-js</a>. This also requires the <a href="https://github.com/node-fetch/node-fetch" target="_blank" rel="noopener">node-fetch</a> module.</p>
+<p>Take a look at <a href="https://github.com/jeromedecoster/aws-express-session-dynamodb-cognito/blob/master/with-dynamodb-cognito.js" target="_blank" rel="noopener">with-dynamodb-cognito.js</a> :</p>
+<p>The <strong>User Pool</strong> and <strong>User</strong> are stored by <code>username</code> in an object.</p>
+<p>This is a quick and dirty way to store sessions in the server side. You probably want to do something like :</p>
+<ul>
+<li><a href="https://stormpath.com/blog/where-to-store-your-jwts-cookies-vs-html5-web-storage" target="_blank" rel="noopener">Stormpath</a> : where to Store your JWTs ? (spoiler alert : <strong>in cookies</strong>).</li>
+<li><a href="https://stackoverflow.com/a/46739965" target="_blank" rel="noopener">Stackoverflow</a> : send the JWT token to the client side and store it in the web browser.</li>
+</ul>
+<pre><code class="language-js">// quick and dirty pools :
+// One `User Pool` and one `User` stored by `username` to
+// store all sessions on the server
+const pools = {}
+
+function getUserPool(username, password) {
+
+    if (pools[username] == null) {
+
+        let userPool = new CognitoUserPool(poolData)
+        let cognitoUser = new CognitoUser({
+            Username: username,
+            Pool: userPool
+        })
+        let authenticationDetails = new AuthenticationDetails({
+            Username: username,
+            Password: password
+        })
+        pools[username] = {
+            userPool,
+            cognitoUser,
+            authenticationDetails
+        }
+    }
+
+    return pools[username]
+}
+
+// ...
+
+// and the login part
+app.post('/login', (req, res) =&gt; {
+    let { username, password } = req.body
+
+    let pool = getUserPool(username, password)
+
+    pool.cognitoUser.authenticateUser(pool.authenticationDetails, {
+        onSuccess: function (result) {
+
+            req.session.data.accessToken = result.accessToken.jwtToken
+            req.session.data.idToken = result.idToken.jwtToken
+            req.session.data.refreshToken = result.refreshToken.token
+            req.session.data.user = result.accessToken.payload.username
+
+            /*
+             * Save the session back to the store, replacing the contents on the store
+             * with the contents in memory.
+             * This method is automatically called at the end of the HTTP response if
+             * the session data has been altered. Because of this, typically this 
+             * method does not need to be called.
+             * But, it's important here, because : 
+             * There are some cases where it is useful to call this method, for example, 
+             * redirects, long-lived requests or in WebSockets.
+             */
+            req.session.save(function (err) {
+                // session saved
+                res.redirect('/')
+            })
+
+        },
+
+        onFailure: function (err) {
+            res.render('login', { /* ... */ })
+        }
+    })
+})
+</code></pre>
+<p>Let&rsquo;s start the server :</p>
+<pre><code class="language-bash"># start the server
+$ node with-dynamodb-cognito
+</code></pre>
+<p>If you open <a href="https://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see this homepage :</p>
+<p><img loading="lazy" src="img/cognito-index.png" alt="cognito-index.png"  /></p>
+<p>If we click the <strong>Log in</strong> button we can use :</p>
+<ul>
+<li><strong>login</strong> : <code>a</code></li>
+<li><strong>password</strong> : <code>aaaaaaa</code></li>
+</ul>
+<p><img loading="lazy" src="img/cognito-login.png" alt="cognito-login.png"  /></p>
+<p>The Cognito identification should work and you should see the <strong>logged homepage</strong> :</p>
+<p><img loading="lazy" src="img/cognito-logged.png" alt="cognito-logged.png"  /></p>
+<p>If you click the <strong>Go to /rectricted</strong> link, you should see this <strong>logged</strong> <a href="http://localhost:3000/restricted" target="_blank" rel="noopener">/restricted</a> page :</p>
+<p><img loading="lazy" src="img/cognito-restricted.png" alt="cognito-restricted.png"  /></p>
+<p>You can play with this demo site in different browsers (regular and incognito mode) and see the different sessions.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/cognito/">cognito</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/dynamodb/">dynamodb</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/express/">express</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/session/">session</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

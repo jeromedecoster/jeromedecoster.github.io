@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>GitOps on Jérôme Decoster</title>
+    <link>/tags/gitops/</link>
+    <description>Recent content in GitOps on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 11 Sep 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/gitops/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Kubernetes &#43; EKS &#43; Github Actions</title>
+      <link>/aws/kubernetes-eks-github-actions/</link>
+      <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/kubernetes-eks-github-actions/</guid>
+      <description>
+      
+      Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
+      <link>/aws/github-actions-hugo-terraform-s3/</link>
+      <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-actions-hugo-terraform-s3/</guid>
+      <description>
+      
+      Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way.
+      
+      </description>
+    </item>
+    <item>
+      <title>GitOps &#43; Terraform</title>
+      <link>/aws/gitops-terraform/</link>
+      <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitops-terraform/</guid>
+      <description>
+      
+      Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

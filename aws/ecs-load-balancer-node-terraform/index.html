@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Docker,ECS,Load Balancer,Terraform,Docker Hub'><meta name="description" content='Get metadata task. Scale tasks behind a Load balancer using ecs-cli or Terraform.'><meta property="og:title" content="ECS &#43; Load Balancer &#43; Node &#43; Terraform" />
+<meta property="og:description" content="Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/ecs-load-balancer-node-terraform/" />
+<meta property="article:published_time" content="2020-06-15T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-06-15T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ECS &#43; Load Balancer &#43; Node &#43; Terraform"/>
+<meta name="twitter:description" content="Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>ECS &#43; Load Balancer &#43; Node &#43; Terraform | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-the-project">Install the project</a></li>
+        <li><a href="#run-the-site-locally">Run the site locally</a></li>
+        <li><a href="#hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</a></li>
+        <li><a href="#use-ecs-cli-to-start-the-image-in-ecs-fargate">Use ecs-cli to start the image in ECS FARGATE</a></li>
+        <li><a href="#service-scaling">Service scaling</a></li>
+        <li><a href="#using-terraform">Using Terraform</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">15</span>
+<span class="rest">Jun 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">ECS &#43; Load Balancer &#43; Node &#43; Terraform</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>We have a node site that displays the <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v2.html">metadata task</a></li>
+<li>Create an docker image optimized for production and host it <strong>on Docker hub</strong></li>
+<li>Use <strong>aws cli</strong> to create a <strong>load balancer</strong></li>
+<li>Use <strong>ecs-cli</strong> to put the site online</li>
+<li><strong>Scale up</strong> the number of instances behind the load balancer</li>
+<li>Use <strong>Terraform</strong> to do the exact same thing</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture0.svg"  /></p>
+<h3 id="install-the-project">Install the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/ecs-lb-node-terraform.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="run-the-site-locally">Run the site locally</h3>
+<p>Let&rsquo;s start by seeing the site locally.</p>
+<p>The site uses <a href="https://github.com/expressjs/express" target="_blank" rel="noopener">express</a> and <a href="https://github.com/mde/ejs" target="_blank" rel="noopener">ejs</a>.</p>
+<pre><code class="language-json">{
+  &quot;dependencies&quot;: {
+    &quot;axios&quot;: &quot;^0.19.2&quot;,
+    &quot;ejs&quot;: &quot;^3.1.3&quot;,
+    &quot;express&quot;: &quot;^4.17.1&quot;
+  }
+}
+</code></pre>
+<p>We install the packages :</p>
+<pre><code class="language-bash">$ npm install
+</code></pre>
+<p>The <strong>Makefile</strong> allows you to run the <strong>development version</strong> :</p>
+<pre><code class="language-makefile">dev: # local development without docker
+	NODE_ENV=development PORT=3000 node .
+</code></pre>
+<p>We launch the development version :</p>
+<pre><code class="language-bash">$ make dev
+</code></pre>
+<p><img loading="lazy" src="img/site-dev.png" alt="site-dev.png"  /></p>
+<p>The development site displays a <strong>mock</strong> of <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v2.html" target="_blank" rel="noopener">metadata task</a> returned from the special address <a href="http://169.254.170.2/v2/metadata" target="_blank" rel="noopener">http://169.254.170.2/v2/metadata</a>.</p>
+<p>This is a <a href="https://en.wikipedia.org/wiki/Link-local_address" target="_blank" rel="noopener">link-local address</a>.</p>
+<p>We can see in particular the following informations :</p>
+<ul>
+<li><strong>Image</strong> : The image for the container.</li>
+<li><strong>Networks</strong> : The network information for the container, such as the network mode and IP address.</li>
+</ul>
+<pre><code class="language-json">{
+    &quot;Image&quot;: &quot;jeromedecoster/ecs-lb-node&quot;,
+    &quot;//&quot;: &quot;...&quot;,
+    &quot;Networks&quot;: [
+        {
+            &quot;NetworkMode&quot;: &quot;awsvpc&quot;,
+            &quot;IPv4Addresses&quot;: [
+                &quot;10.10.10.10&quot;
+            ]
+        }
+    ]
+}
+</code></pre>
+<h3 id="hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</h3>
+<p>You can <strong>modify some variables</strong> in the <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/make.sh" target="_blank" rel="noopener">make.sh</a> file to customize your tests :</p>
+<pre><code class="language-bash">#
+# variables
+#
+
+# AWS variables
+PROFILE=default
+REGION=eu-west-3
+# Docker Hub image
+DOCKER_IMAGE=jeromedecoster/ecs-lb-node
+# project name
+NAME=ecs-lb-node
+</code></pre>
+<p>We build the <strong>production image</strong> :</p>
+<pre><code class="language-bash">$ make build
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ VERSION=$(jq --raw-output '.version' package.json)
+$ docker image build \
+    --tag $DOCKER_IMAGE:latest \
+    --tag $DOCKER_IMAGE:$VERSION \
+    .
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> is simple :</p>
+<pre><code class="language-dockerfile">FROM node:14.3-slim AS build
+WORKDIR /app
+ADD package.json .
+RUN npm install
+
+FROM node:14.3-slim
+ENV NODE_ENV production
+ENV PORT 80
+WORKDIR /app
+COPY --from=build /app .
+ADD . .
+EXPOSE 80
+CMD [&quot;node&quot;, &quot;index.js&quot;]
+</code></pre>
+<p>We <strong>push this image</strong> to docker hub :</p>
+<pre><code class="language-bash">$ make push
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ VERSION=$(jq --raw-output '.version' package.json)
+$ docker push $DOCKER_IMAGE:latest
+$ docker push $DOCKER_IMAGE:$VERSION
+</code></pre>
+<p><img loading="lazy" src="img/docker-hub.png" alt="docker-hub.png"  /></p>
+<h3 id="use-ecs-cli-to-start-the-image-in-ecs-fargate">Use ecs-cli to start the image in ECS FARGATE</h3>
+<p>We <strong>create the cluster and the load balancer</strong> with this simple command :</p>
+<pre><code class="language-bash">$ make ecs-create
+</code></pre>
+<p>This simple command performs many tasks within the <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/make.sh" target="_blank" rel="noopener">make.sh</a> file.</p>
+<p>Let&rsquo;s look at some parts of the code executed :</p>
+<ul>
+<li>Configuration of <code>ecs-cli</code> with <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-configure-profile.html" target="_blank" rel="noopener">ecs-cli configure</a>.</li>
+<li>Creation of the cluster avec <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-up.html" target="_blank" rel="noopener">ecs-cli up</a>.</li>
+</ul>
+<pre><code class="language-bash">$ ecs-cli configure \
+    --cluster $NAME \
+    --default-launch-type FARGATE \
+    --config-name $NAME \
+    --region $REGION
+
+$ ecs-cli up \
+    --cluster-config $NAME \
+    --aws-profile $PROFILE \
+    --region $REGION \
+    --tags Name=$NAME
+</code></pre>
+<ul>
+<li>Opening of <code>port 80</code> in the security group with <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/authorize-security-group-ingress.html" target="_blank" rel="noopener">ec2 authorize-security-group-ingress</a>.</li>
+<li>Load balancer creation with <a href="https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-load-balancer.html" target="_blank" rel="noopener">elbv2 create-load-balancer</a>.</li>
+</ul>
+<pre><code class="language-bash">$ aws ec2 authorize-security-group-ingress \
+    --group-id $SG \
+    --protocol tcp \
+    --port 80 \
+    --cidr 0.0.0.0/0 \
+    --profile $PROFILE \
+    --region $REGION \
+    2&gt;/dev/null
+
+$ aws elbv2 create-load-balancer \
+    --name $NAME \
+    --type application \
+    --subnets $SUBNETS \
+    --profile $PROFILE \
+    --region $REGION \
+    1&gt;/dev/null
+</code></pre>
+<ul>
+<li>ECS service creation with <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-service-up.html" target="_blank" rel="noopener">ecs-cli compose service up</a>.</li>
+</ul>
+<pre><code class="language-bash">$ ecs-cli compose \
+    --file docker-compose.aws.yml \
+    --project-name $NAME \
+    service up \
+    --create-log-groups \
+    --cluster-config $NAME \
+    --target-group-arn &quot;$TG_ARN&quot; \
+    --container-name site \
+    --container-port 80 \
+    --aws-profile $PROFILE \
+    --region $REGION
+</code></pre>
+<p>We have the <strong>URL of our load balancer</strong> :</p>
+<p><img loading="lazy" src="img/ecs-load-balancer-dns.png" alt="ecs-load-balancer-dns.png"  /></p>
+<p>We display this URL in our browser we see the <strong>private URL</strong> :</p>
+<p><img loading="lazy" src="img/ecs-site.png" alt="ecs-site.png"  /></p>
+<h3 id="service-scaling">Service scaling</h3>
+<p>We go from 1 container <strong>to 3 containers</strong> :</p>
+<pre><code class="language-bash">$ make ecs-scale-up
+</code></pre>
+<p><img loading="lazy" src="img/ecs-3-instances.png" alt="ecs-3-instances.png"  /></p>
+<p>Once the scaling is complete, if we <strong>reload our site multiple times</strong>, we see our <strong>different private IP addresses</strong> :</p>
+<p><img loading="lazy" src="img/ecs-ip-1.png" alt="ecs-ip-1.png"  /></p>
+<p><img loading="lazy" src="img/ecs-ip-2.png" alt="ecs-ip-2.png"  /></p>
+<p><img loading="lazy" src="img/ecs-ip-3.png" alt="ecs-ip-3.png"  /></p>
+<p>We can change the scale again to go back <strong>to 1 container</strong> :</p>
+<pre><code class="language-bash">$ make ecs-scale-down
+</code></pre>
+<p>But beware, <strong>unregister targets in the load balancer takes several minutes</strong> :</p>
+<p><img loading="lazy" src="img/ecs-draining.png" alt="ecs-draining.png"  /></p>
+<p>The demonstration is over, we can <strong>destroy our resources</strong> :</p>
+<pre><code class="language-bash">$ make ecs-destroy
+</code></pre>
+<h3 id="using-terraform">Using Terraform</h3>
+<p>The advantage of <code>ecs-cli</code> is to use the <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/docker-compose.aws.yml" target="_blank" rel="noopener">docker-compose.yml</a> file <strong>transparently</strong>.</p>
+<p><code>ecs-cli</code> also uses <strong>CloudFormation in a hidden way to create and manage resources</strong>.</p>
+<p>With <code>ecs-cli</code> there is therefore little to do, with the exception of the creation of the Load Balancer, to <strong>transform our local docker-compose service to an online ECS service</strong>.</p>
+<p>But If we want to use Terraform, we have to <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/infra" target="_blank" rel="noopener">describe everything</a>. And it takes much longer !</p>
+<p>Let&rsquo;s take a look at some excerpts from Terraform files.</p>
+<p>Creation of the <strong>VPC</strong>, <strong>subnets</strong>, <strong>Internet gateway</strong> and <strong>routing table</strong> in <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/infra/vpc.tf" target="_blank" rel="noopener">vpc.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_vpc vpc {
+  cidr_block           = &quot;10.0.0.0/16&quot;
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+resource aws_subnet subnet_1 {
+  vpc_id = aws_vpc.vpc.id
+
+  cidr_block        = &quot;10.0.0.0/24&quot;
+  availability_zone = &quot;${var.region}a&quot;
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+# ...
+</code></pre>
+<p>Creation of the <strong>load balancer</strong>, <strong>target group</strong> and <strong>listener</strong> in <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/infra/alb.tf" target="_blank" rel="noopener">alb.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_alb alb {
+  name               = local.project_name
+  load_balancer_type = &quot;application&quot;
+  subnets            = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+  security_groups    = [aws_security_group.alb.id]
+
+  tags = {
+    Name = local.project_name
+  }
+}
+
+# ...
+</code></pre>
+<p>Creation of the <strong>cluster</strong>, the <strong>task definition</strong> and the <strong>service</strong> in <a href="https://github.com/jeromedecoster/ecs-lb-node-terraform/blob/master/infra/ecs.tf" target="_blank" rel="noopener">ecs.tf</a> :</p>
+<pre><code class="language-hcl">resource aws_ecs_task_definition task_definition {
+  family                = local.project_name
+  container_definitions = &lt;&lt;DEFINITION
+[{
+    &quot;name&quot;: &quot;site&quot;,
+    &quot;image&quot;: &quot;jeromedecoster/ecs-lb-node&quot;,
+    &quot;cpu&quot;: 0,
+    &quot;essential&quot;: true,
+    &quot;networkMode&quot;: &quot;awsvpc&quot;,
+    &quot;portMappings&quot;: [
+        {
+            &quot;containerPort&quot;: 80,
+            &quot;hostPort&quot;: 80,
+            &quot;protocol&quot;: &quot;tcp&quot;
+        }
+    ],
+    &quot;privileged&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;logConfiguration&quot;: {
+        &quot;logDriver&quot;: &quot;awslogs&quot;,
+        &quot;options&quot;: {
+            &quot;awslogs-group&quot;: &quot;${aws_cloudwatch_log_group.log_group.name}&quot;,
+            &quot;awslogs-region&quot;: &quot;${var.region}&quot;,
+            &quot;awslogs-stream-prefix&quot;: &quot;site&quot;
+        }
+    }
+}]
+DEFINITION
+
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  network_mode             = &quot;awsvpc&quot;
+  requires_compatibilities = [&quot;FARGATE&quot;]
+  cpu                      = 256
+  memory                   = 512
+}
+
+resource aws_ecs_service ecs_service {
+  name                = local.project_name
+  cluster             = aws_ecs_cluster.ecs_cluster.id
+  task_definition     = aws_ecs_task_definition.task_definition.arn
+  launch_type         = &quot;FARGATE&quot;
+  desired_count       = var.desired_count
+  scheduling_strategy = &quot;REPLICA&quot;
+
+  network_configuration {
+    subnets          = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+    security_groups  = [aws_security_group.ecs_tasks.id, aws_security_group.alb.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_alb_target_group.alb_target_group.arn
+    container_name   = &quot;site&quot;
+    container_port   = 80
+  }
+
+  depends_on = [aws_alb_listener.alb_listener]
+}
+</code></pre>
+<p>To <strong>initialize Terraform</strong> we use this command :</p>
+<pre><code class="language-bash">$ make tf-init
+</code></pre>
+<p>To <strong>build the infrastructure</strong>, the cluster and the service we simply execute command :</p>
+<pre><code class="language-bash">$ make tf-apply
+</code></pre>
+<p>We have some information in the terminal :</p>
+<p><img loading="lazy" src="img/tf-load-balancer-dns.png" alt="tf-load-balancer-dns.png"  /></p>
+<p>We use the <strong>DNS name URL of the load balancer</strong> in our browser :</p>
+<p><img loading="lazy" src="img/tf-site.png" alt="tf-site.png"  /></p>
+<p>We use scaling to <strong>go to 3 instances</strong> :</p>
+<pre><code class="language-bash">$ make tf-scale-up
+</code></pre>
+<p>The executed shell code is very simple :</p>
+<pre><code class="language-bash">$ export TF_VAR_desired_count=3
+$ tf-apply
+</code></pre>
+<p>New tasks are <strong>provisioning</strong> :</p>
+<p><img loading="lazy" src="img/tf-scale-up-1.png" alt="tf-scale-up-1.png"  /></p>
+<p>The target group <strong>registers the new instances</strong> :</p>
+<p><img loading="lazy" src="img/tf-scale-up-2.png" alt="tf-scale-up-2.png"  /></p>
+<p>Everything is ready :</p>
+<p><img loading="lazy" src="img/tf-scale-up-3.png" alt="tf-scale-up-3.png"  /></p>
+<p>We see our 3 instances behind our load balancer if we <strong>reload our browser several times</strong> :</p>
+<p><img loading="lazy" src="img/tf-ip-1.png" alt="tf-ip-1.png"  /></p>
+<p><img loading="lazy" src="img/tf-ip-2.png" alt="tf-ip-2.png"  /></p>
+<p><img loading="lazy" src="img/tf-ip-3.png" alt="tf-ip-3.png"  /></p>
+<p>We can go back <strong>to 1 container</strong> :</p>
+<pre><code class="language-bash">$ make tf-scale-down
+</code></pre>
+<p><strong>Unregistering targets in the load balancer takes several minutes</strong> :</p>
+<p><img loading="lazy" src="img/tf-scale-down.png" alt="tf-scale-down.png"  /></p>
+<p>The demonstration is over, we can <strong>destroy our resources</strong> :</p>
+<pre><code class="language-bash">$ make tf-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker-hub/">docker-hub</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecs/">ecs</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/load-balancer/">load-balancer</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

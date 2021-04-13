@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on Jérôme Decoster</title>
+    <link>/tags/</link>
+    <description>Recent content in Tags on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 10 Mar 2021 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>AWS</title>
+      <link>/tags/aws/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS</title>
+      <link>/tags/ecs/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecs/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Gitlab</title>
+      <link>/tags/gitlab/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/gitlab/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions</title>
+      <link>/tags/github-actions/</link>
+      <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github-actions/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Lambda</title>
+      <link>/tags/lambda/</link>
+      <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/lambda/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Docker</title>
+      <link>/tags/docker/</link>
+      <pubDate>Mon, 12 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/docker/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Go</title>
+      <link>/tags/go/</link>
+      <pubDate>Mon, 12 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/go/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Node</title>
+      <link>/tags/node/</link>
+      <pubDate>Mon, 12 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/node/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Note</title>
+      <link>/tags/note/</link>
+      <pubDate>Mon, 12 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/note/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>RabbitMQ</title>
+      <link>/tags/rabbitmq/</link>
+      <pubDate>Mon, 12 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/rabbitmq/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Autoscaling</title>
+      <link>/tags/autoscaling/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/autoscaling/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS</title>
+      <link>/tags/eks/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/eks/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Grafana</title>
+      <link>/tags/grafana/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/grafana/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Prometheus</title>
+      <link>/tags/prometheus/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/prometheus/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Monitoring</title>
+      <link>/tags/monitoring/</link>
+      <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/monitoring/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Slack</title>
+      <link>/tags/slack/</link>
+      <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/slack/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>GitOps</title>
+      <link>/tags/gitops/</link>
+      <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/gitops/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Black-White</title>
+      <link>/tags/black-white/</link>
+      <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/black-white/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>S3</title>
+      <link>/tags/s3/</link>
+      <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/s3/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Sharp</title>
+      <link>/tags/sharp/</link>
+      <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/sharp/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github</title>
+      <link>/tags/github/</link>
+      <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Hugo</title>
+      <link>/tags/hugo/</link>
+      <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/hugo/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECR</title>
+      <link>/tags/ecr/</link>
+      <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Cloud Map</title>
+      <link>/tags/cloud-map/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/cloud-map/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Docker Hub</title>
+      <link>/tags/docker-hub/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/docker-hub/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Load Balancer</title>
+      <link>/tags/load-balancer/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/load-balancer/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Service Discovery</title>
+      <link>/tags/service-discovery/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/service-discovery/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Fargate</title>
+      <link>/tags/fargate/</link>
+      <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/fargate/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CodeBuild</title>
+      <link>/tags/codebuild/</link>
+      <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/codebuild/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CodePipeline</title>
+      <link>/tags/codepipeline/</link>
+      <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/codepipeline/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github flow</title>
+      <link>/tags/github-flow/</link>
+      <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github-flow/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CodeCommit</title>
+      <link>/tags/codecommit/</link>
+      <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/codecommit/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Jenkins</title>
+      <link>/tags/jenkins/</link>
+      <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/jenkins/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>git</title>
+      <link>/tags/git/</link>
+      <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/git/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>git-flow</title>
+      <link>/tags/git-flow/</link>
+      <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/git-flow/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>DynamoDB</title>
+      <link>/tags/dynamodb/</link>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/dynamodb/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Rekognition</title>
+      <link>/tags/rekognition/</link>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/rekognition/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Step Functions</title>
+      <link>/tags/step-functions/</link>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/step-functions/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ImageMagick</title>
+      <link>/tags/imagemagick/</link>
+      <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/imagemagick/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>S3 Event Notification</title>
+      <link>/tags/s3-event-notification/</link>
+      <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/s3-event-notification/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>invoke</title>
+      <link>/tags/invoke/</link>
+      <pubDate>Tue, 04 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/invoke/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Cognito</title>
+      <link>/tags/cognito/</link>
+      <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/cognito/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Express</title>
+      <link>/tags/express/</link>
+      <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/express/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>session</title>
+      <link>/tags/session/</link>
+      <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/session/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>curl</title>
+      <link>/tags/curl/</link>
+      <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/curl/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Troposphere</title>
+      <link>/tags/troposphere/</link>
+      <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/troposphere/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>API Gateway</title>
+      <link>/tags/api-gateway/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/api-gateway/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>cli</title>
+      <link>/tags/cli/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/cli/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>form</title>
+      <link>/tags/form/</link>
+      <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/form/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>jq</title>
+      <link>/tags/jq/</link>
+      <pubDate>Thu, 05 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/jq/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>nc</title>
+      <link>/tags/nc/</link>
+      <pubDate>Thu, 05 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/nc/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Bash</title>
+      <link>/tags/bash/</link>
+      <pubDate>Tue, 03 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/bash/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CI/CD</title>
+      <link>/tags/ci/cd/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ci/cd/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

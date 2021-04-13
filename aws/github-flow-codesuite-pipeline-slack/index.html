@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Github flow,Github,CodeBuild,CodePipeline,Slack,Terraform,CI/CD'><meta name="description" content='Testing a Node project hosted on github with CodeBuild and CodePipeline. Also sending Slack message.'><meta property="og:title" content="Github Flow &#43; Codesuite pipeline &#43; Slack" />
+<meta property="og:description" content="Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/github-flow-codesuite-pipeline-slack/" />
+<meta property="article:published_time" content="2020-04-06T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-06T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Github Flow &#43; Codesuite pipeline &#43; Slack"/>
+<meta name="twitter:description" content="Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Github Flow &#43; Codesuite pipeline &#43; Slack | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#setup-github">Setup Github</a></li>
+        <li><a href="#setup-slack">Setup Slack</a></li>
+        <li><a href="#exploring-the-project">Exploring the project</a></li>
+        <li><a href="#run-the-project">Run the project</a></li>
+        <li><a href="#github-flow--open-a-pull-request">Github flow : open a Pull Request</a></li>
+        <li><a href="#github-flow--merge-a-pull-request">Github flow : merge a Pull Request</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">06</span>
+<span class="rest">Apr 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Github Flow &#43; Codesuite pipeline &#43; Slack</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>This project uses <a href="https://github.com">Github</a> as <strong>git repository</strong>, <a href="https://docs.aws.amazon.com/codecommit/latest/userguide/getting-started-cc.html">CodeBuild</a> is used to <strong>compile the source code</strong> and <a href="https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome-what-can-I-do.html">CodePipeline</a> to <strong>orchestrate</strong> these tools. <a href="https://www.terraform.io/docs/providers/aws/index.html">Terraform</a> is used to build the <strong>AWS cloud infrastructure</strong>. We want test the <a href="https://guides.github.com/introduction/flow/">Github flow</a> and build the project on every <code>Push</code> / <code>Pull Request</code>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture0.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="setup-github">Setup Github</h3>
+<p>We need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github token</a> with <strong>repo</strong> and <strong>admin:repo_hook</strong> selected :</p>
+<p><img loading="lazy" src="img/github-token-1.png" alt="github-token-1.png"  /></p>
+<p>We receive our <strong>Github token</strong> :</p>
+<p><img loading="lazy" src="img/github-token-2.png" alt="github-token-2.png"  /></p>
+<p>Get the <a href="https://github.com/jeromedecoster/note-github-flow-codesuite-pipeline-node-project" target="_blank" rel="noopener">source code</a> of the Node project.</p>
+<p><strong>Fork</strong> or <strong>clone</strong> it then use <strong>your repository URL</strong>.</p>
+<h3 id="setup-slack">Setup Slack</h3>
+<p>Now we can go to <a href="https://slack.com" target="_blank" rel="noopener">Slack</a> and :</p>
+<ul>
+<li>Create an <strong>account</strong> if it’s not already done.</li>
+<li>Create a <strong>workpace</strong>.</li>
+<li>Then create a <strong>channel</strong>.</li>
+</ul>
+<p>I create the channel <strong>another-channel</strong> :</p>
+<p><img loading="lazy" src="img/slack-create-channel.png" alt="slack-create-channel.png"  /></p>
+<p>Now we <strong>add an application</strong> :</p>
+<p><img loading="lazy" src="img/slack-add-application-1.png" alt="slack-add-application-1.png"  /></p>
+<p>We select the <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">Incoming Webhooks</a> application :</p>
+<p><img loading="lazy" src="img/slack-add-application-2.png" alt="slack-add-application-2.png"  /></p>
+<p>We add it <strong>to the channel</strong> we just created  :</p>
+<p><img loading="lazy" src="img/slack-add-application-3.png" alt="slack-add-application-3.png"  /></p>
+<p>We receive the <strong>webhook URL</strong> :</p>
+<p><img loading="lazy" src="img/slack-add-application-4.png" alt="slack-add-application-4.png"  /></p>
+<h3 id="exploring-the-project">Exploring the project</h3>
+<p>Let&rsquo;s look at some parts of the source code.</p>
+<p>If we look the <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/Makefile" target="_blank" rel="noopener">Makefile</a>, we have some actions to build and use the project :</p>
+<pre><code class="language-Makefile">init: # terraform init + create terraform.tfvars
+	bin/init.sh
+
+validate: # terraform format then validate
+	terraform fmt -recursive
+	terraform validate
+
+apply: # terraform plan then apply with auto approve
+	bin/apply.sh
+</code></pre>
+<p>Let&rsquo;s start :</p>
+<pre><code class="language-bash"># terraform init + create terraform.tfvars
+$ make init
+</code></pre>
+<p>Now we need to define the variables in the <code>terraform.tfvars</code> file :</p>
+<pre><code class="language-bash">github_token           = &quot;&quot;
+github_owner           = &quot;&quot;
+github_repository_name = &quot;&quot;
+slack_path             = &quot;&quot;
+</code></pre>
+<p>This is mine. Use <strong>your values</strong> :</p>
+<pre><code class="language-bash">github_token           = &quot;2...2&quot;
+github_owner           = &quot;jeromedecoster&quot;
+github_repository_name = &quot;note-github-flow-codesuite-pipeline-node-project&quot;
+slack_path             = &quot;/services/TU...ant&quot;
+</code></pre>
+<p>The project use <strong>two terraform modules</strong>, named <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/tree/master/notification" target="_blank" rel="noopener">notification</a> and <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/tree/master/pipeline" target="_blank" rel="noopener">pipeline</a>.</p>
+<p>The <strong>Slack notification</strong> done from <strong>CodeBuild</strong> and <strong>CodePipeline</strong> is created by using <a href="https://aws.amazon.com/sns/" target="_blank" rel="noopener">SNS</a> and <a href="https://aws.amazon.com/lambda/" target="_blank" rel="noopener">Lambda</a>.</p>
+<p>The <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/notification/sns.tf" target="_blank" rel="noopener">sns.tf</a> file is used to :</p>
+<ul>
+<li>Create an <strong>SNS topic</strong> with <a href="https://www.terraform.io/docs/providers/aws/d/sns_topic.html" target="_blank" rel="noopener">aws_sns_topic</a> and <a href="https://www.terraform.io/docs/providers/aws/r/sns_topic_subscription.html" target="_blank" rel="noopener">aws_sns_topic_subscription</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource aws_sns_topic topic {
+  name = var.project_name
+}
+
+# ...
+
+resource aws_sns_topic_subscription topic_subscription {
+  topic_arn = aws_sns_topic.topic.arn
+  protocol  = &quot;lambda&quot;
+  endpoint  = aws_lambda_function.lambda.arn
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/notification/lambda.tf" target="_blank" rel="noopener">lambda.tf</a> and <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/notification/index.js" target="_blank" rel="noopener">index.js</a> files are used to :</p>
+<ul>
+<li>Create the <strong>Lambda function</strong> with <a href="https://www.terraform.io/docs/providers/aws/r/lambda_function.html" target="_blank" rel="noopener">aws_lambda_function</a>.</li>
+</ul>
+<pre><code class="language-js">exports.handler = (event) =&gt; {
+    
+  let sns = JSON.parse(event.Records[0].Sns.Message)
+
+  // codepipeline notification
+  let time = sns.time.replace('T', ' ').replace('Z', '')
+  let username = `CodePipeline - ${time}`
+  let region = sns.region
+  let pipeline = sns.detail.pipeline
+  let link = `https://${region}.console.aws.amazon.com/codesuite/codepipeline/pipelines/${pipeline}/view`
+  let text = `status: *${sns.detail.state}* ${link}`
+
+  // simplest message
+  let data = data = JSON.stringify({
+    username: username,
+    text: text,
+    icon_emoji: icon_emoji
+  })
+
+  let options = {
+    hostname: 'hooks.slack.com',
+    port: 443,
+    path: process.env.SLACK_PATH,
+    method: 'POST',
+  }
+
+  let req = https.request(options, (res) =&gt; {
+    console.log('status code : ' + res.statusCode)
+    res.setEncoding('utf8')
+    res.on('data', (d) =&gt; {
+      console.log(d)
+    })
+  })
+
+  // ...
+}
+</code></pre>
+<p>Within the <strong>pipeline module</strong>, the <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/pipeline/codebuild.tf" target="_blank" rel="noopener">codebuild.tf</a> file is used to :</p>
+<ul>
+<li>Create the <strong>CodeBuild project</strong> with <a href="https://www.terraform.io/docs/providers/aws/r/codebuild_project.html" target="_blank" rel="noopener">aws_codebuild_project</a>, <a href="https://www.terraform.io/docs/providers/aws/r/codebuild_webhook.html" target="_blank" rel="noopener">aws_codebuild_webhook</a> and <a href="https://www.terraform.io/docs/providers/aws/r/codestarnotifications_notification_rule.html" target="_blank" rel="noopener">aws_codestarnotifications_notification_rule</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource aws_codebuild_project codebuild {
+  name          = &quot;${var.project_name}-codebuild&quot;
+  service_role  = aws_iam_role.codebuild_role.arn
+  build_timeout = 120
+
+  source {
+    type                = &quot;GITHUB&quot;
+    location            = &quot;https://github.com/${var.github_owner}/${var.github_repository_name}.git&quot;
+    git_clone_depth     = 1
+    report_build_status = true
+  }
+
+  artifacts {
+    type = &quot;NO_ARTIFACTS&quot;
+  }
+
+  environment {
+    compute_type = &quot;BUILD_GENERAL1_SMALL&quot;
+    # https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/3.0/Dockerfile
+    image = &quot;aws/codebuild/amazonlinux2-x86_64-standard:3.0&quot;
+    type  = &quot;LINUX_CONTAINER&quot;
+  }
+}
+
+resource aws_codebuild_webhook webhook {
+  project_name = aws_codebuild_project.codebuild.name
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PUSH&quot;
+    }
+
+    filter {
+      type    = &quot;HEAD_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PULL_REQUEST_CREATED,PULL_REQUEST_UPDATED,PULL_REQUEST_REOPENED&quot;
+    }
+
+    filter {
+      type    = &quot;BASE_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+}
+
+# ...
+
+resource aws_codestarnotifications_notification_rule codebuild_notification_rule {
+  name        = &quot;${var.project_name}-codebuild-notification-rule&quot;
+  resource    = aws_codebuild_project.codebuild.arn
+  detail_type = &quot;FULL&quot;
+
+  # https://docs.aws.amazon.com/codestar-notifications/latest/userguide/concepts.html#concepts-api
+  event_type_ids = [
+    &quot;codebuild-project-build-state-failed&quot;,
+    &quot;codebuild-project-build-state-succeeded&quot;
+  ]
+
+  target {
+    address = var.sns_topic_arn
+  }
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/pipeline/codepipeline.tf" target="_blank" rel="noopener">codepipeline.tf</a> file is used to :</p>
+<ul>
+<li>Create the pipeline with <a href="https://www.terraform.io/docs/providers/aws/r/codepipeline.html" target="_blank" rel="noopener">aws_codepipeline</a> and <a href="https://www.terraform.io/docs/providers/aws/r/codestarnotifications_notification_rule.html" target="_blank" rel="noopener">aws_codestarnotifications_notification_rule</a></li>
+</ul>
+<pre><code class="language-hcl">resource aws_codepipeline codepipeline {
+  name     = var.project_name
+  role_arn = aws_iam_role.codepipeline_role.arn
+
+  artifact_store {
+    location = aws_s3_bucket.artifacts.bucket
+    type     = &quot;S3&quot;
+  }
+
+  stage {
+    name = &quot;Source&quot;
+
+    action {
+      name             = &quot;Source&quot;
+      category         = &quot;Source&quot;
+      owner            = &quot;ThirdParty&quot;
+      provider         = &quot;GitHub&quot;
+      version          = &quot;1&quot;
+      output_artifacts = [&quot;source&quot;]
+
+      configuration = {
+        OAuthToken = var.github_token
+        Owner      = var.github_owner
+        Repo       = var.github_repository_name
+        Branch     = &quot;master&quot;
+      }
+    }
+  }
+
+  stage {
+    name = &quot;Test&quot;
+
+    action {
+      name     = &quot;Test&quot;
+      category = &quot;Test&quot;
+      owner    = &quot;AWS&quot;
+      provider = &quot;CodeBuild&quot;
+      version  = &quot;1&quot;
+
+      configuration = {
+        ProjectName = aws_codebuild_project.codebuild.name
+      }
+
+      input_artifacts = [&quot;source&quot;]
+    }
+  }
+}
+
+# ...
+
+resource aws_codestarnotifications_notification_rule codepipeline_notification_rule {
+  name        = &quot;${var.project_name}-notification-rule&quot;
+  resource    = aws_codepipeline.codepipeline.arn
+  detail_type = &quot;FULL&quot;
+
+  # https://docs.aws.amazon.com/codestar-notifications/latest/userguide/concepts.html#concepts-api
+  event_type_ids = [
+    &quot;codepipeline-pipeline-pipeline-execution-started&quot;,
+    &quot;codepipeline-pipeline-pipeline-execution-failed&quot;,
+    &quot;codepipeline-pipeline-pipeline-execution-succeeded&quot;
+  ]
+
+  target {
+    address = var.sns_topic_arn
+  }
+}
+</code></pre>
+<h3 id="run-the-project">Run the project</h3>
+<p>Let&rsquo;s build the infrastructure :</p>
+<pre><code class="language-bash"># terraform plan then apply with auto approve
+$ make apply
+</code></pre>
+<p>Everything is created quickly.</p>
+<p>If we go to <strong>CodePipeline</strong>, we can see that <strong>a pipeline is already in progress</strong> :</p>
+<p><img loading="lazy" src="img/codepipeine-running-1.png" alt="codepipeine-running-1.png"  /></p>
+<p>And our <strong>Slack channel</strong> confirms the success :</p>
+<p><img loading="lazy" src="img/slack-codepipeline-succeeded.png" alt="slack-codepipeline-succeeded.png"  /></p>
+<p>If we go to <strong>CodeBuild</strong>, we can see the <strong>successful build history</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-succeded.png" alt="codebuild-succeded.png"  /></p>
+<p>If we click on the <strong>Build run</strong> link, we can see the <strong>build logs</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-log.png" alt="codebuild-log.png"  /></p>
+<p>By going to see the <strong>settings</strong> of our <strong>Node project</strong>, we can see the <strong>webhook</strong> that was created <strong>between Github and CodeBuild</strong> :</p>
+<p><img loading="lazy" src="img/github-webhooks.png" alt="github-webhooks.png"  /></p>
+<p>Let&rsquo;s take a look at the <strong>source settings</strong> of the <strong>CodeBuild project</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-show-source.png" alt="codebuild-show-source.png"  /></p>
+<p>We see the <strong>Github connection</strong> to the repository :</p>
+<p><img loading="lazy" src="img/codebuild-source-1.png" alt="codebuild-source-1.png"  /></p>
+<p>And we see the <strong>two created webhooks</strong> :</p>
+<ul>
+<li>React when the <code>PULL_REQUEST_CREATED</code>, <code>PULL_REQUEST_UPDATED</code> or <code>PULL_REQUEST_REOPENED</code> events are fired from the <code>BASE_REF master</code>.</li>
+<li>React when the <code>PUSH</code> event is fired from the <code>HEAD_REF master</code>.</li>
+</ul>
+<p><img loading="lazy" src="img/codebuild-source-2.png" alt="codebuild-source-2.png"  /></p>
+<p>We defined it in the <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/pipeline/codebuild.tf" target="_blank" rel="noopener">codebuild.tf</a> file :</p>
+<pre><code class="language-hcl">resource aws_codebuild_webhook webhook {
+  project_name = aws_codebuild_project.codebuild.name
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PUSH&quot;
+    }
+
+    filter {
+      type    = &quot;HEAD_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PULL_REQUEST_CREATED,PULL_REQUEST_UPDATED,PULL_REQUEST_REOPENED&quot;
+    }
+
+    filter {
+      type    = &quot;BASE_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+}
+</code></pre>
+<p>We can read the subtle explanation of <code>HEAD_REF</code> and <code>BASE_REF</code> in the <a href="https://docs.aws.amazon.com/codebuild/latest/userguide/sample-github-pull-request.html#sample-github-pull-request-filter-webhook-events" target="_blank" rel="noopener">AWS documentation</a> :</p>
+<ul>
+<li>
+<p><code>HEAD_REF</code>: A webhook event triggers a build when the head reference matches the regular expression pattern (for example, <code>refs/heads/branch-name</code> or <code>refs/tags/tag-name</code>). For a push event, the reference name is found in the ref property in the webhook payload. For pull requests events, the branch name is found in the ref property of the head object in the webhook payload.</p>
+</li>
+<li>
+<p><code>BASE_REF</code>: A webhook event triggers a build when the base reference matches the regular expression pattern (for example, <code>refs/heads/branch-name</code>). A <code>BASE_REF</code> filter can be used with pull request events only. The branch name is found in the ref property of the base object in the webhook payload.</p>
+</li>
+</ul>
+<p>Now let&rsquo;s take a look at the <strong>CodeBuild settings</strong>. We can see the <strong>Notification rule</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-rules-1.png" alt="codebuild-rules-1.png"  /></p>
+<p>Let&rsquo;s <strong>edit this rule</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-rules-2.png" alt="codebuild-rules-2.png"  /></p>
+<p>We can see the <strong>subscription settings</strong> :</p>
+<ul>
+<li><code>Full</code> details asked.</li>
+<li>Only <strong>two build state events</strong> listened.</li>
+</ul>
+<p><img loading="lazy" src="img/codebuild-rules-3.png" alt="codebuild-rules-3.png"  /></p>
+<p>We defined it in the <a href="https://github.com/jeromedecoster/aws-github-flow-codesuite-pipeline-slack/blob/master/pipeline/codebuild.tf" target="_blank" rel="noopener">codebuild.tf</a> file :</p>
+<pre><code class="language-hcl">resource aws_codestarnotifications_notification_rule codebuild_notification_rule {
+  name        = &quot;${var.project_name}-codebuild-notification-rule&quot;
+  resource    = aws_codebuild_project.codebuild.arn
+  detail_type = &quot;FULL&quot;
+
+  # https://docs.aws.amazon.com/codestar-notifications/latest/userguide/concepts.html#concepts-api
+  event_type_ids = [
+    &quot;codebuild-project-build-state-failed&quot;,
+    &quot;codebuild-project-build-state-succeeded&quot;
+  ]
+
+  target {
+    address = var.sns_topic_arn
+  }
+}
+</code></pre>
+<h3 id="github-flow--open-a-pull-request">Github flow : open a Pull Request</h3>
+<p>To test the <a href="https://guides.github.com/introduction/flow/" target="_blank" rel="noopener">github flow</a> we will <strong>directly edit our git files and branches on github</strong>.</p>
+<p>Let&rsquo;s edit the <strong>app.test.js</strong> file :</p>
+<p><img loading="lazy" src="img/github-edit.png" alt="github-edit.png"  /></p>
+<p>We <strong>add an error</strong> :</p>
+<p><img loading="lazy" src="img/github-edit-7-1.png" alt="github-edit-7-1.png"  /></p>
+<p>We <strong>commit</strong> this change by <strong>creating a new branch</strong> :</p>
+<p><img loading="lazy" src="img/github-edit-7-2.png" alt="github-edit-7-2.png"  /></p>
+<p>The github interface now offers us to <strong>create a Pull Request</strong> :</p>
+<p><img loading="lazy" src="img/github-open-pr.png" alt="github-open-pr.png"  /></p>
+<p>But, <strong>what is a Pull Request ?</strong> A great <a href="https://www.quora.com/GitHub-What-is-a-pull-request/answer/Shruthi-Sivasubramanian-3" target="_blank" rel="noopener">answer on Quora</a> :</p>
+<blockquote>
+<p>A pull/merge request is submitted when you&rsquo;ve worked on some code from a particular branch and <strong>want to inform the others of the changes you&rsquo;ve made</strong>. A person/people can be assigned to <strong>review and subsequently approve the request before your changes can be incorporated into the branch</strong>. Do note that it is referred to as a <code>pull request</code> on GitHub and Bitbucket, but other platforms like GitLab and Gitorious have opted to call it a <code>merge request</code>.</p>
+</blockquote>
+<p>Let&rsquo;s edit again the <strong>app.test.js</strong> file to <strong>commit another error</strong> :</p>
+<p><img loading="lazy" src="img/github-edit-8-1.png" alt="github-edit-8-1.png"  /></p>
+<p>The <strong>commit message</strong> :</p>
+<p><img loading="lazy" src="img/github-edit-8-2.png" alt="github-edit-8-2.png"  /></p>
+<p>After a few seconds, the Pull Request page indicates that <strong>a test is in progress on this new commit</strong> :</p>
+<ul>
+<li><strong>CodeBuild</strong> is currently running these <a href="https://github.com/jeromedecoster/note-github-flow-codesuite-pipeline-node-project/blob/master/buildspec.yml" target="_blank" rel="noopener">buildspec.yml</a> steps.</li>
+</ul>
+<p><img loading="lazy" src="img/github-test-running.png" alt="github-test-running.png"  /></p>
+<p>Then we finally get, logically, an <strong>error</strong> :</p>
+<p><img loading="lazy" src="img/github-test-failed.png" alt="github-test-failed.png"  /></p>
+<p>The <strong>CodeBuild history</strong> confirm the <strong>failed process</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-test-failed.png" alt="codebuild-test-failed.png"  /></p>
+<p>We also received a <strong>Slack notification</strong> :</p>
+<p><img loading="lazy" src="img/slack-codebuild-failed.png" alt="slack-codebuild-failed.png"  /></p>
+<h3 id="github-flow--merge-a-pull-request">Github flow : merge a Pull Request</h3>
+<p>We will now <strong>correct our error</strong> so that we can <strong>successfully close our pull request</strong>.</p>
+<p>Let&rsquo;s edit the <strong>app.test.js</strong> file again :</p>
+<p><img loading="lazy" src="img/github-edit-6-1.png" alt="github-edit-6-1.png"  /></p>
+<p>We <strong>commit the corrected version</strong> :</p>
+<p><img loading="lazy" src="img/github-edit-6-2.png" alt="github-edit-6-2.png"  /></p>
+<p>The <strong>CodeBuild history</strong> confirm the new <strong>running process</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-running.png" alt="codebuild-running.png"  /></p>
+<p>We receive a <strong>successfull Slack notification</strong> :</p>
+<p><img loading="lazy" src="img/slack-codebuild-succeeded.png" alt="slack-codebuild-succeeded.png"  /></p>
+<p>Our Pull Request page is now <strong>fully filled with green color</strong>. We can <strong>click the merge button</strong> with confidence :</p>
+<p><img loading="lazy" src="img/github-test-succeded.png" alt="github-test-succeded.png"  /></p>
+<p>We <strong>confirm the merge</strong> :</p>
+<p><img loading="lazy" src="img/github-confirm-merge.png" alt="github-confirm-merge.png"  /></p>
+<p>The merge is done, we can <strong>delete the patch branch</strong> :</p>
+<p><img loading="lazy" src="img/github-merge-done.png" alt="github-merge-done.png"  /></p>
+<p>We can see that the <strong>master branch has received the modifications</strong> :</p>
+<p><img loading="lazy" src="img/github-master-merged.png" alt="github-master-merged.png"  /></p>
+<p>The modifications were made <strong>on the master branch</strong>. So it is <strong>CodePipeline that will be triggered</strong>.</p>
+<p>The <strong>pipeline is successfully completed</strong> :</p>
+<p><img loading="lazy" src="img/codepipeline-running-2.png" alt="codepipeline-running-2.png"  /></p>
+<p>And we receive the <strong>Slack notification</strong> :</p>
+<p><img loading="lazy" src="img/slack-latests-messages.png" alt="slack-latests-messages.png"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/codebuild/">codebuild</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/codepipeline/">codepipeline</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github-flow/">github-flow</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/slack/">slack</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Rekognition on Jérôme Decoster</title>
+    <link>/tags/rekognition/</link>
+    <description>Recent content in Rekognition on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 24 Feb 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/rekognition/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Step Functions &#43; Rekognition</title>
+      <link>/aws/step-functions-rekognition/</link>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/step-functions-rekognition/</guid>
+      <description>
+      
+      Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**.
+      
+      </description>
+    </item>
+    <item>
+      <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
+      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <description>
+      
+      Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

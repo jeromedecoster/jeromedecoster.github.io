@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cli on Jérôme Decoster</title>
+    <link>/tags/cli/</link>
+    <description>Recent content in cli on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sun, 22 Dec 2019 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/cli/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>API Gateway &#43; Lambda &#43; cli</title>
+      <link>/aws/api-gateway-lambda-cli/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/api-gateway-lambda-cli/</guid>
+      <description>
+      
+      Create an **API Gateway** and a **Lambda** from cli.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

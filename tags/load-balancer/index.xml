@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Load Balancer on Jérôme Decoster</title>
+    <link>/tags/load-balancer/</link>
+    <description>Recent content in Load Balancer on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 19 Jun 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/load-balancer/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
+      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <description>
+      
+      Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS &#43; Load Balancer &#43; Node &#43; Terraform</title>
+      <link>/aws/ecs-load-balancer-node-terraform/</link>
+      <pubDate>Mon, 15 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-load-balancer-node-terraform/</guid>
+      <description>
+      
+      Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

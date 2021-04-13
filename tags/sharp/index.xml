@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Sharp on Jérôme Decoster</title>
+    <link>/tags/sharp/</link>
+    <description>Recent content in Sharp on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 01 Sep 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/sharp/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
+      <link>/aws/kubernetes-eks-docker-node/</link>
+      <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <description>
+      
+      Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Troposphere &#43; Lambda &#43; Sharp</title>
+      <link>/black-white/troposphere-lambda-sharp/</link>
+      <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/black-white/troposphere-lambda-sharp/</guid>
+      <description>
+      
+      Playing with **Trophosphere**, **Lambda** and **Sharp** to convert an color image from to black and white version.
+      
+      </description>
+    </item>
+    <item>
+      <title>Node &#43; Express &#43; Sharp</title>
+      <link>/black-white/node-express-sharp/</link>
+      <pubDate>Thu, 12 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/black-white/node-express-sharp/</guid>
+      <description>
+      
+      Playing with **Node**, **Express** and **Sharp** to convert an color image from to black and white version.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

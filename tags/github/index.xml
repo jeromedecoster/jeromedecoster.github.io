@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Github on Jérôme Decoster</title>
+    <link>/tags/github/</link>
+    <description>Recent content in Github on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 07 Jul 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/github/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
+      <link>/aws/github-actions-hugo-terraform-s3/</link>
+      <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-actions-hugo-terraform-s3/</guid>
+      <description>
+      
+      Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way.
+      
+      </description>
+    </item>
+    <item>
+      <title>GitOps &#43; Terraform</title>
+      <link>/aws/gitops-terraform/</link>
+      <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitops-terraform/</guid>
+      <description>
+      
+      Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
+      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <description>
+      
+      Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
+      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <description>
+      
+      Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Jenkins &#43; github</title>
+      <link>/note/jenkins-github/</link>
+      <pubDate>Tue, 03 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/note/jenkins-github/</guid>
+      <description>
+      
+      Testing a **Node** project hosted on **github** with **Jenkins**.
+      
+      </description>
+    </item>
+    <item>
+      <title>git-flow &#43; github</title>
+      <link>/note/git-flow-github/</link>
+      <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/note/git-flow-github/</guid>
+      <description>
+      
+      Playing with **git-flow** and **github**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>ImageMagick on Jérôme Decoster</title>
+    <link>/tags/imagemagick/</link>
+    <description>Recent content in ImageMagick on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 05 Feb 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/imagemagick/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
+      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <description>
+      
+      Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform &#43; ImageMagick &#43; Lambda &#43; invoke</title>
+      <link>/black-white/terraform-imagemagick-lambda-invoke/</link>
+      <pubDate>Tue, 04 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/black-white/terraform-imagemagick-lambda-invoke/</guid>
+      <description>
+      
+      Playing with **Terraform**, **Lambda** and **ImageMagick** to convert an color image from to black and white version.
+      
+      </description>
+    </item>
+    <item>
+      <title>Docker &#43; Imagemagick</title>
+      <link>/black-white/docker-imagemagick/</link>
+      <pubDate>Sun, 08 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/black-white/docker-imagemagick/</guid>
+      <description>
+      
+      Playing with **Docker** and **Imagemagick** to convert an color image from to black and white version.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

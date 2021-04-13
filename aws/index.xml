@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Aws on Jérôme Decoster</title>
+    <link>/aws/</link>
+    <description>Recent content in Aws on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 10 Mar 2021 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/aws/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Gitlab &#43; ECS &#43; Terraform</title>
+      <link>/aws/gitlab-ecs-terraform/</link>
+      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitlab-ecs-terraform/</guid>
+      <description>
+      
+      Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Lambda &#43; Terraform &#43; Github Actions</title>
+      <link>/aws/lambda-terraform-github-actions/</link>
+      <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/lambda-terraform-github-actions/</guid>
+      <description>
+      
+      Building a **continuous deployment** for **Lambda** functions in a **multi-stage environment**.
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS &#43; Prometheus &#43; Grafana</title>
+      <link>/aws/eks-prometheus-grafana/</link>
+      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks-prometheus-grafana/</guid>
+      <description>
+      
+      Install **Prometheus** and **Grafana** on **Kubernetes**. Perform a **CPU stress test** to see the evolution of **Prometheus metrics** and **Kubernetes autoscaling**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; EKS &#43; Github Actions</title>
+      <link>/aws/kubernetes-eks-github-actions/</link>
+      <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/kubernetes-eks-github-actions/</guid>
+      <description>
+      
+      Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
+      <link>/aws/kubernetes-eks-docker-node/</link>
+      <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <description>
+      
+      Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
+      <link>/aws/github-actions-hugo-terraform-s3/</link>
+      <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-actions-hugo-terraform-s3/</guid>
+      <description>
+      
+      Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions &#43; ECR &#43; ECS</title>
+      <link>/aws/github-actions-ecr-ecs/</link>
+      <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-actions-ecr-ecs/</guid>
+      <description>
+      
+      Using **Github actions** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
+      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <description>
+      
+      Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ECS &#43; Load Balancer &#43; Node &#43; Terraform</title>
+      <link>/aws/ecs-load-balancer-node-terraform/</link>
+      <pubDate>Mon, 15 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-load-balancer-node-terraform/</guid>
+      <description>
+      
+      Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Docker &#43; ECS &#43; Fargate</title>
+      <link>/aws/docker-ecs-fargate/</link>
+      <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/docker-ecs-fargate/</guid>
+      <description>
+      
+      Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**.
+      
+      </description>
+    </item>
+    <item>
+      <title>GitOps &#43; Terraform</title>
+      <link>/aws/gitops-terraform/</link>
+      <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/gitops-terraform/</guid>
+      <description>
+      
+      Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
+      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <description>
+      
+      Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Codesuite pipeline &#43; Terraform</title>
+      <link>/aws/codesuite-pipeline-terraform/</link>
+      <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/codesuite-pipeline-terraform/</guid>
+      <description>
+      
+      Building a C&#43;&#43; program after each commit using **CodeCommit**, **CodeBuild** and **CodePipeline**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Step Functions &#43; Rekognition</title>
+      <link>/aws/step-functions-rekognition/</link>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/step-functions-rekognition/</guid>
+      <description>
+      
+      Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**.
+      
+      </description>
+    </item>
+    <item>
+      <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
+      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <description>
+      
+      Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda</title>
+      <link>/aws/terraform-s3-s3-event-notification-lambda/</link>
+      <pubDate>Mon, 27 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/terraform-s3-s3-event-notification-lambda/</guid>
+      <description>
+      
+      Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Express &#43; session &#43; DynamoDB &#43; Cognito</title>
+      <link>/aws/express-session-dynamodb-cognito/</link>
+      <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/express-session-dynamodb-cognito/</guid>
+      <description>
+      
+      Playing with **express-session**. Externalize session data in **DynamoDB** and user account in **Cognito**.
+      
+      </description>
+    </item>
+    <item>
+      <title>API Gateway &#43; Lambda &#43; cli</title>
+      <link>/aws/api-gateway-lambda-cli/</link>
+      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/api-gateway-lambda-cli/</guid>
+      <description>
+      
+      Create an **API Gateway** and a **Lambda** from cli.
+      
+      </description>
+    </item>
+    <item>
+      <title>API Gateway &#43; Lambda &#43; curl</title>
+      <link>/aws/api-gateway-lambda-curl/</link>
+      <pubDate>Wed, 18 Dec 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/api-gateway-lambda-curl/</guid>
+      <description>
+      
+      Testing **API Gateway** and **Lambda** with different type of **Integration Request**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

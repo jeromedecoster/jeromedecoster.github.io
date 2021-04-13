@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Service Discovery on Jérôme Decoster</title>
+    <link>/tags/service-discovery/</link>
+    <description>Recent content in Service Discovery on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 19 Jun 2020 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/service-discovery/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
+      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <description>
+      
+      Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

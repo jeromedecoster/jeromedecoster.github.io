@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Black & White,Terraform,ImageMagick,Lambda,invoke'><meta name="description" content='Playing with Terraform, Lambda and ImageMagick to convert an color image from to black and white version.'><meta property="og:title" content="Terraform &#43; ImageMagick &#43; Lambda &#43; invoke" />
+<meta property="og:description" content="Playing with **Terraform**, **Lambda** and **ImageMagick** to convert an color image from to black and white version." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/black-white/terraform-imagemagick-lambda-invoke/" />
+<meta property="article:published_time" content="2020-02-04T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-04T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Terraform &#43; ImageMagick &#43; Lambda &#43; invoke"/>
+<meta name="twitter:description" content="Playing with **Terraform**, **Lambda** and **ImageMagick** to convert an color image from to black and white version."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Terraform &#43; ImageMagick &#43; Lambda &#43; invoke | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#the-lambda-layer">The Lambda Layer</a></li>
+        <li><a href="#lets-put-the-project-online">Let&rsquo;s put the project online</a></li>
+        <li><a href="#test-the-lambda-with-invoke">Test the Lambda with invoke</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">04</span>
+<span class="rest">Feb 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Terraform &#43; ImageMagick &#43; Lambda &#43; invoke</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Convert an image stored in S3 using <a href="https://imagemagick.org/script/convert.php">ImageMagick</a> and Lambda. We will <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/invoke.html">invoke</a> the Lambda function directly from CLI.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke" target="_blank" rel="noopener">github repository</a> :</p>
+<ul>
+<li><a href="/aws/terraform-s3-s3-event-notification-lambda/#install-terraform">Terraform</a> and <a href="https://stedolan.github.io/jq/" target="_blank" rel="noopener">jq</a> must be installed.</li>
+</ul>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke.git \
+    /tmp/bw
+
+# cd and setup
+$ cd /tmp/bw &amp;&amp; make init
+</code></pre>
+<h3 id="the-lambda-layer">The Lambda Layer</h3>
+<p>Using ImageMagick from a <a href="https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html" target="_blank" rel="noopener">Lambda Layer</a> is the most complex part of this project.</p>
+<p>Because you can&rsquo;t just download the <a href="https://www.imagemagick.org/script/download.php" target="_blank" rel="noopener">static version</a> of ImageMagick and use it :</p>
+<p><img loading="lazy" src="img/static-version.png" alt="static-version.png"  /></p>
+<p>It will <strong>throw an error</strong> :</p>
+<ul>
+<li><a href="https://appimage.org/" target="_blank" rel="noopener">AppImage</a> is used to pack the static version. But there is a problem with <a href="https://github.com/AppImage/AppImageKit/wiki/FUSE" target="_blank" rel="noopener">FUSE</a>.</li>
+</ul>
+<pre><code class="language-bash"># the error thrown by Lambda when executing `magick`
+lopen(): error loading libfuse.so.2
+    AppImages require FUSE to run.
+    You might still be able to extract the contents of this AppImage
+</code></pre>
+<p>To resolve this problem, you must create ImageMagick from <a href="https://imagemagick.org/script/install-source.php" target="_blank" rel="noopener">the source code</a>, adding the libraries of your choice, in an <a href="https://github.com/lambci/lambci" target="_blank" rel="noopener">environment similar to Lambda</a>.</p>
+<p>This <a href="https://github.com/jeromedecoster/imagemagick-lambda-layer" target="_blank" rel="noopener">project</a> does exactly that. We will therefore use a <a href="https://github.com/jeromedecoster/imagemagick-lambda-layer/releases" target="_blank" rel="noopener">release</a> already made.</p>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/scripts/init.sh" target="_blank" rel="noopener">init</a> script download the release :</p>
+<pre><code class="language-bash"># imagemagick lambda layer
+if [[ ! -f &quot;./layers/imagemagick-7.0.9-20.zip&quot; ]]; then
+    cd &quot;./layers&quot;
+    curl --location \
+        --remote-name \
+        &quot;https://github.com/jeromedecoster/imagemagick-lambda-layer/releases/download/v7.0.9-20/imagemagick-7.0.9-20.zip&quot;
+fi
+</code></pre>
+<h3 id="lets-put-the-project-online">Let&rsquo;s put the project online</h3>
+<p>To put the project online just run the following command :</p>
+<pre><code class="language-bash"># terraform the project
+$ make apply
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/scripts/apply.sh" target="_blank" rel="noopener">apply</a> script simply runs terraform :</p>
+<pre><code class="language-bash">$ terraform plan -out=terraform.plan
+$ terraform apply -auto-approve terraform.plan
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/terraform/s3.tf" target="_blank" rel="noopener">s3.tf</a> script will :</p>
+<ul>
+<li>Create a bucket with <a href="https://www.terraform.io/docs/providers/aws/r/s3_bucket.html" target="_blank" rel="noopener">aws_s3_bucket</a>.</li>
+<li>Upload the <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/uploads/squirrel.jpg" target="_blank" rel="noopener">squirrel image</a> with <a href="https://www.terraform.io/docs/providers/aws/r/s3_bucket_object.html" target="_blank" rel="noopener">aws_s3_bucket_object</a>.</li>
+<li>Create a lambda layer with <a href="https://www.terraform.io/docs/providers/aws/r/lambda_layer_version.html" target="_blank" rel="noopener">aws_lambda_layer_version</a>.</li>
+</ul>
+<pre><code class="language-hcl"># ...
+
+resource aws_s3_bucket bucket {
+  bucket = &quot;${var.project_name}-${random_id.random.hex}&quot;
+  acl    = &quot;private&quot;
+
+  force_destroy = true
+}
+
+resource aws_s3_bucket_object squirrel {
+  bucket = aws_s3_bucket.bucket.id
+  source = local.squirrel_source
+  key    = local.squirrel_key
+}
+
+resource aws_lambda_layer_version imagemagick_layer {
+  layer_name = &quot;imagemagick&quot;
+  s3_bucket = aws_s3_bucket.bucket.id
+  s3_key = aws_s3_bucket_object.imagemagick.id
+  compatible_runtimes = [&quot;nodejs12.x&quot;]
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/terraform/lambda.tf" target="_blank" rel="noopener">lambda.tf</a> script will :</p>
+<ul>
+<li>Create a zip of the <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/lambda/convert.js" target="_blank" rel="noopener">lambda function</a> with <a href="https://www.terraform.io/docs/providers/archive/d/archive_file.htmll" target="_blank" rel="noopener">archive_file</a>.</li>
+<li>Create the lambda function with <a href="https://www.terraform.io/docs/providers/aws/r/lambda_function.html" target="_blank" rel="noopener">aws_lambda_function</a>.</li>
+</ul>
+<pre><code class="language-hcl"># ...
+
+data archive_file convert_zip {
+  type        = &quot;zip&quot;
+  source_file = local.convert_source
+  output_path = local.convert_output
+}
+
+resource aws_lambda_function convert_function {
+  filename         = data.archive_file.convert_zip.output_path
+  source_code_hash = filebase64sha256(data.archive_file.convert_zip.output_path)
+
+  function_name = &quot;${var.project_name}-${random_id.random.hex}&quot;
+  role          = aws_iam_role.lambda_role.arn
+  handler       = &quot;convert.handler&quot;
+  runtime       = &quot;nodejs12.x&quot;
+
+  layers = [aws_lambda_layer_version.imagemagick_layer.arn]
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/terraform/config.tf" target="_blank" rel="noopener">config.tf</a> script includes a little trick :</p>
+<ul>
+<li>Use a <a href="https://www.terraform.io/docs/providers/null/resource.html" target="_blank" rel="noopener">null_resource</a> to execute a <a href="https://www.terraform.io/docs/provisioners/local-exec.html" target="_blank" rel="noopener">local-exec</a>.</li>
+<li>This command write some variables inside a <strong>settings.sh</strong> file. Each duplicate line is remove with an <a href="https://en.wikipedia.org/wiki/AWK" target="_blank" rel="noopener">awk</a> script.</li>
+<li>The argument <a href="https://www.terraform.io/docs/providers/null/resource.html#triggers" target="_blank" rel="noopener">triggers</a> is used with the <a href="https://www.terraform.io/docs/configuration/functions/join.html" target="_blank" rel="noopener">join</a> function to minimize the number of writes.</li>
+</ul>
+<pre><code class="language-hcl">resource null_resource settings_sh {
+
+  triggers = {
+    #everytime = uuid()
+    rarely = join(&quot;-&quot;, [
+      local.aws_region, 
+      aws_s3_bucket.bucket.id, 
+      aws_lambda_function.convert_function.function_name,
+      fileexists(&quot;../settings.sh&quot;)
+    ])
+  }
+
+  provisioner local-exec {
+    command = &lt;&lt;EOF
+echo 'AWS_REGION=${local.aws_region}
+BUCKET=${aws_s3_bucket.bucket.id}
+FUNCTION=${aws_lambda_function.convert_function.function_name}' &gt;&gt; ../settings.sh;
+awk --include inplace '!a[$0]++' ../settings.sh
+EOF
+  }
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/lambda/convert.js" target="_blank" rel="noopener">Lambda function</a> is fairly straightforward :</p>
+<pre><code class="language-js">exports.handler = async (event) =&gt; {
+  let record = event.Records[0]
+
+  let rand = Math.random().toString(32).substr(2)
+  let basename = path.basename(record.s3.object.key)
+
+  let data = {
+    region: record.awsRegion,
+    bucket: record.s3.bucket.name,
+    key: record.s3.object.key,
+
+    input: `/tmp/${rand}`,
+    output: `/tmp/gray-${rand}`,
+    converted: `converted/${basename}`
+  }
+
+  try {
+
+    await getObjectToTmp(data)
+    await exec(`/opt/bin/convert ${data.input} -colorspace Gray ${data.output}`)
+    await putGrayObject(data)
+
+    return {
+      statusCode: 200,
+      body: `https://${data.bucket}.s3.${data.region}.amazonaws.com/${data.converted}`,
+    }
+
+  } catch (err) {
+    throw new Error(err)
+  }
+}
+
+// get an object from S3 and write it to /tmp
+async function getObjectToTmp(data) {
+  let result = await s3
+    .getObject({
+      Bucket: data.bucket,
+      Key: data.key
+    })
+    .promise()
+
+  return fsp.writeFile(data.input, result.Body)
+}
+
+// put an object from /tmp to S3
+async function putGrayObject(data) {
+  let body = await fsp.readFile(data.output)
+
+  return s3
+    .putObject({
+      Body: body,
+      Bucket: data.bucket,
+      Key: data.converted,
+      ACL: 'public-read',
+      ContentType: 'image/jpeg'
+    })
+    .promise()
+}
+</code></pre>
+<h3 id="test-the-lambda-with-invoke">Test the Lambda with invoke</h3>
+<p>To test the Lambda we just run the following command :</p>
+<pre><code class="language-bash"># test the lambda with invoke
+$ make invoke
+</code></pre>
+<p>The <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/invoke.html" target="_blank" rel="noopener">invoke command</a> is used to test the Lambda function exactly like in the web console :</p>
+<ol>
+<li>As if we were creating a <strong>test event</strong> :</li>
+</ol>
+<p><img loading="lazy" src="img/configure-test-events.png" alt="configure-test-events.png"  /></p>
+<ol start="2">
+<li>And choosing the <strong>Amazon S3 Put</strong> template :</li>
+</ol>
+<p><img loading="lazy" src="img/s3-put-event.png" alt="s3-put-event.png"  /></p>
+<p>The invoke command must be <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/invoke.html#examples" target="_blank" rel="noopener">used like</a> :</p>
+<pre><code class="language-bash">$ aws lambda invoke \
+    --function-name my-function \
+    --payload '{ &quot;name&quot;: &quot;Bob&quot; }' \
+    response.json
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/scripts/invoke.sh" target="_blank" rel="noopener">invoke</a> script will :</p>
+<ul>
+<li>Generate a payload for the <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/uploads/squirrel.jpg" target="_blank" rel="noopener">squirrel image</a> hosted on S3 using the <a href="https://github.com/jeromedecoster/black-white-terraform-imagemagick-lambda-invoke/blob/master/scripts/s3-put-payload.sh" target="_blank" rel="noopener">s3-put-payload.sh</a> script.</li>
+<li>Invoke the Lambda function.</li>
+<li>Download the converted image.</li>
+</ul>
+<pre><code class="language-bash"># generate the payload for `squirrel.jpg`
+PAYLOAD=$(bash &quot;./scripts/s3-put-payload.sh&quot; uploads/squirrel.jpg)
+
+# invoke the lambda
+aws lambda invoke \
+    --function-name black-white-imagemagick \
+    --payload &quot;$PAYLOAD&quot; \
+    &quot;./invoke-output.json&quot;
+
+# download the converted image
+URL=$(jq '.body' --raw-output invoke-output.json)
+curl $URL --output &quot;./squirrel-gray.jpg&quot;
+</code></pre>
+<p>Our colored image :</p>
+<p><img loading="lazy" src="img/squirrel.jpg" alt="squirrel.jpg"  /></p>
+<p>Is now successfully converted :</p>
+<p><img loading="lazy" src="img/squirrel-gray.jpg" alt="squirrel-gray.jpg"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/black-white/">black-white</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/imagemagick/">imagemagick</a>
+
+
+
+
+
+
+
+
+
+<a href="/tags/invoke/">invoke</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

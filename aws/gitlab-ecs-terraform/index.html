@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='AWS,Gitlab,ECS,Terraform,CI/CD'><meta name="description" content='Using Gitlab CI/CD to automatically build and push a new docker image on ECR and deploy it to ECS.'><meta property="og:title" content="Gitlab &#43; ECS &#43; Terraform" />
+<meta property="og:description" content="Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/gitlab-ecs-terraform/" />
+<meta property="article:published_time" content="2021-03-10T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-03-10T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Gitlab &#43; ECS &#43; Terraform"/>
+<meta name="twitter:description" content="Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Gitlab &#43; ECS &#43; Terraform | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#setup-the-terraform-workspace">Setup the Terraform workspace</a></li>
+        <li><a href="#creating-the-infrastructure">Creating the infrastructure</a></li>
+        <li><a href="#continuous-delivery-from-gitlab">Continuous Delivery from gitlab</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">10</span>
+<span class="rest">Mar 2021</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Gitlab &#43; ECS &#43; Terraform</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a simple node site</li>
+<li>Create an docker image and host it <strong>on ECR</strong></li>
+<li>Use <strong>ECS</strong> to put this image online</li>
+<li>Use <strong>Terraform</strong> to create the AWS infrastructure</li>
+<li>The Terraform <strong>states</strong> are stored <strong>on terraform.io</strong></li>
+<li>The source files are hosted <strong>on gitlab</strong></li>
+<li>Use <strong>Gitlab CI/CD</strong> to <strong>automatically update the site online after a commit</strong></li>
+<li>A new docker image will be <strong>automatically generated and hosted</strong> on ECR</li>
+<li>This new image will be <strong>automatically deployed</strong> on ECS</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform" target="_blank" rel="noopener">gitlab repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://gitlab.com/jeromedecoster/gitlab-ecs-terraform.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># npm install + terraform init + create user + ecr-create
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Install the npm packages of the <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/tree/master/website" target="_blank" rel="noopener">website</a>.</li>
+<li>Setup <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/tree/master/infra" target="_blank" rel="noopener">Terraform</a>.</li>
+<li>Create an <strong>AWS user</strong> and an <strong>ECR repository</strong>.</li>
+</ul>
+<p>Two files containing sensitive data were generated :</p>
+<ul>
+<li>The <code>.key</code> file contains the <strong>AWS accesses</strong>. It is based on the <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/.key.tmpl" target="_blank" rel="noopener">.key.tmpl</a> template.</li>
+<li>The <code>.ecr</code> file contains the <strong>address of the docker repository</strong>. It is based on the <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/.ecr.tmpl" target="_blank" rel="noopener">.ecr.tmpl</a> template.</li>
+</ul>
+<p>The repository is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/ecr-1-repository.png" alt="ecr-1-repository"  /></p>
+<p>There is currently <strong>no image</strong> :</p>
+<p><img loading="lazy" src="img/ecr-2-no-image.png" alt="ecr-2-no-image"  /></p>
+<p>Let&rsquo;s run the website <strong>locally</strong> :</p>
+<pre><code class="language-bash"># run the website locally
+$ make dev
+</code></pre>
+<p>By opening the address <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> you can see the website :</p>
+<p><img loading="lazy" src="img/localhost.png" alt="localhost"  /></p>
+<p>This is a simple <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/website/index.js" target="_blank" rel="noopener">node server</a> :</p>
+<pre><code class="language-js">const app = express()
+
+// ...
+
+app.get('/', async (req, res) =&gt; {
+    try {
+        const url = process.env.NODE_ENV == 'development'
+            ? `http://127.0.0.1:${PORT}/js/metadata.json`
+            : 'http://169.254.170.2/v2/metadata'
+        const result = await axios.get(url)
+
+        const container = result.data.Containers.find(e =&gt; e.Image.includes('tinyproxy') == false)
+
+        res.render('index', {
+            url,
+            data: JSON.stringify(result.data, null, 2),
+            image: container.Image,
+            network: container.Networks[0].NetworkMode,
+            address: container.Networks[0].IPv4Addresses[0]
+
+        })
+    } catch (err) {
+        return res.json({
+            code: err.code, 
+            message: err.message
+        })
+    }
+})
+</code></pre>
+<p>Displaying a simple <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/website/views/index.njk" target="_blank" rel="noopener">HTML page</a> :</p>
+<pre><code class="language-html">&lt;body&gt;
+    &lt;h1&gt;Gitlab - ECS - Terraform&lt;/h1&gt;
+
+    &lt;div class=&quot;info&quot;&gt;
+        &lt;p&gt;{{ url }}&lt;/p&gt;
+        
+        &lt;ul&gt;
+            &lt;li&gt;&lt;b&gt;image&lt;/b&gt;: {{ image }}&lt;/li&gt;
+            &lt;li&gt;&lt;b&gt;network&lt;/b&gt;: {{ network }}&lt;/li&gt;
+            &lt;li&gt;&lt;b&gt;address&lt;/b&gt;: {{ address }}&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+
+    &lt;pre&gt;&lt;code class=&quot;language-json&quot;&gt;{{ data }}&lt;/code&gt;&lt;/pre&gt;
+
+    {% if settings.env == 'development' %}
+    &lt;footer&gt;&lt;u&gt;development&lt;/u&gt; version: {{ version }}&lt;/footer&gt;
+    {% else %}
+    &lt;footer&gt;version: {{ version }}&lt;/footer&gt;
+    {% endif %}
+&lt;/body&gt;
+</code></pre>
+<p>We can <strong>build</strong> the production image and <strong>push</strong> it to the ECR repository :</p>
+<pre><code class="language-bash"># build the production image + push to ecr
+$ make build-push
+</code></pre>
+<p>The <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/website/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> is simple :</p>
+<pre><code class="language-Dockerfile">FROM node:15.10-slim AS build
+WORKDIR /app
+ADD package.json .
+RUN npm install
+
+FROM node:15.10-slim
+ENV NODE_ENV production
+ENV PORT 80
+WORKDIR /app
+COPY --from=build /app .
+ADD . .
+EXPOSE 80
+CMD [&quot;node&quot;, &quot;index.js&quot;]
+</code></pre>
+<p>Our first image is now online :</p>
+<p><img loading="lazy" src="img/ecr-3-image.png" alt="ecr-3-image"  /></p>
+<h3 id="setup-the-terraform-workspace">Setup the Terraform workspace</h3>
+<p>We use <a href="https://app.terraform.io" target="_blank" rel="noopener">app.terraform.io</a> to store the <strong>various states of our infrastructure</strong> managed by Terraform.</p>
+<p>We need to <strong>create a workspace</strong> :</p>
+<p><img loading="lazy" src="img/terraform-01-create-workspace.png" alt="terraform-01-create-workspace"  /></p>
+<p>We choose an <strong>API-driven workflow</strong> :</p>
+<p><img loading="lazy" src="img/terraform-02-workflow.png" alt="terraform-02-workflow"  /></p>
+<p>We call it <code>gitlab-ecs-terraform</code> :</p>
+<p><img loading="lazy" src="img/terraform-03-create.png" alt="terraform-03-create"  /></p>
+<p>To avoid <a href="https://stackoverflow.com/a/61009460" target="_blank" rel="noopener">problems</a> with the <code>TF_VAR_</code> management of Terraform Cloud we are going to modify the parameters used by default :</p>
+<p><img loading="lazy" src="img/terraform-04-settings.png" alt="terraform-04-settings"  /></p>
+<p>We choose the <strong>Local Execution Mode</strong> :</p>
+<p><img loading="lazy" src="img/terraform-05-local-execution.png" alt="terraform-05-local-execution"  /></p>
+<p>We are now going to <strong>create a token</strong> to be able to <strong>interact via an API</strong> with Terraform Cloud.</p>
+<p>We have to go to the <strong>user settings</strong> :</p>
+<p><img loading="lazy" src="img/terraform-06-user-settings.png" alt="terraform-06-user-settings"  /></p>
+<p>We ask for the creation of a token :</p>
+<p><img loading="lazy" src="img/terraform-07-token-create.png" alt="terraform-07-token-create"  /></p>
+<p>We call it <code>terraform login</code> :</p>
+<p><img loading="lazy" src="img/terraform-08-token-creating.png" alt="terraform-08-token-creating"  /></p>
+<p>We get the token. We copy it <strong>to the clipboard</strong> :</p>
+<p><img loading="lazy" src="img/terraform-09-token-created.png" alt="terraform-09-token-created"  /></p>
+<p>Our token is correctly created :</p>
+<p><img loading="lazy" src="img/terraform-10-tokens.png" alt="terraform-10-tokens"  /></p>
+<p>We will now add this token to our local machine using the <a href="https://www.terraform.io/docs/cli/commands/login.html" target="_blank" rel="noopener">login command</a> :</p>
+<p>We must write <code>yes</code> to be able to continue :</p>
+<pre><code class="language-bash">$ terraform login
+Terraform will request an API token for app.terraform.io using your browser.
+
+If login is successful, Terraform will store the token in plain text in
+the following file for use by subsequent commands:
+    /home/xxxxxx/.terraform.d/credentials.tfrc.json
+
+Do you want to proceed?
+  Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+</code></pre>
+<p>We continue by <strong>pasting the token</strong> stored in the clipboard :</p>
+<pre><code class="language-bash">Terraform will store the token in plain text in the following file
+for use by subsequent commands:
+    /home/xxxxx/.terraform.d/credentials.tfrc.json
+
+Token for app.terraform.io:
+  Enter a value: xxxxx
+
+
+Retrieved token for user jeromedecoster
+</code></pre>
+<p>We can verify that our token has been <strong>added</strong> :</p>
+<pre><code class="language-bash">$ cat $HOME/.terraform.d/credentials.tfrc.json
+{
+  &quot;credentials&quot;: {
+    &quot;app.terraform.io&quot;: {
+      &quot;token&quot;: &quot;xxxxx&quot;
+    }
+  }
+}
+</code></pre>
+<h3 id="creating-the-infrastructure">Creating the infrastructure</h3>
+<p>To create our cloud infrastructure and put our website online, we just run these commands :</p>
+<pre><code class="language-bash"># terraform validate
+$ make tf-validate
+
+# terraform plan + terraform apply
+$ make tf-apply
+</code></pre>
+<p>To create the infrastructure, our <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/make.sh" target="_blank" rel="noopener">script</a> uses the data stored in the previously generated <code>.key</code> and <code>.ecr</code> files and uses the <code>TF_VAR_</code> <a href="https://www.terraform.io/docs/language/values/variables.html#environment-variables" target="_blank" rel="noopener">environment variables</a> :</p>
+<pre><code class="language-bash"># terraform plan + terraform apply
+tf-apply() {
+    source &quot;$dir/.ecr&quot;
+    export TF_VAR_ecr_image=$REPOSITORY_URI:latest
+    source &quot;$dir/.key&quot;
+    export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+    cd &quot;$dir/infra&quot;
+    terraform plan
+    terraform apply -auto-approve
+}
+</code></pre>
+<p>Creation ends after a few minutes.</p>
+<p>In the AWS EC2 interface we get the <strong>DNS address of our Load Balancer</strong> :</p>
+<p><img loading="lazy" src="img/alb.png" alt="alb"  /></p>
+<p>In the AWS ECS interface we can see that the 2 instances are running correctly :</p>
+<p><img loading="lazy" src="img/ecs-tasks.png" alt="ecs-tasks"  /></p>
+<p>We can view our website online using the DNS address in our browser :</p>
+<p><img loading="lazy" src="img/online-1-init.png" alt="online-1-init"  /></p>
+<h3 id="continuous-delivery-from-gitlab">Continuous Delivery from gitlab</h3>
+<p>We now want that, a modification pushed in Gitlab, to automatically update our website live.</p>
+<p>We use Gitlab&rsquo;s <a href="https://docs.gitlab.com/ee/ci/" target="_blank" rel="noopener">CI/CD capabilities</a> by defining a <a href="https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html" target="_blank" rel="noopener">.gitlab-ci.yml</a> file.</p>
+<p>Our <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/.gitlab-ci.yml" target="_blank" rel="noopener">.gitlab-ci.yml</a> file defines <strong>two steps</strong> :</p>
+<ul>
+<li><code>build-push</code> is used to <strong>create a new docker image and push it to ECR</strong></li>
+<li><code>apply</code> <strong>updates ECS</strong> via Terraform</li>
+</ul>
+<pre><code class="language-yaml">---
+stages:
+  - build
+  - apply
+
+variables:
+  REPOSITORY: gitlab-ecs-terraform
+  DOCKER_HOST: tcp://docker:2375
+
+build-push:
+  stage: build
+  image: 
+    name: amazon/aws-cli
+    entrypoint: [&quot;&quot;]
+  services:
+    - docker:dind
+  before_script:
+    - amazon-linux-extras install docker
+    - aws --version
+    - docker --version
+  script:
+    - cd website
+    - echo $CI_COMMIT_SHORT_SHA
+    - docker build --tag $DOCKER_REGISTRY/$REPOSITORY:$CI_COMMIT_SHORT_SHA --tag $DOCKER_REGISTRY/$REPOSITORY:latest .
+    - aws ecr get-login-password | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+    - docker push $DOCKER_REGISTRY/$REPOSITORY:$CI_COMMIT_SHORT_SHA
+    - docker push $DOCKER_REGISTRY/$REPOSITORY:latest
+
+apply:
+  stage: apply
+  image:
+    name: hashicorp/terraform:light
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'    
+  script:
+    - sed &quot;s|{{TF_TOKEN}}|$TF_TOKEN|&quot; credentials.tfrc.json &gt; /root/.terraformrc
+    - cd infra
+    - terraform init
+    - terraform validate
+    - export TF_VAR_ecr_image=$DOCKER_REGISTRY/$REPOSITORY:latest
+    - export TF_VAR_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export TF_VAR_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - terraform taint aws_ecs_task_definition.task_definition
+    - terraform plan
+    - terraform apply -auto-approve
+  needs:
+    - build-push
+</code></pre>
+<p>The above script uses <strong>5 environment variables</strong> that we must declare in <strong>Gitlab settings</strong> :</p>
+<p><img loading="lazy" src="img/gitlab-1-variables.png" alt="gitlab-1-variables"  /></p>
+<p>The variables are now defined :</p>
+<p><img loading="lazy" src="img/gitlab-2-variables-added.png" alt="gitlab-2-variables-added"  /></p>
+<p>We are now going to make <strong>two modifications</strong> in the source code.</p>
+<p>We modify our <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/website/public/css/style.css" target="_blank" rel="noopener">stylesheet</a> to <strong>change the title color</strong> :</p>
+<pre><code class="language-css">h1 {
+    color: blueviolet;
+}
+</code></pre>
+<p>We are <strong>increasing</strong> the <a href="https://gitlab.com/jeromedecoster/gitlab-ecs-terraform/-/blob/master/website/package.json" target="_blank" rel="noopener">version</a> of our site :</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;gitlab-ecs-terraform&quot;,
+  &quot;version&quot;: &quot;1.1.0&quot;,
+</code></pre>
+<p>We commit and push these changes on Gitlab :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m :boom:
+$ git push
+</code></pre>
+<p>We can see that a pipeline has been added :</p>
+<p><img loading="lazy" src="img/gitlab-3-pipeline-started.png" alt="gitlab-3-pipeline-started"  /></p>
+<p>By clicking on this pipeline we can see both <code>Build</code> and <code>Apply</code> stages :</p>
+<p><img loading="lazy" src="img/gitlab-4-pipeline-details.png" alt="gitlab-4-pipeline-details"  /></p>
+<p>By clicking on the <code>build-push</code> job you can see its progress :</p>
+<p><img loading="lazy" src="img/gitlab-5-jobs.png" alt="gitlab-5-jobs"  /></p>
+<p>If the job is completed successfully, the next one starts :</p>
+<p><img loading="lazy" src="img/gitlab-6-next-job.png" alt="gitlab-6-next-job"  /></p>
+<p>The pipeline ends successfully after a few minutes of activity :</p>
+<p><img loading="lazy" src="img/gitlab-7-jobs-done.png" alt="gitlab-7-jobs-done"  /></p>
+<p>By <strong>reloading</strong> our website we can see that the modifications are online :</p>
+<p><img loading="lazy" src="img/online-2-updated.png" alt="online-2-updated"  /></p>
+<p>Note that via the Terraform Cloud interface, you can easily navigate through the <strong>history of the different states</strong> :</p>
+<p><img loading="lazy" src="img/terraform-11-states.png" alt="terraform-11-states"  /></p>
+<p>And see their content :</p>
+<p><img loading="lazy" src="img/terraform-12-states-details.png" alt="terraform-12-states-details"  /></p>
+<p>Our test is over, we can <strong>destroy our resources</strong> :</p>
+<pre><code class="language-bash"># terraform destroy + delete user + delete ecr repository
+$ make destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecs/">ecs</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/gitlab/">gitlab</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

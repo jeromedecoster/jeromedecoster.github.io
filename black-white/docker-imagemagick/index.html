@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Black & White,Docker,Imagemagick'><meta name="description" content='Playing with Docker and Imagemagick to convert an color image from to black and white version.'><meta property="og:title" content="Docker &#43; Imagemagick" />
+<meta property="og:description" content="Playing with **Docker** and **Imagemagick** to convert an color image from to black and white version." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/black-white/docker-imagemagick/" />
+<meta property="article:published_time" content="2019-12-08T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-12-08T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Docker &#43; Imagemagick"/>
+<meta name="twitter:description" content="Playing with **Docker** and **Imagemagick** to convert an color image from to black and white version."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Docker &#43; Imagemagick | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#create-a-local-imagemagick-image-from-alpine">Create a local imagemagick image from alpine</a></li>
+        <li><a href="#convert-an-image-to-black-and-white-with-imagemagick">Convert an image to black and white with imagemagick</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">08</span>
+<span class="rest">Dec 2019</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Docker &#43; Imagemagick</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Playing with <a href="https://docs.docker.com">docker</a> and <a href="https://imagemagick.org/script/convert.php">imagemagick</a> to convert an color image from to black and white version.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<h3 id="create-a-local-imagemagick-image-from-alpine">Create a local imagemagick image from alpine</h3>
+<p>To create a local <strong>imagemagick</strong> image from <strong>alpine</strong> we need to :</p>
+<ol>
+<li>Download the latest <strong>alpine</strong> image with <a href="https://docs.docker.com/engine/reference/commandline/pull/" target="_blank" rel="noopener">pull</a>.</li>
+<li>Start an interactive container with <a href="https://docs.docker.com/engine/reference/commandline/run/" target="_blank" rel="noopener">run</a>.</li>
+<li>Install <a href="https://imagemagick.org/script/convert.php" target="_blank" rel="noopener">imagemagick</a> with <a href="https://wiki.alpinelinux.org/wiki/Alpine_Linux_package_management" target="_blank" rel="noopener">apk</a> then quit the container.</li>
+<li>Create a new image from the changed container with <a href="https://docs.docker.com/engine/reference/commandline/commit/" target="_blank" rel="noopener">commit</a>.</li>
+</ol>
+<pre><code class="language-bash"># download the lastest `alpine` image
+$ docker pull alpine
+
+# start an interactive container named `temp`
+$ docker run --interactive --tty --name temp alpine
+
+# install `imagemagick`, clear the cache then quit
+/ $ apk --update add imagemagick
+/ $ rm --recursive --force /var/cache/apk/*
+/ $ exit
+
+# create the `imagemagick` image
+$ docker commit temp imagemagick
+</code></pre>
+<p>We can list our 2 images :</p>
+<pre><code class="language-bash">$ docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+imagemagick         latest              b4e64a05b218        5 seconds ago       99.9MB
+alpine              latest              965ea09ff2eb        5 weeks ago         5.55MB
+</code></pre>
+<p>It can be noted that the addition of <strong>imagemagick</strong> has increased the weight of <strong>more than 90 MB</strong> !</p>
+<h3 id="convert-an-image-to-black-and-white-with-imagemagick">Convert an image to black and white with imagemagick</h3>
+<p>To play around black and white image we will :</p>
+<ol>
+<li>Download an <a href="https://raw.githubusercontent.com/jeromedecoster/black-white-docker-imagemagick/master/frog.jpg" target="_blank" rel="noopener">image</a>.</li>
+<li>Start an interactive container with the <a href="https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only" target="_blank" rel="noopener">volume</a> option.</li>
+<li>Use imagemagick to convert the <a href="https://imagemagick.org/script/command-line-options.php#colorspace" target="_blank" rel="noopener">colorspace</a> to <strong>Gray</strong>.</li>
+<li>Try different ways to <strong>get a pixel color</strong> value.</li>
+<li>Take a look at <a href="https://en.wikipedia.org/wiki/Rec._709" target="_blank" rel="noopener">ITU-R BT 709</a> and <a href="https://en.wikipedia.org/wiki/Rec._601" target="_blank" rel="noopener">ITU-R BT 601</a> formats.</li>
+<li>Convert the image into <strong>another colorspace</strong> and <strong>compare</strong> the result.</li>
+</ol>
+<p>Let&rsquo;s get a <code>frog.jpg</code> image from a <strong>git repository</strong> :</p>
+<pre><code class="language-bash"># download an image hosted in a github repository
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/black-white-docker-imagemagick.git \
+    /tmp/bw
+
+# the image is here
+$ ls /tmp/bw
+frog.jpg
+</code></pre>
+<p><img loading="lazy" src="img/frog.jpg" alt="frog.jpg"  /></p>
+<p>We launch the container with the <code>--rm</code> option to <strong>automatically remove the container</strong> when it exits.</p>
+<p>We convert the image to a black and white using <a href="https://imagemagick.org/script/command-line-options.php#colorspace" target="_blank" rel="noopener">-colorspace Gray</a>.</p>
+<pre><code class="language-bash">#  start an interactive container
+$ docker run \
+    --interactive \
+    --tty \
+    --rm \
+    --volume /tmp/bw:/tmp \
+    imagemagick
+
+# convert to `Gray`
+/ $ convert /tmp/frog.jpg \
+    -colorspace Gray \
+    /tmp/frog-gray.png
+</code></pre>
+<p><img loading="lazy" src="img/frog-gray.jpg" alt="frog-gray.jpg"  /></p>
+<p>To get the color value of the first pixel <code>(x:0, y:0)</code> we use the following syntax :</p>
+<pre><code class="language-bash"># the colored version
+/ $ convert /tmp/frog.jpg[1x1+0+0] txt: \
+    | sed 's/ /\n/g' \
+    | tail -n 1
+srgb(194,202,103)
+
+# the back and white version
+/ $ convert /tmp/frog-gray.png[1x1+0+0] txt: \
+    | sed 's/ /\n/g' \
+    | tail -n 1
+gray(193)
+</code></pre>
+<p>To get the color as <strong>RGB</strong> value we use the <a href="https://imagemagick.org/script/escape.php" target="_blank" rel="noopener">-format</a> syntax :</p>
+<pre><code class="language-bash"># the colored version
+/ $ convert /tmp/frog.jpg[1x1+0+0] \
+    -format &quot;%[fx:int(255*r)],%[fx:int(255*g)],%[fx:int(255*b)]&quot; info:
+194,202,103
+
+# the back and white version
+/ $ convert /tmp/frog-gray.png[1x1+0+0] \
+    -format &quot;%[fx:int(255*r)],%[fx:int(255*g)],%[fx:int(255*b)]&quot; info:
+193,193,193
+</code></pre>
+<p>As described in the <a href="https://imagemagick.org/script/command-line-options.php#colorspace" target="_blank" rel="noopener">-colorspace</a> documentation, the conversion to <strong>Gray</strong> is calculated using this formula :</p>
+<pre><code class="language-bash">Gray = 0,212656 * R + 0,715158 * G + 0,072186 * B
+</code></pre>
+<p>This is the <a href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients" target="_blank" rel="noopener">Rec 709 Luma coefficients</a>.</p>
+<p>The <strong>RGB</strong> values of the first pixel are <code>(Red:194, Green:202, Blue:103)</code>.</p>
+<p>Let&rsquo;s compute the <strong>Gray</strong> value :</p>
+<pre><code class="language-bash">Gray value = 0,212656 * Red + 0,715158 * Green + 0,072186 * Blue
+           = 0,212656 * 194 + 0,715158 * 202   + 0,072186 * 103
+           = 41,255264      + 144,461916       + 7,435158
+           = 193,152338
+
+           # rounded value
+           = 193
+</code></pre>
+<p>Ok, we found the <code>(Gray:193)</code> value. This confirm that <code>-colorspace Gray</code> is equal to <code>-grayscale Rec709luma</code>.</p>
+<p>Let&rsquo;s try another color conversion with the <a href="https://en.wikipedia.org/wiki/Rec._601" target="_blank" rel="noopener">Rec 601</a> format.</p>
+<p>Imagemagick indicate the <a href="https://imagemagick.org/script/command-line-options.php#colorspace" target="_blank" rel="noopener">Rec601Luma</a> formula :</p>
+<pre><code class="language-bash">Gray = 0,298839 * R + 0,586811 * G + 0,114350 * B
+</code></pre>
+<p>Let&rsquo;s compute the <strong>Gray</strong> value with this formula :</p>
+<pre><code class="language-bash">Gray value = 0,298839 * Red + 0,586811 * Green + 0,114350 * Blue
+           = 0,298839 * 194 + 0,586811 * 202   + 0,114350 * 103
+           = 57,974766      + 118,535822       + 11,77805
+           = 188,288638
+
+           # rounded value
+           = 188
+</code></pre>
+<p>Now we found the <code>(Gray:188)</code> value.</p>
+<p>Let&rsquo;s try to see if we can confirm it with imagemagick :</p>
+<pre><code class="language-bash"># convert to `Rec601Luma`
+/ $ convert /tmp/frog.jpg \
+    -grayscale Rec601Luma \
+    /tmp/frog-601.png
+</code></pre>
+<p>The converted image is visually very close :</p>
+<p><img loading="lazy" src="img/frog-601.jpg" alt="frog-601.jpg"  /></p>
+<p>Now we get the <strong>Gray value</strong> of the first pixel :</p>
+<pre><code class="language-bash"># get the first pixel value
+/ $ convert /tmp/frog-601.png[1x1+0+0] txt: \
+    | sed 's/ /\n/g' \
+    | tail -n 1
+gray(188)
+</code></pre>
+<p>It&rsquo;s confirmed !</p>
+<p>We can compare the 2 images using <a href="https://imagemagick.org/script/compare.php" target="_blank" rel="noopener">compare</a> with the <a href="https://imagemagick.org/script/command-line-options.php#lowlight-color" target="_blank" rel="noopener">-lowlight-color</a> and <a href="https://imagemagick.org/script/command-line-options.php#highlight-color" target="_blank" rel="noopener">-highlight-color</a> options :</p>
+<pre><code class="language-bash"># compare the 2 images
+/ $ compare /tmp/frog-gray.png \
+    /tmp/frog-601.png \
+    -lowlight-color black \
+    -highlight-color white \
+    /tmp/diff.png
+</code></pre>
+<p>The <strong>white pixels</strong> indicates the <strong>changed colors</strong> :</p>
+<p><img loading="lazy" src="img/diff.png" alt="diff.png"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/black-white/">black-white</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/imagemagick/">imagemagick</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

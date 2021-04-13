@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Note,Jenkins,github,Node,Docker,CI/CD'><meta name="description" content='Testing a Node project hosted on github with Jenkins.'><meta property="og:title" content="Jenkins &#43; github" />
+<meta property="og:description" content="Testing a **Node** project hosted on **github** with **Jenkins**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/jenkins-github/" />
+<meta property="article:published_time" content="2020-03-03T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-03-03T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Jenkins &#43; github"/>
+<meta name="twitter:description" content="Testing a **Node** project hosted on **github** with **Jenkins**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>Jenkins &#43; github | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#configure-jenkins">Configure Jenkins</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">03</span>
+<span class="rest">Mar 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Jenkins &#43; github</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Install <a href="https://jenkins.io/">Jenkins</a> with <a href="https://hub.docker.com/r/jenkins/jenkins">Docker</a> and test a <strong>Node.js</strong> project hosted on github <strong>after each commit</strong>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-jenkins-github" target="_blank" rel="noopener">github repository</a> :</p>
+<ul>
+<li>The source code for this project is used to run a <strong>ready-to-use docker container</strong>.</li>
+<li>The <a href="https://github.com/jeromedecoster/note-jenkins-github/blob/master/setup.sh" target="_blank" rel="noopener">setup.sh</a> script is really simple.</li>
+</ul>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-jenkins-github.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+
+# docker pull jenkins
+$ make setup
+</code></pre>
+<p>After the setup, we can now start the install :</p>
+<ul>
+<li>The <a href="https://github.com/jeromedecoster/note-jenkins-github/blob/master/install.sh" target="_blank" rel="noopener">install.sh</a> script starts the <strong>first steps of the Jenkins installation</strong>. The rest will we done <strong>manually within the browser</strong>.</li>
+<li>The fully automated installation of Jenkins is a <strong>painful experience</strong> for me : <strong>many strange steps</strong> for a result that is <strong>never completely satisfactory</strong>. And this is clearly what software should avoid doing.</li>
+</ul>
+<pre><code class="language-bash"># create docker image with jenkins + plugins
+$ make install
+</code></pre>
+<p>The docker image store all Jenkins data in a local directory :</p>
+<ul>
+<li>A volume link is created between <strong>/var/jenkins_home</strong> and a local directory <strong>/var/docker/jenkins-github</strong> our your computer.</li>
+</ul>
+<pre><code class="language-bash">docker run \
+    --detach \
+    --user 0 \
+    --publish 8080:8080 \
+    --publish 50000:50000 \
+    --volume /var/docker/jenkins-github:/var/jenkins_home \
+    --name jenkins-github \
+    jenkins/jenkins:lts
+</code></pre>
+<p>You can open <a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a> to <strong>paste the password displayed in the terminal</strong> :</p>
+<p><img loading="lazy" src="img/install-password.png" alt="install-password.png"  /></p>
+<p>Now we choose to install the <strong>suggested plugins</strong> :</p>
+<p><img loading="lazy" src="img/install-choose-plugins.png" alt="install-choose-plugins.png"  /></p>
+<p>Let&rsquo;s go have a coffee :</p>
+<p><img loading="lazy" src="img/install-download-plugins.png" alt="install-download-plugins.png"  /></p>
+<p>We create the <strong>admin user</strong> :</p>
+<p><img loading="lazy" src="img/install-admin.png" alt="install-admin.png"  /></p>
+<p>Let&rsquo;s <strong>validate the Jenkins URL</strong> :</p>
+<p><img loading="lazy" src="img/install-url.png" alt="install-url.png"  /></p>
+<p>The basic installation is complete. But we must now install 2 additional plugins from the <a href="http://localhost:8080/pluginManager/" target="_blank" rel="noopener">Plugin Manager</a> area :</p>
+<ul>
+<li>Search <strong>github integration</strong> and choose <strong>Install without restart</strong>.</li>
+</ul>
+<p><img loading="lazy" src="img/plugins-github-integration.png" alt="plugins-github-integration.png"  /></p>
+<ul>
+<li>Search <strong>nodejs</strong> and choose again <strong>Install without restart</strong>.</li>
+</ul>
+<p><img loading="lazy" src="img/plugins-nodejs.png" alt="plugins-nodejs.png"  /></p>
+<p>Now we need to <strong>configure NodeJS</strong> in the <a href="http://localhost:8080/pluginManager/" target="_blank" rel="noopener">http://localhost:8080/configureTools/</a> area :</p>
+<ul>
+<li>We choose the <strong>LTS version</strong> and name the configuration <strong>node-v12</strong>.</li>
+<li>We check <strong>Install automatically</strong> and select a <strong>12.x.x version</strong>.</li>
+</ul>
+<p><img loading="lazy" src="img/configure-node.png" alt="configure-node.png"  /></p>
+<p><strong>Extra step</strong>, we can <strong>zip our docker local volume directory</strong> to save the current state of Jenkins :</p>
+<pre><code class="language-bash"># get the variables
+$ source settings.sh
+
+# go to our local volume directory
+$ cd /var/docker/
+
+# zip the local volume directory
+$ sudo zip -r9 $NAME.zip $NAME
+</code></pre>
+<h3 id="configure-jenkins">Configure Jenkins</h3>
+<p>Let&rsquo;s create a new <strong>free-style project</strong> :</p>
+<p><img loading="lazy" src="img/free-style-project.png" alt="free-style-project.png"  /></p>
+<p>We will use a <strong>simple node project</strong> to test Jenkins. You can <a href="https://github.com/jeromedecoster/note-jenkins-github" target="_blank" rel="noopener">fork this project</a> and <strong>setup the Git repository</strong> with your own URL :</p>
+<p><img loading="lazy" src="img/configure-git.png" alt="configure-git.png"  /></p>
+<p>Now we configure the lookup with a <strong>cron pattern</strong> : <code>* * * * *</code> means <strong>check every minute if there has been a new commit</strong>.</p>
+<p><img loading="lazy" src="img/configure-build.png" alt="configure-build.png"  /></p>
+<p>Then we define the <strong>NodeJS installation</strong> with our <strong>node-v12</strong> configuration :</p>
+<p><img loading="lazy" src="img/configure-build-nodejs.png" alt="configure-build-nodejs.png"  /></p>
+<p>Now we can define a <strong>shell script to execute</strong> :</p>
+<p><img loading="lazy" src="img/configure-build-shell.png" alt="configure-build-shell.png"  /></p>
+<p>Simple things to execute :</p>
+<pre><code class="language-bash">npm install
+npm test
+</code></pre>
+<p>The <strong>npm test</strong> is defined in the <a href="https://github.com/jeromedecoster/note-jenkins-github-node-project/blob/master/package.json" target="_blank" rel="noopener">package.json</a> file :</p>
+<pre><code class="language-bash">npx mocha './**/*.test.js'
+</code></pre>
+<p>This will execute this simple <a href="https://github.com/jeromedecoster/note-jenkins-github-node-project/blob/master/app.test.js" target="_blank" rel="noopener">app.test.js</a> file :</p>
+<pre><code class="language-js">describe('/add', () =&gt; {
+
+    it('success', (done) =&gt; {
+        const a = 2
+        const b = 4
+        const expected = 6
+
+        request(app)
+            .post('/add')
+            .send({ a, b })
+            .set('Accept', 'application/json')
+            .end((err, res) =&gt; {
+
+                if (err) return done(err)
+
+                const result = res.body.result
+                if (result === expected) return done()
+
+                done(new Error(`receive:${result} expected:${expected}`))
+            })
+    })
+
+    // ...
+</code></pre>
+<p>The configuration is done. We <strong>save</strong> it. The we <strong>launch a build</strong> :</p>
+<p><img loading="lazy" src="img/launch-build.png" alt="launch-build.png"  /></p>
+<p>In <strong>Console Output</strong> we see the <strong>processing running</strong> :</p>
+<p><img loading="lazy" src="img/build-1.png" alt="build-1.png"  /></p>
+<p>Then it&rsquo;s built with <strong>SUCCESS</strong> :</p>
+<p><img loading="lazy" src="img/build-2.png" alt="build-2.png"  /></p>
+<p>Let&rsquo;s <strong>modifiate</strong> the <a href="https://github.com/jeromedecoster/note-jenkins-github-node-project/blob/master/app.js" target="_blank" rel="noopener">app.js</a> file <strong>directly in github</strong> :</p>
+<p><img loading="lazy" src="img/modify.png" alt="modify.png"  /></p>
+<p>We add an <strong>error</strong> :</p>
+<pre><code class="language-js">return res.json({
+    result: a + b + 1 // modification done here
+})
+</code></pre>
+<p>We <strong>commit</strong> the error :</p>
+<p><img loading="lazy" src="img/error-introduced.png" alt="error-introduced.png"  /></p>
+<p>After a few seconds, a <strong>build is automatically started</strong> :</p>
+<p><img loading="lazy" src="img/build-running.png" alt="build-running.png"  /></p>
+<p>We choose <strong>Console Output</strong> from the contextual menu :</p>
+<p><img loading="lazy" src="img/build-go-console-output.png" alt="build-go-console-output.png"  /></p>
+<p>The <strong>process ends</strong> with our <strong>expected FAILURE</strong> :</p>
+<pre><code>Error: receive: 7 expected: 6
+</code></pre>
+<p><img loading="lazy" src="img/build-console-output.png" alt="build-console-output.png"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/jenkins/">jenkins</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>

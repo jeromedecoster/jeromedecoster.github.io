@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.80.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster"><meta name="keywords" content='Note,git-flow,git,github'><meta name="description" content='Playing with git-flow and github.'><meta property="og:title" content="git-flow &#43; github" />
+<meta property="og:description" content="Playing with **git-flow** and **github**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/git-flow-github/" />
+<meta property="article:published_time" content="2020-02-28T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-28T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="git-flow &#43; github"/>
+<meta name="twitter:description" content="Playing with **git-flow** and **github**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="/index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="css/custom.css" />
+
+
+<title>git-flow &#43; github | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#test-git-flow">Test git-flow</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">28</span>
+<span class="rest">Feb 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">git-flow &#43; github</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Let&rsquo;s play with <a href="https://github.com/petervanderdoes/gitflow-avh">git-flow</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p>Check this good <a href="https://danielkummer.github.io/git-flow-cheatsheet/" target="_blank" rel="noopener">cheatsheet</a>.</p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-git-flow" target="_blank" rel="noopener">github repository</a> :</p>
+<ul>
+<li>The source code for this project is used to create a clean, <strong>ready-to-use docker image</strong>.</li>
+</ul>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-git-flow.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+
+# docker pull ubuntu + create settings.sh
+$ make setup
+</code></pre>
+<p>After the setup, we need to <strong>define the variables</strong> inside the <strong>settings.sh</strong> file :</p>
+<pre><code class="language-bash">GIT_CONFIG_EMAIL=
+GIT_CONFIG_NAME=
+
+GITHUB_LOGIN=
+GITHUB_PASSWORD=
+</code></pre>
+<p>Now we can build the <strong>flow</strong> docker image with the <a href="https://github.com/jeromedecoster/note-git-flow/blob/master/init.sh" target="_blank" rel="noopener">init.sh</a> and <a href="https://github.com/jeromedecoster/note-git-flow/blob/master/install.sh" target="_blank" rel="noopener">install.sh</a> scripts :</p>
+<ul>
+<li>Install <strong>git</strong>, <strong>git-flow</strong>, <strong>curl</strong>, <strong>zsh</strong>, <strong>nano</strong>, <strong>oh-my-zsh</strong></li>
+<li>Configure <strong>git</strong> and <strong>~/.netrc</strong></li>
+</ul>
+<pre><code class="language-bash"># build the image
+$ make init
+</code></pre>
+<p>Now we can <strong>create a github repository</strong> :</p>
+<p><img loading="lazy" src="img/create-repository.png" alt="create-repository.png"  /></p>
+<p>Note the <strong>HTTPS URL</strong> :</p>
+<p><img loading="lazy" src="img/https-url.png" alt="https-url.png"  /></p>
+<h3 id="test-git-flow">Test git-flow</h3>
+<p>git-flow in 7 points :</p>
+<ol>
+<li>The <strong>master branch</strong> is the stable branch, <strong>ready to be pushed in production</strong>.</li>
+<li>The <strong>develop branch</strong> is the branch <strong>where we work</strong>. With the latest features.</li>
+<li>When we want to add a new feature to the development branch, we <strong>create a feature</strong>.</li>
+<li>Each added feature is isolated in a <strong>specific branch</strong>. Once the development of a functionality is <strong>finished</strong>, we will <strong>merge it in the develop branch</strong>.</li>
+<li>When the work on the develop branch is <strong>finished and valid</strong> we will <strong>create a release</strong>.</li>
+<li>A release is also a <strong>specific branch</strong>.</li>
+<li>when we decide to <strong>finish the release</strong>, it will be <strong>merged into the master branch</strong>.</li>
+</ol>
+<p>In reality, it is a little more complicated, but the main idea is well summarized in these 7 points. Read the <a href="https://nvie.com/posts/a-successful-git-branching-model/" target="_blank" rel="noopener">full explanations</a>.</p>
+<p><img loading="lazy" src="img/git-model.png" alt="git-model.png"  /></p>
+<p>Let&rsquo;s start our docker image :</p>
+<pre><code class="language-bash"># run the image
+$ docker run \
+    --rm \
+    --interactive \
+    --tty \
+    flow
+
+# you should see the following prompt
+➜  /tmp 
+</code></pre>
+<p>Let&rsquo;s clone the <strong>repository we just created</strong> on github :</p>
+<pre><code class="language-bash"># replace with your URL
+➜  /tmp git clone https://github.com/jeromedecoster/git-flow.git
+
+# cd
+➜  /tmp cd git-flow 
+➜  git-flow git:(master) 
+</code></pre>
+<p>Let&rsquo;s <strong>initialize</strong> git flow :</p>
+<pre><code class="language-bash"># initialize git flow
+➜  git-flow git:(master) git flow init --defaults
+
+# we are now on the `develop` branch
+➜  git-flow git:(develop)
+</code></pre>
+<p>Let&rsquo;s <strong>create a feature</strong> :</p>
+<pre><code class="language-bash"># create a feature
+➜  git-flow git:(develop) git flow feature start feature-1
+
+# we are now on the `feature/feature-1` branch
+➜  git-flow git:(feature/feature-1)
+</code></pre>
+<p>Let&rsquo;s <strong>create and commit</strong> some changes :</p>
+<pre><code class="language-bash">➜  git-flow git:(feature/feature-1) echo '## feature-1\n' &gt;&gt; readme.md
+➜  git-flow git:(feature/feature-1) ✗ git add --all
+➜  git-flow git:(feature/feature-1) ✗ git commit --message feature-1
+</code></pre>
+<p>If our work is completed, we can <strong>finish the feature</strong> :</p>
+<pre><code class="language-bash"># finish the feature
+➜  git-flow git:(feature/feature-1) git flow feature finish feature-1
+
+# we are back on the `develop` branch
+➜  git-flow git:(develop) 
+
+# the `feature/feature-1` branch was deleted
+➜  git-flow git:(develop) git branch
+* develop
+  master
+</code></pre>
+<p>Let&rsquo;s <strong>push the develop branch</strong> on github :</p>
+<ul>
+<li>We use the <code>-u</code> (same as <code>--set-upstream</code>) <a href="https://git-scm.com/docs/git-push#Documentation/git-push.txt--u" target="_blank" rel="noopener">option</a> because it&rsquo;s the <strong>first time we push this branch</strong>.</li>
+</ul>
+<pre><code class="language-bash"># push to github
+➜  git-flow git:(develop) git push -u origin develop
+</code></pre>
+<p>It&rsquo;s online :</p>
+<p><img loading="lazy" src="img/feature-1.png" alt="feature-1.png"  /></p>
+<p>Let&rsquo;s <strong>create and commit</strong> another feature :</p>
+<pre><code class="language-bash"># create a feature
+➜  git-flow git:(develop) git flow feature start feature-2
+
+# some changes
+➜  git-flow git:(feature/feature-2) echo '## feature-2\n' &gt;&gt; readme.md
+➜  git-flow git:(feature/feature-2) ✗ git add --all
+➜  git-flow git:(feature/feature-2) ✗ git commit --message feature-2
+
+# finish the feature
+➜  git-flow git:(feature/feature-2) git flow feature finish feature-2
+</code></pre>
+<p>Now we can <strong>push the develop branch</strong> on github with this <strong>shorten</strong> command :</p>
+<pre><code class="language-bash">➜  git-flow git:(develop) git push
+</code></pre>
+<p>It&rsquo;s online :</p>
+<p><img loading="lazy" src="img/feature-2.png" alt="feature-2.png"  /></p>
+<p>This project is now ready to be shipped, we will <strong>create a release</strong> :</p>
+<pre><code class="language-bash"># create a release
+➜  git-flow git:(develop) git flow release start v1.0.0
+
+# we are on the `release/v1.0.0` branch
+➜  git-flow git:(release/v1.0.0)
+</code></pre>
+<p>Let&rsquo;s <strong>create and commit</strong> the changelog, then <strong>finish the release</strong> :</p>
+<pre><code class="language-bash"># some changes
+➜  git-flow git:(release/v1.0.0) echo '# v1.0.0\n' &gt;&gt; changelog.md
+➜  git-flow git:(release/v1.0.0) git add --all
+➜  git-flow git:(release/v1.0.0) git commit --message v1.0.0
+
+# finish the feature
+➜  git-flow git:(release/v1.0.0) git flow release finish v1.0.0
+</code></pre>
+<p>Now we have <strong>3 commit messages</strong> to write :</p>
+<ul>
+<li>For the first message, I <strong>leave the default</strong> message :</li>
+</ul>
+<p><img loading="lazy" src="img/merge-message.png" alt="merge-message.png"  /></p>
+<ul>
+<li>For the second message, I <strong>write</strong> the current message :</li>
+</ul>
+<p><img loading="lazy" src="img/tag-message.png" alt="tag-message.png"  /></p>
+<ul>
+<li>For the third message, I <strong>leave the default</strong> message :</li>
+</ul>
+<p><img loading="lazy" src="img/merge-message-2.png" alt="merge-message-2.png"  /></p>
+<p>The <strong>release is finished</strong>, this means :</p>
+<ul>
+<li>We are now back on the <strong>develop</strong> branch.</li>
+<li>The <strong>master</strong> branch received the <strong>previous features</strong>.</li>
+<li>We can <strong>push the master</strong> branch to github. We push with the <strong>long command</strong> because it&rsquo;s the first time.</li>
+</ul>
+<pre><code class="language-bash"># we are back on the `develop` branch
+➜  git-flow git:(develop)
+
+# push to github (with -u)
+➜  git-flow git:(develop) git push -u origin master
+</code></pre>
+<p><img loading="lazy" src="img/master-branch.png" alt="master-branch.png"  /></p>
+<p>Unfortunately the <strong>tag was not put</strong> on the github repository :</p>
+<p><img loading="lazy" src="img/tag-empty.png" alt="tag-empty.png"  /></p>
+<p>We need to execute this command :</p>
+<pre><code class="language-bash"># push all local tags
+➜  git-flow git:(develop) git push --tags
+</code></pre>
+<p>This is now done :</p>
+<p><img loading="lazy" src="img/tag-ok.png" alt="tag-ok.png"  /></p>
+<p>Let&rsquo;s <strong>check the logs</strong> :</p>
+<pre><code class="language-bash">➜  git-flow git:(develop) git log --graph --oneline
+</code></pre>
+<p><img loading="lazy" src="img/log.png" alt="log.png"  /></p>
+<p>A <strong>simplified view</strong> :</p>
+<pre><code class="language-bash">➜  git-flow git:(develop) git log --graph --oneline --first-parent develop
+</code></pre>
+<p><img loading="lazy" src="img/log-simplified.png" alt="log-simplified.png"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/git/">git</a>
+
+
+
+
+
+
+
+<a href="/tags/git-flow/">git-flow</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 13 Apr 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>
