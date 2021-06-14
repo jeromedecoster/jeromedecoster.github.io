@@ -5,16 +5,76 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 10 Mar 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 10 Jun 2021 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>AWS</title>
       <link>/tags/aws/</link>
-      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Deployment Pattern</title>
+      <link>/tags/deployment-pattern/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/deployment-pattern/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECR</title>
+      <link>/tags/ecr/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS</title>
+      <link>/tags/eks/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/eks/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -39,18 +99,6 @@
       <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/gitlab/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -154,35 +202,11 @@
       </description>
     </item>
     <item>
-      <title>EKS</title>
-      <link>/tags/eks/</link>
-      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/eks/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Grafana</title>
       <link>/tags/grafana/</link>
       <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/grafana/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Kubernetes</title>
-      <link>/tags/kubernetes/</link>
-      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/kubernetes/</guid>
       <description>
       
       
@@ -291,18 +315,6 @@
       <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/hugo/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>ECR</title>
-      <link>/tags/ecr/</link>
-      <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/ecr/</guid>
       <description>
       
       

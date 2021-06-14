@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Deployment Pattern on Jérôme Decoster</title>
+    <link>/tags/deployment-pattern/</link>
+    <description>Recent content in Deployment Pattern on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Thu, 10 Jun 2021 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/deployment-pattern/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Kubernetes &#43; EKS &#43; Blue/Green Deployment</title>
+      <link>/aws/kubernetes-eks-blue/green-deployment/</link>
+      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/kubernetes-eks-blue/green-deployment/</guid>
+      <description>
+      
+      Testing **Kubernetes Blue/Green Deployment** on **EKS**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>
