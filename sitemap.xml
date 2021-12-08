@@ -2,11 +2,56 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>/tags/api-gateway/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>/tags/aws/</loc>
-    <lastmod>2021-07-05T00:00:00+00:00</lastmod>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/</loc>
-    <lastmod>2021-07-05T00:00:00+00:00</lastmod>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/aws/aws-grafana-lambda-terraform/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/grafana/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/lambda/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/monitoring/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/terraform/</loc>
+    <lastmod>2021-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/cdk/</loc>
+    <lastmod>2021-11-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/aws/cdk-cdktf-lambda-dynamodb/</loc>
+    <lastmod>2021-11-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/cdktf/</loc>
+    <lastmod>2021-11-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/ansible/</loc>
+    <lastmod>2021-10-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/aws-cli/</loc>
+    <lastmod>2021-10-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/ec2/</loc>
+    <lastmod>2021-10-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/aws/ec2-ansible-aws-cli/</loc>
+    <lastmod>2021-10-26T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/deployment-pattern/</loc>
     <lastmod>2021-07-05T00:00:00+00:00</lastmod>
@@ -14,19 +59,10 @@
     <loc>/tags/eks/</loc>
     <lastmod>2021-07-05T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/</loc>
-    <lastmod>2021-07-05T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>/tags/kubernetes/</loc>
     <lastmod>2021-07-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/kubernetes-eks-canary-deployment/</loc>
-    <lastmod>2021-07-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/</loc>
-    <lastmod>2021-07-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/terraform/</loc>
     <lastmod>2021-07-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/ecr/</loc>
@@ -45,9 +81,6 @@
     <lastmod>2021-03-10T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/github-actions/</loc>
-    <lastmod>2021-02-18T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/lambda/</loc>
     <lastmod>2021-02-18T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/lambda-terraform-github-actions/</loc>
@@ -80,14 +113,8 @@
     <loc>/aws/eks-prometheus-grafana/</loc>
     <lastmod>2020-10-05T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/grafana/</loc>
-    <lastmod>2020-10-05T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>/tags/prometheus/</loc>
     <lastmod>2020-10-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/monitoring/</loc>
-    <lastmod>2020-09-24T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/note/prometheus-grafana-node/</loc>
     <lastmod>2020-09-24T00:00:00+00:00</lastmod>
@@ -245,13 +272,7 @@
     <loc>/black-white/troposphere-lambda-sharp/</loc>
     <lastmod>2020-01-09T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/api-gateway/</loc>
-    <lastmod>2019-12-22T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/aws/api-gateway-lambda-cli/</loc>
-    <lastmod>2019-12-22T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/cli/</loc>
+    <loc>/aws/api-gateway-lambda-aws-cli/</loc>
     <lastmod>2019-12-22T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/api-gateway-lambda-curl/</loc>

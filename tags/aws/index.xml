@@ -5,10 +5,46 @@
     <link>/tags/aws/</link>
     <description>Recent content in AWS on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 05 Jul 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 02 Dec 2021 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/aws/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>AWS Grafana &#43; Lambda &#43; Terraform</title>
+      <link>/aws/aws-grafana-lambda-terraform/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/aws-grafana-lambda-terraform/</guid>
+      <description>
+      
+      Monitoring **Lambda** function with **Managed Grafana**.
+      
+      </description>
+    </item>
+    <item>
+      <title>CDK &#43; CDKTF &#43; Lambda &#43; DynamoDB</title>
+      <link>/aws/cdk-cdktf-lambda-dynamodb/</link>
+      <pubDate>Mon, 22 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/cdk-cdktf-lambda-dynamodb/</guid>
+      <description>
+      
+      Creating **API Gateway**, **Lambda** and **DynamoDB** with **CDK** and **CDKTF**.
+      
+      </description>
+    </item>
+    <item>
+      <title>EC2 &#43; Ansible &#43; AWS CLI</title>
+      <link>/aws/ec2-ansible-aws-cli/</link>
+      <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/ec2-ansible-aws-cli/</guid>
+      <description>
+      
+      Creating **EC2 instances** with **AWS CLI**. Uptading them with **Ansible**.
+      
+      </description>
+    </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Canary Deployment</title>
       <link>/aws/kubernetes-eks-canary-deployment/</link>
@@ -238,14 +274,14 @@
       </description>
     </item>
     <item>
-      <title>API Gateway &#43; Lambda &#43; cli</title>
-      <link>/aws/api-gateway-lambda-cli/</link>
+      <title>API Gateway &#43; Lambda &#43; AWS CLI</title>
+      <link>/aws/api-gateway-lambda-aws-cli/</link>
       <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-cli/</guid>
+      <guid>/aws/api-gateway-lambda-aws-cli/</guid>
       <description>
       
-      Create an **API Gateway** and a **Lambda** from cli.
+      Create an **API Gateway** and a **Lambda** from CLI.
       
       </description>
     </item>

@@ -5,16 +5,136 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 05 Jul 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 02 Dec 2021 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>API Gateway</title>
+      <link>/tags/api-gateway/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/api-gateway/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
       <title>AWS</title>
       <link>/tags/aws/</link>
-      <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Grafana</title>
+      <link>/tags/grafana/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/grafana/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Lambda</title>
+      <link>/tags/lambda/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/lambda/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Monitoring</title>
+      <link>/tags/monitoring/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/monitoring/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CDK</title>
+      <link>/tags/cdk/</link>
+      <pubDate>Mon, 22 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/cdk/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>CDKTF</title>
+      <link>/tags/cdktf/</link>
+      <pubDate>Mon, 22 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/cdktf/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Ansible</title>
+      <link>/tags/ansible/</link>
+      <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ansible/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>AWS CLI</title>
+      <link>/tags/aws-cli/</link>
+      <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aws-cli/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>EC2</title>
+      <link>/tags/ec2/</link>
+      <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ec2/</guid>
       <description>
       
       
@@ -51,18 +171,6 @@
       <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/kubernetes/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -111,18 +219,6 @@
       <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/github-actions/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Lambda</title>
-      <link>/tags/lambda/</link>
-      <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/lambda/</guid>
       <description>
       
       
@@ -202,35 +298,11 @@
       </description>
     </item>
     <item>
-      <title>Grafana</title>
-      <link>/tags/grafana/</link>
-      <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/grafana/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Prometheus</title>
       <link>/tags/prometheus/</link>
       <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/prometheus/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Monitoring</title>
-      <link>/tags/monitoring/</link>
-      <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/monitoring/</guid>
       <description>
       
       
@@ -591,30 +663,6 @@
       <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/troposphere/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>API Gateway</title>
-      <link>/tags/api-gateway/</link>
-      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/api-gateway/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>cli</title>
-      <link>/tags/cli/</link>
-      <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/cli/</guid>
       <description>
       
       

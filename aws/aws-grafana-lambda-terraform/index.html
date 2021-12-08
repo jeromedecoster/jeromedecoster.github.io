@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.89.4" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Grafana,Lambda,Monitoring,Terraform,API Gateway'><meta name="description" content='Monitoring Lambda function with Managed Grafana.'><meta property="og:title" content="AWS Grafana &#43; Lambda &#43; Terraform" />
+<meta property="og:description" content="Monitoring **Lambda** function with **Managed Grafana**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/aws-grafana-lambda-terraform/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2021-12-02T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-12-02T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="AWS Grafana &#43; Lambda &#43; Terraform"/>
+<meta name="twitter:description" content="Monitoring **Lambda** function with **Managed Grafana**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>AWS Grafana &#43; Lambda &#43; Terraform | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#creation-of-the-grafana-workspace">Creation of the Grafana workspace</a></li>
+        <li><a href="#setup-grafana-data-source">Setup Grafana data source</a></li>
+        <li><a href="#configuration-of-a-cloudwatch-dashboard">Configuration of a CloudWatch dashboard</a></li>
+        <li><a href="#configuration-of-a-lambda-dashboard">Configuration of a Lambda dashboard</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">02</span>
+<span class="rest">Dec 2021</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">AWS Grafana &#43; Lambda &#43; Terraform</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create an <strong>API Gateway</strong> and a <strong>Lambda</strong> function with <strong>Terraform</strong></li>
+<li>Setup a <strong>Managed Grafana workspace</strong></li>
+<li>Configure AWS <strong>Single Sign-On</strong></li>
+<li>Import and setup 2 <strong>Grafana dashboards</strong></li>
+<li>Use <strong>curl</strong> to test the dashboards</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/managed-grafana-lambda" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/managed-grafana-lambda.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># terraform setup
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li><a href="https://www.terraform.io/docs/cli/commands/init.html" target="_blank" rel="noopener">Initialize</a> Terraform</li>
+</ul>
+<p>We can validate HCL files with this command :</p>
+<pre><code class="language-bash"># terraform validation
+$ make validate
+</code></pre>
+<p>We are now deploying our application :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>We can see that our Lambda function is ready :</p>
+<p><img loading="lazy" src="img/lambda.png" alt="lambda.png"  /></p>
+<p>A little test to see if it works. Everything is fine because some JSON data is returned :</p>
+<pre><code class="language-bash">$ make curl-get 
+{
+  &quot;method&quot;: &quot;GET&quot;,
+  &quot;path&quot;: &quot;/&quot;
+}
+</code></pre>
+<h3 id="creation-of-the-grafana-workspace">Creation of the Grafana workspace</h3>
+<p>We will create a <a href="https://docs.aws.amazon.com/grafana/latest/userguide/AMG-create-workspace.html" target="_blank" rel="noopener">Grafana workspace</a> from the <a href="https://console.aws.amazon.com/grafana" target="_blank" rel="noopener">web interface</a></p>
+<p>My default region <code>eu-west-3</code> <strong>Paris</strong> is not yet available, so I choose <code>eu-west-2</code> <strong>London</strong> :</p>
+<p><img loading="lazy" src="img/managed-create-01.png" alt="managed-create-01.png"  /></p>
+<p>I give the name of our project. But before validating with the <code>Next</code> button, I must activate <strong>AWS Single Sign-On</strong> :</p>
+<p><img loading="lazy" src="img/managed-create-02.png" alt="managed-create-02.png"  /></p>
+<p>To be able to continue I must make sure that <a href="https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html" target="_blank" rel="noopener">AWS Single Sign-On</a> is enabled :</p>
+<p>In another tab of my browser I <a href="https://console.aws.amazon.com/singlesignon/" target="_blank" rel="noopener">connect</a> via the web interface :</p>
+<p>I make sure I am in the <strong>same</strong> <code>eu-west-2</code> <strong>London</strong> region as my <strong>Grafana workspace</strong> :</p>
+<p><img loading="lazy" src="img/sso-activate-01.png" alt="sso-activate-01.png"  /></p>
+<p>I clicked on <code>Enable</code>, I wait a few seconds :</p>
+<p><img loading="lazy" src="img/sso-activate-02.png" alt="sso-activate-02.png"  /></p>
+<p>Activation completed successfully :</p>
+<p><img loading="lazy" src="img/sso-activate-03.png" alt="sso-activate-03.png"  /></p>
+<p>Without closing my SSO browser tab, I go back to the one open on Managed Grafana.</p>
+<p>I now validate the creation of my workspace by clicking <code>Next</code> :</p>
+<p><img loading="lazy" src="img/managed-create-02.png" alt="managed-create-02.png"  /></p>
+<p>Everything works, I continue :</p>
+<p><img loading="lazy" src="img/managed-create-03.png" alt="managed-create-03.png"  /></p>
+<p>I choose to <strong>collect my data</strong> via <code>X-Ray</code> and <code>CloudWatch</code> :</p>
+<p><img loading="lazy" src="img/managed-create-04.png" alt="managed-create-04.png"  /></p>
+<p>I have a summary before launching the creation :</p>
+<p><img loading="lazy" src="img/managed-create-05.png" alt="managed-create-05.png"  /></p>
+<p>Creation takes a few seconds :</p>
+<p><img loading="lazy" src="img/managed-create-06.png" alt="managed-create-06.png"  /></p>
+<p>If I want to <strong>add a user</strong> to my workspace :</p>
+<p><img loading="lazy" src="img/managed-create-07.png" alt="managed-create-07.png"  /></p>
+<p>I currently have <strong>no user available</strong>.</p>
+<p>I must <strong>first create and validate</strong> one from the AWS Single Sign-On interface :</p>
+<p><img loading="lazy" src="img/managed-user-01.png" alt="managed-user-01.png"  /></p>
+<p>I now return to my SSO browser tab. I will <strong>create a user</strong> :</p>
+<p><img loading="lazy" src="img/sso-user-01.png" alt="sso-user-01.png"  /></p>
+<p>I fill in the requested data :</p>
+<p><img loading="lazy" src="img/sso-user-02.png" alt="sso-user-02.png"  /></p>
+<p>I ignore the <strong>group creation</strong> step :</p>
+<p><img loading="lazy" src="img/sso-user-03.png" alt="sso-user-03.png"  /></p>
+<p>The user is created. A <strong>validation email</strong> has been sent :</p>
+<p><img loading="lazy" src="img/sso-user-04.png" alt="sso-user-04.png"  /></p>
+<p>I click the link received in the validation email :</p>
+<p><img loading="lazy" src="img/sso-user-05.png" alt="sso-user-05.png"  /></p>
+<p>I activate this user by <strong>setting a password</strong> :</p>
+<p><img loading="lazy" src="img/sso-user-06.png" alt="sso-user-06.png"  /></p>
+<p>I am redirected to the <strong>application activation</strong> page :</p>
+<p><img loading="lazy" src="img/sso-user-07.png" alt="sso-user-07.png"  /></p>
+<p>I can now <strong>select a user</strong> to associate it with my Grafana workspace :</p>
+<p><img loading="lazy" src="img/managed-user-02.png" alt="managed-user-02.png"  /></p>
+<p>The user is associated as <code>Viewer</code> :</p>
+<p><img loading="lazy" src="img/managed-user-03.png" alt="managed-user-03.png"  /></p>
+<p>I select the user to pass it as <code>Admin</code> :</p>
+<p><img loading="lazy" src="img/managed-user-04.png" alt="managed-user-04.png"  /></p>
+<p>It is done :</p>
+<p><img loading="lazy" src="img/managed-user-05.png" alt="managed-user-05.png"  /></p>
+<p>I can now open my workspace by clicking on its URL :</p>
+<p><img loading="lazy" src="img/managed-create-08.png" alt="managed-create-08.png"  /></p>
+<h3 id="setup-grafana-data-source">Setup Grafana data source</h3>
+<p>We will add the CloudWatch logs as <a href="https://docs.aws.amazon.com/grafana/latest/userguide/using-amazon-cloudwatch-in-AMG.html" target="_blank" rel="noopener">data source</a> :</p>
+<p><img loading="lazy" src="img/grafana-setup-data-01.png" alt="grafana-setup-data-01.png"  /></p>
+<p>It&rsquo;s extremely simple :</p>
+<p><img loading="lazy" src="img/grafana-setup-data-02.png" alt="grafana-setup-data-02.png"  /></p>
+<h3 id="configuration-of-a-cloudwatch-dashboard">Configuration of a CloudWatch dashboard</h3>
+<p>We will add a <a href="https://grafana.com/grafana/dashboards/14109" target="_blank" rel="noopener">first dashboard</a> dedicated to <strong>CloudWatch logs</strong> :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-03.png" alt="grafana-setup-1-03.png"  /></p>
+<p>We select <code>Manage</code> :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-01.png" alt="grafana-setup-1-01.png"  /></p>
+<p>We click on the <code>Import</code> button :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-02.png" alt="grafana-setup-1-02.png"  /></p>
+<p>We set the dashboard id and click on the <code>Load</code> button :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-04.png" alt="grafana-setup-1-04.png"  /></p>
+<p>I rename the dashboard by <strong>adding its identifier</strong>.</p>
+<p>I <strong>select my data source</strong> :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-05.png" alt="grafana-setup-1-05.png"  /></p>
+<p>We can finish the import :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-06.png" alt="grafana-setup-1-06.png"  /></p>
+<p>Here are the <strong>log groups</strong> generated by our application :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-07.png" alt="grafana-setup-1-07.png"  /></p>
+<p>I copy and paste the path of the <strong>log group</strong> in the interface :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-08.png" alt="grafana-setup-1-08.png"  /></p>
+<p>I <strong>edit</strong> the <code>Logs</code> panel :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-09.png" alt="grafana-setup-1-09.png"  /></p>
+<p>I indicate the path of the log group :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-10.png" alt="grafana-setup-1-10.png"  /></p>
+<p>I <strong>modify the filter</strong> and I <strong>refresh</strong> the interface.</p>
+<p>The log generated by my previous call is now displayed :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-11.png" alt="grafana-setup-1-11.png"  /></p>
+<p>Coming back to the interface, I see the activity going up.</p>
+<p>The <strong>4 events</strong> indicated correspond to <strong>4 log lines</strong>.</p>
+<p>It is in fact <strong>1 event</strong> but which breaks down into 4 lines : <code>START</code>, <code>INFO</code>, <code>END</code> and <code>REPORT</code>.</p>
+<p><img loading="lazy" src="img/grafana-setup-1-12.png" alt="grafana-setup-1-12.png"  /></p>
+<p>We invoke the function by generating a <strong>voluntary error</strong> :</p>
+<pre><code class="language-bash"># post /api/deplay 10 ~ 29 seconds
+$ make curl-error
+</code></pre>
+<p>This command runs a script that will run the Lambda asking it to <strong>wait 25 seconds</strong>.</p>
+<p>Here is a snippet of asynchronous <a href="https://github.com/jeromedecoster/managed-grafana-lambda/blob/master/lambda/index.js" target="_blank" rel="noopener">Lambda code</a> with a <code>setTimeout</code> function :</p>
+<pre><code class="language-js">async function timeout(success, time) {
+    return new Promise(function(resolve, reject) {
+        setTimeout(function() {
+            if (success === false) resolve(buildResponse(400, `error ${success} ${time}`))
+            else resolve(buildResponse(200, `ok ${success} ${time}`))
+        }, time)
+    })
+}
+</code></pre>
+<p>Our Lambda has the <strong>default timeout</strong> of <code>3 sec</code>. Our invocation will therefore <strong>generate a timeout error</strong> :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-13.png" alt="grafana-setup-1-13.png"  /></p>
+<p>I can <strong>save</strong> my dashboard :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-14.png" alt="grafana-setup-1-14.png"  /></p>
+<p>I memorize some parameters :</p>
+<p><img loading="lazy" src="img/grafana-setup-1-15.png" alt="grafana-setup-1-15.png"  /></p>
+<h3 id="configuration-of-a-lambda-dashboard">Configuration of a Lambda dashboard</h3>
+<p>We will add a second dashboard dedicated to <a href="https://grafana.com/grafana/dashboards/593" target="_blank" rel="noopener">Lambda events</a> :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-00.png" alt="grafana-setup-2-00.png"  /></p>
+<p>We indicate the dashboard <code>id</code> and click on the <code>Load</code> button :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-01.png" alt="grafana-setup-2-01.png"  /></p>
+<p>We can finish the import :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-02.png" alt="grafana-setup-2-02.png"  /></p>
+<p>I select the parameters to target my Lambda function :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-03.png" alt="grafana-setup-2-03.png"  /></p>
+<p>We now invoke the function with an immediate result :</p>
+<pre><code class="language-bash"># get /
+$ make curl-get
+</code></pre>
+<p>This is a success :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-04.png" alt="grafana-setup-2-04.png"  /></p>
+<p>We now invoke the function with a <strong>random result</strong> :</p>
+<ul>
+<li><code>50 %</code> chance of being <strong>successful after 1 or 2 seconds</strong></li>
+<li><code>50 %</code> chance of being a <strong>failure via a timeout</strong></li>
+</ul>
+<pre><code class="language-bash"># post /api/deplay 1 ~ 4 seconds (lambda timeout after 3 seconds)
+$ make curl-rand-success
+</code></pre>
+<p>As we can see below, our call lasted <strong>3 seconds or more</strong>, the lambda <strong>timeout generated an error</strong> :</p>
+<p><img loading="lazy" src="img/grafana-setup-2-05.png" alt="grafana-setup-2-05.png"  /></p>
+<p>The demonstration is over. We can delete our resources with this command :</p>
+<pre><code class="language-bash"># destroy all resources
+$ make destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+<a href="/tags/api-gateway/">api-gateway</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/grafana/">grafana</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/monitoring/">monitoring</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 8 Dec 2021 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>
