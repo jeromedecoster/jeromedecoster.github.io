@@ -5,10 +5,22 @@
     <link>/aws/</link>
     <description>Recent content in Aws on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 02 Dec 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 20 Jan 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/aws/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>Terraform multi region architecture</title>
+      <link>/aws/terraform-multi-region-architecture/</link>
+      <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/terraform-multi-region-architecture/</guid>
+      <description>
+      
+      **Disaster recovery** project with **multi region replication**. Setup with **Terraform**.
+      
+      </description>
+    </item>
     <item>
       <title>AWS Grafana &#43; Lambda &#43; Terraform</title>
       <link>/aws/aws-grafana-lambda-terraform/</link>

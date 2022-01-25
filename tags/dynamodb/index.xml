@@ -5,10 +5,22 @@
     <link>/tags/dynamodb/</link>
     <description>Recent content in DynamoDB on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 24 Feb 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 20 Jan 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/dynamodb/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>Terraform multi region architecture</title>
+      <link>/aws/terraform-multi-region-architecture/</link>
+      <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/terraform-multi-region-architecture/</guid>
+      <description>
+      
+      **Disaster recovery** project with **multi region replication**. Setup with **Terraform**.
+      
+      </description>
+    </item>
     <item>
       <title>Step Functions &#43; Rekognition</title>
       <link>/aws/step-functions-rekognition/</link>
