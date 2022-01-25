@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.92.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Cognito,API Gateway,DynamoDB,Cloudfront,Amplify,Terraform'><meta name="description" content='Disaster recovery project with multi region replication. Setup with Terraform.'><meta property="og:title" content="Disaster recovery with multi region architecture" />
+<meta property="og:description" content="**Disaster recovery** project with **multi region replication**. Setup with **Terraform**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/disaster-recovery-with-multi-region-architecture/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-01-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-01-20T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Disaster recovery with multi region architecture"/>
+<meta name="twitter:description" content="**Disaster recovery** project with **multi region replication**. Setup with **Terraform**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Disaster recovery with multi region architecture | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#setup-config">Setup config</a></li>
+        <li><a href="#setup-backend">Setup backend</a></li>
+        <li><a href="#upload">Upload</a></li>
+        <li><a href="#the-api-gateway-store">The API Gateway store</a></li>
+        <li><a href="#setup-frontend">Setup frontend</a></li>
+        <li><a href="#the-config-file">The config file</a></li>
+        <li><a href="#run-the-local-website">Run the local website</a></li>
+        <li><a href="#testing-the-disaster-recovery-strategy">Testing the disaster recovery strategy</a></li>
+        <li><a href="#website-deployment">Website deployment</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">20</span>
+<span class="rest">Jan 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Disaster recovery with multi region architecture</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a pseudo website photo with upload and comment features</li>
+<li>Uploaded photos are stored in an <strong>S3 bucket</strong></li>
+<li>The website use <strong>Cognito</strong> to login and register users</li>
+<li>The website also use the <strong>Cloudfront</strong> CDN</li>
+<li>2 <strong>DynamoDB tables</strong> are used to store <strong>current application state</strong> and photos <strong>comments</strong></li>
+<li>2 <strong>API Gateway</strong> are used to <strong>directly get and put</strong> data on the <strong>DynamoDB tables</strong></li>
+<li><strong>S3 bucket</strong>, <strong>DynamoDB tables</strong> and <strong>API Gateways</strong> are replicated in another AWS region</li>
+<li>If the application state fails (for whatever reason), the application is <strong>still available from the other AWS Region</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.png" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/multi-region-application" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/multi-region-application.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>Before setup the project you need to change the <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/config/env.sh#L24" target="_blank" rel="noopener">email address</a> value :</p>
+<pre><code class="language-bash"># use your email address to receive the email sent by AWS Cognito
+export COGNITO_EMAIL=CHANGE_EMAIL_HERE@gmail.com
+</code></pre>
+<h3 id="about">About</h3>
+<p>This project is an adaptation of <a href="https://github.com/aws-solutions/multi-region-application-architecture" target="_blank" rel="noopener">this AWS-solutions project</a></p>
+<p>My goal was to use Terraform instead of <a href="https://github.com/aws-solutions/multi-region-application-architecture/tree/master/deployment" target="_blank" rel="noopener">Cloudformation templates</a></p>
+<p>I also want to remove all <a href="https://github.com/aws-solutions/multi-region-application-architecture/tree/master/source" target="_blank" rel="noopener">configuration lambda functions</a></p>
+<p>The original project is a nice demonstration but <strong>not easy to setup</strong>. You can check <a href="https://github.com/jeromedecoster/multi-region-application-architecture" target="_blank" rel="noopener">this fork</a> to install it</p>
+<p>There is also 2 Youtube videos from AWS Events related to this project :</p>
+<ul>
+<li>Multi-Region deployment – <a href="https://www.youtube.com/watch?v=rwjXqEUiJps" target="_blank" rel="noopener">Part 1: Needs, challenges, and approaches</a></li>
+<li>Multi-Region deployment – <a href="https://www.youtube.com/watch?v=sBvIphOw_FQ" target="_blank" rel="noopener">Part 2: Architectural best practices</a></li>
+</ul>
+<p>The last chapter of the part 2 video <a href="https://www.youtube.com/watch?v=sBvIphOw_FQ&amp;t=1569s" target="_blank" rel="noopener">shows the application running</a></p>
+<p>My version of this project is <strong>decoupled as if it were 2 separate git repositories</strong> :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/multi-region-application/tree/master/backend" target="_blank" rel="noopener">backend</a> repository</li>
+<li><a href="https://github.com/jeromedecoster/multi-region-application/tree/master/frontend" target="_blank" rel="noopener">frontend</a> repository</li>
+</ul>
+<p>These 2 projects therefore use separate Terraform projects. With 2 <a href="https://www.terraform.io/language/settings/backends/configuration" target="_blank" rel="noopener">backend configurations</a> hosted in a specific S3 bucket</p>
+<p>The frontend project uses <strong>data source to retrieve data associated with resources created by the backend project</strong></p>
+<p>As can be seen in the <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/terraform/cognito.tf" target="_blank" rel="noopener">cognito.tf</a> file excerpt below :</p>
+<ul>
+<li>The <code>data &quot;aws_s3_bucket&quot;</code> <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/s3_bucket" target="_blank" rel="noopener">resource provider</a></li>
+<li>The <code>data &quot;api_gateway_rest_api&quot;</code> <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/api_gateway_rest_api" target="_blank" rel="noopener">resource provider</a></li>
+</ul>
+<pre><code class="language-hcl">data &quot;aws_s3_bucket&quot; &quot;bucket_primary&quot; {
+  bucket   = &quot;${var.project_name}-primary&quot;
+}
+
+data &quot;aws_api_gateway_rest_api&quot; &quot;config_primary&quot; {
+  name     = &quot;${var.project_name}-config-primary&quot;
+}
+</code></pre>
+<h3 id="setup-config">Setup config</h3>
+<p>In the <code>config</code> folder let&rsquo;s run the following command :</p>
+<pre><code class="language-bash">$ cd config
+
+# setup config + terraform remote state S3 bucket
+$ make setup
+</code></pre>
+<p>This command <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/config/make.sh#L22" target="_blank" rel="noopener">will</a> :</p>
+<ul>
+<li>Generate 2 files <code>config/uuid</code> and <code>config/rand</code> which will contain random data</li>
+<li>Create an S3 bucket that will be used to host Terraform&rsquo;s <code>backend.tfstate</code> and <code>fronted.tfstate</code> files</li>
+</ul>
+<p><img loading="lazy" src="img/config-s3.png" alt="config-s3"  /></p>
+<h3 id="setup-backend">Setup backend</h3>
+<p>In the <code>backend</code> folder let&rsquo;s run the following command :</p>
+<pre><code class="language-bash">$ cd backend
+
+# terraform setup
+$ make setup
+</code></pre>
+<p>The setup command <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/setup.sh#L16" target="_blank" rel="noopener">initializes Terraform</a> with a <strong>remote state</strong> :</p>
+<pre><code class="language-bash"># https://www.terraform.io/cli/commands/init
+terraform init \
+    -input=false \
+    -backend=true \
+    -backend-config=&quot;region=$AWS_REGION_CONFIG&quot; \
+    -backend-config=&quot;bucket=$PROJECT_NAME&quot; \
+    -backend-config=&quot;key=backend.tfstate&quot; \
+    -reconfigure
+</code></pre>
+<p>And now this command :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>The apply command deploys <a href="https://github.com/jeromedecoster/multi-region-application/tree/master/backend/terraform" target="_blank" rel="noopener">all these terraform files</a></p>
+<p>We have <strong>2 DynamoDB table</strong> in <strong>each region</strong> :</p>
+<p><img loading="lazy" src="img/backend-tables.png" alt="backend-tables"  /></p>
+<p>A <strong>config</strong> <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/dynamodb-config.tf" target="_blank" rel="noopener">DynamoDB table</a> is deployed</p>
+<p>We have a table with a <strong>single item that describes the current state of the application</strong> :</p>
+<p><img loading="lazy" src="img/backend-dynamo-item.png" alt="backend-dynamo-item"  /></p>
+<p>Our application is referenced according to its unique identifier <code>appId</code> which was defined by this <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/dynamodb-config.tf#L42-L47" target="_blank" rel="noopener">HCL code</a> :</p>
+<pre><code class="language-hcl">resource &quot;aws_dynamodb_table_item&quot; &quot;config_item&quot; {
+  table_name = aws_dynamodb_table.config.name
+  hash_key   = aws_dynamodb_table.config.hash_key
+
+  item = &lt;&lt;ITEM
+{
+  &quot;appId&quot;: {&quot;S&quot;: &quot;${var.app_state_uuid}&quot;},
+  &quot;state&quot;: {&quot;S&quot;: &quot;active&quot;}
+}
+ITEM
+}
+</code></pre>
+<p>The current state of the application is <code>active</code>. In this case, the application <strong>behaves normally</strong>, everything is managed <strong>from the primary region</strong> <code>us-east-1</code></p>
+<p>If we set this state to <code>failover</code>, the application will enter <strong>disaster recovery mode</strong>. Everything will be managed <strong>from the secondary region</strong> <code>ap-northeast-1</code></p>
+<p>We can imagine that the <strong>healthstate of our application is tested via CloudWatch</strong>. If a deficiency is detected, the CloudWatch alarm <strong>automatically changes the state</strong> value from <code>active</code> to <code>failover</code>.</p>
+<p>We have <strong>2 API Gateway</strong> in <strong>each region</strong> :</p>
+<p><img loading="lazy" src="img/backend-apigateway.png" alt="backend-apigateway"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-config-primary.tf" target="_blank" rel="noopener">config API Gateway</a> is deployed :</p>
+<p><img loading="lazy" src="img/backend-state-get.png" alt="backend-state-get"  /></p>
+<p>It is particularly interesting to look at the Integration <strong>Request</strong> <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-config-primary.tf#L84-L96" target="_blank" rel="noopener">Mapping Templates</a> :</p>
+<p><img loading="lazy" src="img/backend-state-get-int-request.png" alt="backend-state-get-int-request"  /></p>
+<p>It corresponds to this <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-config-primary.tf#L84-L96" target="_blank" rel="noopener">HCL code</a> :</p>
+<pre><code class="language-hcl">request_templates = {
+  &quot;application/json&quot; = jsonencode(
+    {
+      ExpressionAttributeValues = {
+        &quot;:v1&quot; = {
+          S = &quot;$input.params('appId')&quot;
+        }
+      }
+      KeyConditionExpression = &quot;appId = :v1&quot;
+      TableName              = aws_dynamodb_table.config.name
+    }
+  )
+}
+</code></pre>
+<p>And look at the <strong>Response</strong> <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-config-primary.tf#L135-L148" target="_blank" rel="noopener">Mapping Templates</a> part :</p>
+<p><img loading="lazy" src="img/backend-state-get-int-response.png" alt="backend-state-get-int-response"  /></p>
+<p>It corresponds to this <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-config-primary.tf#L135-L148" target="_blank" rel="noopener">HCL code</a> :</p>
+<pre><code class="language-hcl">response_templates = {
+  &quot;application/json&quot; = &lt;&lt;-EOT
+          #set($inputRoot = $input.path('$'))
+          #if($inputRoot.Items.size() == 1)
+              #set($item = $inputRoot.Items.get(0))
+              {
+                &quot;state&quot;: &quot;$item.state.S&quot;
+              }
+          #{else}
+              {}
+              ## Return an empty object
+          #end
+      EOT
+}
+</code></pre>
+<p>We now query the state via this command :</p>
+<pre><code class="language-bash"># get application current state from primary region (with apigateway)
+$ make get-state-primary
+</code></pre>
+<h3 id="upload">Upload</h3>
+<p>The upload command allows you to upload a random image. This is the essential initial step for :</p>
+<ul>
+<li>Test <strong>file replication within a bucket from one region to another</strong></li>
+<li>Be able to <strong>add a comment related to this image</strong></li>
+<li>Test the <strong>replication of this comment</strong> in the second region table</li>
+</ul>
+<pre><code class="language-bash"># upload an image to the primary region (with aws cli)
+$ make upload
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/upload.sh#L27-L35" target="_blank" rel="noopener">command uses imagemagick</a> (assuming it&rsquo;s already installed on your machine) to convert this <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/avatar.jpg" target="_blank" rel="noopener">test image</a>  :</p>
+<pre><code class="language-bash">COLORS='aqua black blue chartreuse chocolate coral cyan fuchsia gray green lime magenta'
+COLORS=&quot;$COLORS maroon navy olive orange orchid purple red silver teal white yellow&quot;
+COLOR=$(echo &quot;$COLORS&quot; | tr ' ' '\n' | sort --random-sort | head -n 1)
+log COLOR $COLOR
+
+TINT=$(echo '60 80 100 120 140' | tr ' ' '\n' | sort --random-sort | head -n 1)
+log TINT $TINT
+
+convert avatar.jpg -fill $COLOR -tint $TINT converted.jpg
+</code></pre>
+<p>The image is uploaded via aws cli :</p>
+<pre><code class="language-bash">UUID=$(uuidgen)
+
+aws s3 cp converted.jpg s3://$UPLOAD_BUCKET/public/$UUID
+</code></pre>
+<p>The image is successfully uploaded in our bucket :</p>
+<p><img loading="lazy" src="img/upload-s3-1-file.png" alt="upload-s3-1-file"  /></p>
+<p>If we open the image in the browser :</p>
+<p><img loading="lazy" src="img/upload-s3-2-open.png" alt="upload-s3-2-open"  /></p>
+<p>I see the image <strong>modified by imagemagick</strong> :</p>
+<p><img loading="lazy" src="img/upload-s3-3-converted.jpeg" alt="upload-s3-3-converted"  /></p>
+<h3 id="the-api-gateway-store">The API Gateway store</h3>
+<p>The API Gateway <code>store</code> allows <strong>querying and writing directly</strong> to the dynamoDB <code>store</code> table :</p>
+<p><img loading="lazy" src="img/api-store-get.png" alt="api-store-get"  /></p>
+<p>It is particularly interesting to look at the Integration <strong>Request</strong> <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-store-primary.tf#L102-L115" target="_blank" rel="noopener">Mapping Templates</a> :</p>
+<p><img loading="lazy" src="img/api-store-get-int-request.png" alt="api-store-get-int-request"  /></p>
+<p>Here is the <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-store-primary.tf#L102-L115" target="_blank" rel="noopener">HCL code</a> :</p>
+<pre><code class="language-hcl">request_templates = {
+  &quot;application/json&quot; = jsonencode(
+    {
+      ExpressionAttributeValues = {
+        &quot;:v1&quot; = {
+          S = &quot;$input.params('photoId')&quot;
+        }
+      }
+      IndexName              = &quot;photoId&quot;
+      KeyConditionExpression = &quot;photoId = :v1&quot;
+      TableName              = aws_dynamodb_table.store.name
+    }
+  )
+}
+</code></pre>
+<p>The <strong>Response</strong> <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-store-primary.tf#L156-L169" target="_blank" rel="noopener">Mapping Templates</a> :</p>
+<p><img loading="lazy" src="img/api-store-get-int-response.png" alt="api-store-get-int-response"  /></p>
+<p>Here is the <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/terraform/apigateway-store-primary.tf#L156-L169" target="_blank" rel="noopener">HCL code</a> :</p>
+<pre><code class="language-hcl">response_templates = {
+  &quot;application/json&quot; = &lt;&lt;-EOT
+          #set($inputRoot = $input.path('$')) {
+            &quot;comments&quot;: [
+              #foreach($elem in $inputRoot.Items) {
+                &quot;commentId&quot;: &quot;$elem.commentId.S&quot;,
+                &quot;user&quot;: &quot;$elem.user.S&quot;,
+                &quot;message&quot;: &quot;$elem.message.S&quot;
+              }#if($foreach.hasNext),#end
+            #end
+            ]
+          }
+      EOT
+}
+</code></pre>
+<p>You can get a <strong>comment associated with a photo</strong> via this command :</p>
+<pre><code class="language-bash">$ make get-comment-primary
+{
+  &quot;comments&quot;: []
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/get-comment.sh#L26-L30" target="_blank" rel="noopener">script get the id</a> of an image taken randomly from the S3 bucket :</p>
+<pre><code class="language-bash"># random photo id
+RAND_PHOTO_ID=$(aws s3 ls s3://$BUCKET/public/ | \
+    sort --random-sort | \
+    head -n 1 | \
+    awk '{ print $NF }')
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/get-comment.sh#L34" target="_blank" rel="noopener">script then queries</a> the API Gateway via :</p>
+<pre><code class="language-bash">curl --silent $PHOTOS_API/comments/$RAND_PHOTO_ID | jq
+</code></pre>
+<p>The following command <strong>adds a random comment</strong> to an image :</p>
+<pre><code class="language-bash"># add a comment to a random photo at primary region (with apigateway)
+$ make add-comment-primary
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/add-comment.sh#L37-L46" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">DATA='{&quot;commentId&quot;:&quot;'$UUID'&quot;, &quot;message&quot;:&quot;message '$RANDOM'&quot;, &quot;photoId&quot;:&quot;'$RAND_PHOTO_ID'&quot;, &quot;user&quot;:&quot;'$COGNITO_USERNAME'&quot;}'
+
+curl $PHOTOS_API/comments/$RAND_PHOTO_ID \
+  --header &quot;Content-Type: application/json&quot; \
+  --data &quot;$DATA&quot;
+</code></pre>
+<p>Invoking the <code>get-comment-primary</code> command again, we get the comment :</p>
+<pre><code class="language-bash">$ make get-comment-primary
+{
+  &quot;comments&quot;: [
+    {
+      &quot;commentId&quot;: &quot;abca91a3-b331-4ae8-a9fa-da371a712a7c&quot;,
+      &quot;user&quot;: &quot;jerome&quot;,
+      &quot;message&quot;: &quot;message 23632&quot;
+    }
+  ]
+}
+</code></pre>
+<p>We can see that the <strong>item has been duplicated to the table located in Tokyo</strong> :</p>
+<p><img loading="lazy" src="img/api-store-item-tokyo.png" alt="api-store-item-tokyo"  /></p>
+<h3 id="setup-frontend">Setup frontend</h3>
+<p>In the <code>frontend</code> folder let&rsquo;s run the following command :</p>
+<pre><code class="language-bash">$ cd frontend
+
+# terraform setup + npm install the website
+$ make setup
+</code></pre>
+<p>Then this command :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>The command creates a <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/terraform/coudfront.tf" target="_blank" rel="noopener">Cloudfront distribution</a> :</p>
+<p><img loading="lazy" src="img/frontend-cloudfront.png" alt="frontend-cloudfront"  /></p>
+<p>The <code>/console</code> origin :</p>
+<p><img loading="lazy" src="img/frontend-cloudfront-origin.png" alt="frontend-cloudfront-origin"  /></p>
+<p>It also creates a <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/terraform/cognito.tf" target="_blank" rel="noopener">Cognito instance</a> :</p>
+<p><img loading="lazy" src="img/frontend-cognito.png" alt="frontend-cognito"  /></p>
+<p>The HCL code also <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/terraform/cognito.tf#L102-L112" target="_blank" rel="noopener">creates a user</a> via an AWS cli call :</p>
+<pre><code class="language-hcl"># Add aws_cognito_user resource
+resource &quot;null_resource&quot; &quot;cognito_users&quot; {
+  provisioner &quot;local-exec&quot; {
+    command = &lt;&lt;COMMAND
+aws cognito-idp admin-create-user \
+  --user-pool-id ${aws_cognito_user_pool.pool.id} \
+  --username ${var.cognito_username} \
+  --user-attributes Name=email,Value=${var.cognito_email} \
+  --region ${var.primary_region}
+COMMAND
+  }
+}
+</code></pre>
+<p>An <strong>email has been sent with our password</strong> :</p>
+<p><img loading="lazy" src="img/frontend-email.png" alt="frontend-email"  /></p>
+<h3 id="the-config-file">The config file</h3>
+<p>The website is a react <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/website/src/Routing.js#L32" target="_blank" rel="noopener">application that loads its initial data</a> from a json file <code>uiConfig.json</code> :</p>
+<p>This file contains all the URLs and variables needed for the application to work</p>
+<p>We will <strong>generate this file</strong> with this command :</p>
+<pre><code class="language-bash"># generate the uiConfig.json file
+$ make ui-config
+</code></pre>
+<p>This command <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/scripts/ui-config.sh#L13-L24" target="_blank" rel="noopener">get the variables</a> :</p>
+<pre><code class="language-bash">IDENTITY_POOL_ID=$(echo &quot;$FRONTEND_JSON&quot; | jq --raw-output '.identity_pool_id.value')
+USER_POOL_CLIENT_ID=$(echo &quot;$FRONTEND_JSON&quot; | jq --raw-output '.user_pool_client_id.value')
+USER_POOL_ID=$(echo &quot;$FRONTEND_JSON&quot; | jq --raw-output '.user_pool_id.value')
+UI_REGION=$AWS_REGION_PRIMARY
+STATE_PRIMARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.apigateway_config_url_primary.value')/state/$UUID
+BUCKET_PRIMARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.bucket_primary.value')
+PHOTOS_PRIMARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.apigateway_store_url_primary.value')
+REGION_PRIMARY=$AWS_REGION_PRIMARY
+STATE_SECONDARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.apigateway_config_url_secondary.value')/state/$UUID
+BUCKET_SECONDARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.bucket_secondary.value')
+PHOTOS_SECONDARY=$(echo &quot;$BACKEND_JSON&quot; | jq --raw-output '.apigateway_store_url_secondary.value')
+REGION_SECONDARY=$AWS_REGION_SECONDARY
+</code></pre>
+<p>And <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/frontend/scripts/ui-config.sh#L39-L60" target="_blank" rel="noopener">write the file</a> :</p>
+<pre><code class="language-bash">JSON=$(cat &lt;&lt;EOF
+{
+    &quot;identityPoolId&quot;: &quot;$IDENTITY_POOL_ID&quot;,
+    &quot;userPoolClientId&quot;: &quot;$USER_POOL_CLIENT_ID&quot;,
+    &quot;userPoolId&quot;: &quot;$USER_POOL_ID&quot;,
+    &quot;uiRegion&quot;: &quot;$UI_REGION&quot;,
+    &quot;primary&quot;: {
+        &quot;stateUrl&quot;: &quot;$STATE_PRIMARY&quot;,
+        &quot;objectStoreBucketName&quot;: &quot;$BUCKET_PRIMARY&quot;,
+        &quot;photosApi&quot;: &quot;$PHOTOS_PRIMARY&quot;,
+        &quot;region&quot;: &quot;$REGION_PRIMARY&quot;
+    },
+    &quot;secondary&quot;: {
+        &quot;stateUrl&quot;: &quot;$STATE_SECONDARY&quot;,
+        &quot;objectStoreBucketName&quot;: &quot;$BUCKET_SECONDARY&quot;,
+        &quot;photosApi&quot;: &quot;$PHOTOS_SECONDARY&quot;,
+        &quot;region&quot;: &quot;$REGION_SECONDARY&quot;
+    }
+}
+EOF
+)
+
+echo &quot;$JSON&quot; &gt; &quot;$PROJECT_DIR/frontend/website/public/uiConfig.json&quot;
+</code></pre>
+<h3 id="run-the-local-website">Run the local website</h3>
+<p>To test our website on <a href="http://localhost:3000/" target="_blank" rel="noopener">localhost:3000</a> the <strong>compilation time can be quite long</strong> !</p>
+<pre><code class="language-bash"># browse the website in localhost
+$ make website-local
+</code></pre>
+<p>We can now <strong>log in using our credentials received via email</strong> :</p>
+<p><img loading="lazy" src="img/localhost-1-log.png" alt="localhost-1-log"  /></p>
+<p>Changing the password :</p>
+<p><img loading="lazy" src="img/localhost-2-password.png" alt="localhost-2-password"  /></p>
+<p>Skipping this step :</p>
+<p><img loading="lazy" src="img/localhost-3-skip.png" alt="localhost-3-skip"  /></p>
+<p>We can see the image that was previously uploaded by script :</p>
+<p><img loading="lazy" src="img/localhost-4-upload.png" alt="localhost-4-upload"  /></p>
+<p>We <strong>add an image by uploading it manually</strong> :</p>
+<p><img loading="lazy" src="img/localhost-5-upload-new.png" alt="localhost-5-upload-new"  /></p>
+<p>This image is <strong>uploaded</strong> :</p>
+<p><img loading="lazy" src="img/localhost-6-uploaded.png" alt="localhost-6-uploaded"  /></p>
+<p>We <strong>add a comment</strong> :</p>
+<p><img loading="lazy" src="img/localhost-7-comment.png" alt="localhost-7-comment"  /></p>
+<p>This image is <strong>commented</strong> :</p>
+<p><img loading="lazy" src="img/localhost-8-commented.png" alt="localhost-8-commented"  /></p>
+<p>The comment is stored in the <strong>dynamoDB table</strong> :</p>
+<p><img loading="lazy" src="img/localhost-9-dynamo.png" alt="localhost-9-dynamo"  /></p>
+<h3 id="testing-the-disaster-recovery-strategy">Testing the disaster recovery strategy</h3>
+<p>We will <strong>simulate an important problem and the need to switch to the fallback region</strong> via this command :</p>
+<pre><code class="language-bash">$ cd backend
+
+# switch application current state (with aws cli)
+$ make switch-state
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/multi-region-application/blob/master/backend/scripts/switch-state.sh#L9-L26" target="_blank" rel="noopener">command</a> <strong>get the current value of state and changes it to the opposite value</strong> :</p>
+<pre><code class="language-bash">CURRENT_STATE=$(aws dynamodb get-item \
+    --table-name $TABLE_NAME \
+    --key '{&quot;appId&quot;:{&quot;S&quot;:&quot;'$UUID'&quot;}}' \
+    --region $AWS_REGION_PRIMARY \
+    | jq --raw-output '.Item.state.S')
+
+[[ $CURRENT_STATE == 'active' ]] &amp;&amp; NEW_STATE=failover || NEW_STATE=active;
+
+aws dynamodb update-item \
+    --table-name $TABLE_NAME \
+    --key '{&quot;appId&quot;:{&quot;S&quot;:&quot;'$UUID'&quot;}}' \
+    --update-expression &quot;SET #sn = :sv&quot; \
+    --expression-attribute-names '{&quot;#sn&quot;:&quot;state&quot;}' \
+    --expression-attribute-values '{&quot;:sv&quot;:{&quot;S&quot;:&quot;'$NEW_STATE'&quot;}}' \
+    --return-values ALL_NEW \
+    --region $AWS_REGION_PRIMARY
+</code></pre>
+<p>By reloading our browser, we see that we have <strong>changed the reference region</strong> :</p>
+<p><img loading="lazy" src="img/disaster-recovery-tokyo.png" alt="disaster-recovery-tokyo"  /></p>
+<h3 id="website-deployment">Website deployment</h3>
+<p>We publish the site with this command :</p>
+<pre><code class="language-bash"># deploy the static website to the S3 bucket
+$ make website-deploy
+</code></pre>
+<p>Compiling the project can be quite long !</p>
+<p>We get the website url with this command :</p>
+<pre><code class="language-bash"># get the cloudfront URL
+$ make cdn-url
+</code></pre>
+<p>The website navigation should be similar to the experience on localhost</p>
+<p>The demonstration is over. We can delete our resources with this 3 commands :</p>
+<pre><code class="language-bash">$ cd ../frontend
+# destroy all resources
+$ make destroy
+
+$ cd ../backend
+# destroy all resources
+$ make destroy
+
+$ cd ../config
+# destroy config + terraform remote state S3 bucket
+$ make destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+<a href="/tags/amplify/">amplify</a>
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/api-gateway/">api-gateway</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/cloudfront/">cloudfront</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/cognito/">cognito</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/dynamodb/">dynamodb</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 25 Jan 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

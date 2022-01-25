@@ -20,6 +20,9 @@
     <loc>/tags/cognito/</loc>
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>/aws/disaster-recovery-with-multi-region-architecture/</loc>
+    <lastmod>2022-01-20T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>/tags/dynamodb/</loc>
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
@@ -30,9 +33,6 @@
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/terraform/</loc>
-    <lastmod>2022-01-20T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/aws/terraform-multi-region-architecture/</loc>
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/aws-grafana-lambda-terraform/</loc>
