@@ -5,10 +5,82 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 20 Jan 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 08 Feb 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>Aurora</title>
+      <link>/tags/aurora/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aurora/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>AWS</title>
+      <link>/tags/aws/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>MySQL</title>
+      <link>/tags/mysql/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/mysql/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>PostgreSQL</title>
+      <link>/tags/postgresql/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/postgresql/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>RDS</title>
+      <link>/tags/rds/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/rds/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
     <item>
       <title>Amplify</title>
       <link>/tags/amplify/</link>
@@ -27,18 +99,6 @@
       <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/api-gateway/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>AWS</title>
-      <link>/tags/aws/</link>
-      <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/aws/</guid>
       <description>
       
       
@@ -75,18 +135,6 @@
       <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/dynamodb/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Thu, 20 Jan 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
