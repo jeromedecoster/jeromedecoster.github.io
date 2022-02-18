@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.92.2" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,ArgoCD,Minikube,Ngrok,Github'><meta name="description" content='Testing Argo CD with Minikube. Instantaneous update with Github webhook and Ngrok.'><meta property="og:title" content="ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook" />
+<meta property="og:description" content="Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/argocd-minikube-ngrok-github-webhook/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2022-02-17T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-02-17T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook"/>
+<meta name="twitter:description" content="Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#setup-the-project">Setup the project</a></li>
+        <li><a href="#install-and-start-minikube">Install and start Minikube</a></li>
+        <li><a href="#install-argo-cd-in-our-kubernetes-cluster">install Argo CD in our Kubernetes cluster</a></li>
+        <li><a href="#connect-to-a-private-repository">Connect to a private repository</a></li>
+        <li><a href="#deploying-the-application-in-argo-cd">Deploying the application in Argo CD</a></li>
+        <li><a href="#access-our-application-through-the-browser">Access our application through the browser</a></li>
+        <li><a href="#creating-a-tunnel-with-ngork">Creating a tunnel with Ngork</a></li>
+        <li><a href="#creation-of-the-webhook">Creation of the webhook</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">17</span>
+<span class="rest">Feb 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>Kubernetes</strong> cluster with <strong>Minikube</strong></li>
+<li>Create a <strong>private Git repository on Github</strong></li>
+<li>Install <strong>Argo CD in Kubernetes cluster</strong></li>
+<li>Deploy our application using Argo CD</li>
+<li>Create a <strong>tunnel with Ngrok</strong> to make our local cluster accessible from Github</li>
+<li>Create <strong>webhook notification between Github and Argo CD</strong></li>
+<li>See the almost instantaneous update of our Kubernetes application after another Git push</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="setup-the-project">Setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/argocd-test" target="_blank" rel="noopener">github repository</a> :</p>
+<p><img loading="lazy" src="img/download-repo.png" alt="download-repo.png"  /></p>
+<p>Update the <a href="https://github.com/jeromedecoster/argocd-test/blob/master/argocd-app.yaml" target="_blank" rel="noopener">source / repoURL</a> with <strong>your github username</strong> :</p>
+<pre><code class="language-diff">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+-    repoURL: git@github.com:jeromedecoster/argocd-test.git
++    repoURL: git@github.com:&lt;YOUR_USERNAME&gt;/argocd-test.git
+    targetRevision: HEAD
+    path: infra
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: my-app
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true
+</code></pre>
+<p>Now <strong>create a new Github repository</strong> that matches the address you defined above :</p>
+<p><code>git@github.com:&lt;YOUR_USERNAME&gt;/argocd-test</code></p>
+<p>Make sure this <strong>project is private</strong> to <strong>best match a real project</strong>.</p>
+<p><img loading="lazy" src="img/create-private-repo.png" alt="create-private-repo.png"  /></p>
+<p><strong>Commit</strong> your project on Github :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m :boom:
+$ git push -u origin master
+</code></pre>
+<h3 id="install-and-start-minikube">Install and start Minikube</h3>
+<p><a href="https://minikube.sigs.k8s.io/docs/" target="_blank" rel="noopener">Minikube</a> lets you <strong>quickly create a Kubernetes cluster for local testing</strong>.</p>
+<p>To install or update it you can follow the instructions on <a href="https://minikube.sigs.k8s.io/docs/start/" target="_blank" rel="noopener">this page</a>.</p>
+<p>If you are on <strong>Linux</strong> like me you can run this <strong>one-line install command</strong> :</p>
+<pre><code class="language-bash"># one-line command to install minikube on Linux
+$ wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+    --quiet \
+    --show-progress \
+    --output-document=/tmp/minikube-linux-amd64 \
+    &amp;&amp; sudo install /tmp/minikube-linux-amd64 /usr/local/bin/minikube
+</code></pre>
+<p><a href="https://kubernetes.io/docs/tasks/tools/" target="_blank" rel="noopener">Kubectl</a> is a cli tool to <strong>manage your kubernetes cluster</strong>.</p>
+<p>You also need to <a href="https://kubernetes.io/docs/tasks/tools/" target="_blank" rel="noopener">install</a> or <strong>update it to match</strong> the version of Minikube.</p>
+<p>If you are on <strong>Linux</strong> like me you can run this <strong>one-line install command</strong> :</p>
+<pre><code class="language-bash"># one-line command to install kubectl on Linux
+$ LATEST=$(wget https://storage.googleapis.com/kubernetes-release/release/stable.txt \
+    --quiet \
+    --output-document=-) \
+    &amp;&amp; wget https://storage.googleapis.com/kubernetes-release/release/$LATEST/bin/linux/amd64/kubectl \
+    --quiet \
+    --show-progress \
+    --output-document=/tmp/kubectl \
+    &amp;&amp; chmod +x /tmp/kubectl \
+    &amp;&amp; sudo mv /tmp/kubectl /usr/local/bin/kubectl
+</code></pre>
+<p>We are now <strong>starting Minikube</strong> :</p>
+<pre><code class="language-bash">$ minikube start
+</code></pre>
+<p>After a fairly long time to set up, our cluster is working :</p>
+<pre><code class="language-bash"># check the kubectl current context
+$ kubectl config current-context 
+minikube
+
+# ping the cluster by listing the namespaces
+$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   2m00s
+kube-node-lease   Active   2m00s
+kube-public       Active   2m00s
+kube-system       Active   2m00s
+</code></pre>
+<h3 id="install-argo-cd-in-our-kubernetes-cluster">install Argo CD in our Kubernetes cluster</h3>
+<p>Argo CD is <strong>wonderful software</strong> that uses <a href="https://www.gitops.tech/#what-is-gitops" target="_blank" rel="noopener">GitOps</a> practice to perform <strong>continuous deployment specifically for Kubernetes</strong>.</p>
+<p>Argo CD is installed <strong>within our kubernetes cluster</strong>, in a <strong>specific namespace</strong>.</p>
+<p>Argo CD is a <strong>pull-based deployment tool</strong>. It <strong>watches a remote Git repository for new or updated manifest files and synchronizes those changes</strong> with the cluster.</p>
+<p>To <a href="https://argo-cd.readthedocs.io/en/stable/#getting-started" target="_blank" rel="noopener">install Argo CD</a> we execute this command :</p>
+<pre><code class="language-bash"># create the namespace
+$ kubectl create namespace argocd
+
+# apply the installation manifest
+$ kubectl apply \
+    --namespace argocd \
+    --filename https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+</code></pre>
+<p>You can browse the <a href="https://github.com/argoproj/argo-cd/blob/master/manifests/install.yaml" target="_blank" rel="noopener">install manifest</a> online :</p>
+<p>It is an impressive manifest. <strong>More than 10500 lines</strong> !</p>
+<p>Let&rsquo;s <strong>wait for all services and pods</strong> to be perfectly launched :</p>
+<pre><code class="language-bash"># wait for everything to be launched and running
+$ watch kubectl get all --namespace argocd
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/argocd-application-controller-0      1/1     Running   0          100s
+pod/argocd-dex-server-59d44b9f99-8kp7d   1/1     Running   0          100s
+pod/argocd-redis-79bdbdf78f-247q5        1/1     Running   0          100s
+pod/argocd-repo-server-b6f8cdc6f-4m8h5   1/1     Running   0          100s
+pod/argocd-server-bdc697879-rdk89        1/1     Running   0          100s
+
+NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+service/argocd-dex-server       ClusterIP   10.100.46.74    &lt;none&gt;        5556/TCP,5557/TCP,5558/TCP   100s
+service/argocd-metrics          ClusterIP   10.98.170.62    &lt;none&gt;        8082/TCP                     100s
+service/argocd-redis            ClusterIP   10.102.83.160   &lt;none&gt;        6379/TCP                     100s
+service/argocd-repo-server      ClusterIP   10.96.100.93    &lt;none&gt;        8081/TCP,8084/TCP            100s
+service/argocd-server           ClusterIP   10.96.151.61    &lt;none&gt;        80/TCP,443/TCP               100s
+service/argocd-server-metrics   ClusterIP   10.102.166.2    &lt;none&gt;        8083/TCP                     100s
+
+NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/argocd-dex-server    1/1     1            1           100s
+deployment.apps/argocd-redis         1/1     1            1           100s
+deployment.apps/argocd-repo-server   1/1     1            1           100s
+deployment.apps/argocd-server        1/1     1            1           100s
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/argocd-dex-server-59d44b9f99   1         1         1       100s
+replicaset.apps/argocd-redis-79bdbdf78f        1         1         1       100s
+replicaset.apps/argocd-repo-server-b6f8cdc6f   1         1         1       100s
+replicaset.apps/argocd-server-bdc697879        1         1         1       100s
+
+NAME                                             READY   AGE
+statefulset.apps/argocd-application-controller   1/1     100s
+</code></pre>
+<p>To be able to access the web interface of Argo CD we use this <a href="https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/" target="_blank" rel="noopener">port-forward</a> command :</p>
+<pre><code class="language-bash">$ kubectl port-forward \
+    --namespace argocd \
+    svc/argocd-server 8000:443
+Forwarding from 127.0.0.1:8000 -&gt; 8080
+Forwarding from [::1]:8000 -&gt; 8080
+</code></pre>
+<p>You can now open <a href="https://localhost:8000" target="_blank" rel="noopener">https://localhost:8000</a> and <strong>accept the insecure certificate</strong> :</p>
+<p><img loading="lazy" src="img/argocd-welcome.png" alt="argocd-welcome.png"  /></p>
+<p>To be able to login we need to <strong>get the admin password</strong> like this :</p>
+<pre><code class="language-bash"># get admin password
+$ kubectl get secret argocd-initial-admin-secret \
+    --namespace argocd \
+    --output jsonpath=&quot;{.data.password}&quot; \
+    | base64 --decode \
+    &amp;&amp; echo
+</code></pre>
+<p>We connect :</p>
+<p><img loading="lazy" src="img/argocd-signin.png" alt="argocd-signin.png"  /></p>
+<p>We are connected :</p>
+<p><img loading="lazy" src="img/argocd-logged.png" alt="argocd-logged.png"  /></p>
+<h3 id="connect-to-a-private-repository">Connect to a private repository</h3>
+<p>Here are the steps to get Argo CD to <strong>connect to a private repository</strong></p>
+<p><img loading="lazy" src="img/argocd-connect-repo-01.png" alt="argocd-connect-repo-01.png"  /></p>
+<p><img loading="lazy" src="img/argocd-connect-repo-02.png" alt="argocd-connect-repo-02.png"  /></p>
+<p><img loading="lazy" src="img/argocd-connect-repo-03.png" alt="argocd-connect-repo-03.png"  /></p>
+<p>We will <strong>create an SSH key for our project</strong>.</p>
+<p>I create a key of <a href="https://en.wikipedia.org/wiki/EdDSA#Ed25519" target="_blank" rel="noopener">type ed25519</a> using the <a href="https://aboutssl.org/what-is-pem-certificate-file/" target="_blank" rel="noopener">.pem extension</a></p>
+<pre><code class="language-bash">$ ssh-keygen -t ed25519 -f ~/.ssh/argocd-test.pem
+Enter passphrase (empty for no passphrase): # &lt;press-enter&gt;
+Enter same passphrase again: # &lt;press-enter&gt;
+Your identification has been saved in /home/xxxxx/.ssh/argocd-test.pem
+Your public key has been saved in /home/xxxxx/.ssh/argocd-test.pem.pub
+</code></pre>
+<p>I rename the generated public file <code>argocd-test.pem.pub</code> to <code>argocd-test.pub</code></p>
+<pre><code class="language-bash">$ mv ~/.ssh/argocd-test.pem.pub ~/.ssh/argocd-test.pub
+</code></pre>
+<p>Now I display my <strong>public key</strong> so I can <strong>copy-paste</strong> it :</p>
+<pre><code class="language-bash">$ cat ~/.ssh/argocd-test.pub
+ssh-ed25519 AAAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx username@computer
+</code></pre>
+<p>I will now <strong>add this key</strong> in my <a href="https://github.com/settings/keys" target="_blank" rel="noopener">main settings</a> on Github :</p>
+<p>IMAGE main New SSH key</p>
+<p><img loading="lazy" src="img/github-add-key-01.png" alt="github-add-key-01.png"  /></p>
+<p>I add it :</p>
+<p><img loading="lazy" src="img/github-add-key-02.png" alt="github-add-key-02.png"  /></p>
+<p><img loading="lazy" src="img/github-add-key-03.png" alt="github-add-key-03.png"  /></p>
+<p>IMAGE main Add SSH key</p>
+<p>Now I display my <strong>private key</strong> so I can <strong>copy-paste</strong> it :</p>
+<pre><code class="language-bash">$ cat ~/.ssh/argocd-test.pem
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3Blxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxQFBgc=
+-----END OPENSSH PRIVATE KEY-----
+</code></pre>
+<p><img loading="lazy" src="img/argocd-connect-repo-04.png" alt="argocd-connect-repo-04.png"  /></p>
+<p><img loading="lazy" src="img/argocd-connect-repo-05.png" alt="argocd-connect-repo-05.png"  /></p>
+<h3 id="deploying-the-application-in-argo-cd">Deploying the application in Argo CD</h3>
+<p>To <strong>create an application</strong> in Argo CD, we use <a href="https://github.com/jeromedecoster/argocd-test/blob/master/argocd-app.yaml" target="_blank" rel="noopener">a manifest</a> of type <code>Application</code> :</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: git@github.com:jeromedecoster/argocd-test.git
+    targetRevision: HEAD
+    path: k8s
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: my-app
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true
+</code></pre>
+<p>You can consult the documentation about the options of <a href="https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/" target="_blank" rel="noopener">Automated Sync Policy</a></p>
+<p>This manifest uses the Kubernetes <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/" target="_blank" rel="noopener">Custom Resource Definition</a> (CRD). This <strong>extends the functionality</strong> of Kubernetes.</p>
+<p>We create a <strong>resource dedicated to Argo CD by defining it by these 2 properties</strong> :</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+</code></pre>
+<p>Custom Resource Definitions are one of the <strong>great strengths and flexibility</strong> of Kubernetes.</p>
+<p>If you are curious you can see here the <a href="https://github.com/argoproj/argo-cd/blob/master/manifests/crds/application-crd.yaml" target="_blank" rel="noopener">YAML code allowing to create Application</a> type manifests :</p>
+<pre><code class="language-yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    app.kubernetes.io/name: applications.argoproj.io
+    app.kubernetes.io/part-of: argocd
+  name: applications.argoproj.io
+spec:
+  group: argoproj.io
+  names:
+    kind: Application
+    listKind: ApplicationList
+    plural: applications
+    shortNames:
+    - app
+    - apps
+    singular: application
+  # ...
+</code></pre>
+<p>To <strong>declare our application</strong> we execute this command within our project directory :</p>
+<pre><code class="language-bash">$ kubectl apply --filename argocd-app.yaml
+</code></pre>
+<p><img loading="lazy" src="img/argocd-app-01.png" alt="argocd-app-01.png"  /></p>
+<p><img loading="lazy" src="img/argocd-app-02.png" alt="argocd-app-02.png"  /></p>
+<h3 id="access-our-application-through-the-browser">Access our application through the browser</h3>
+<p>We <a href="https://minikube.sigs.k8s.io/docs/commands/service/#minikube-service-list" target="_blank" rel="noopener">list the services</a> running in our Minikube cluster :</p>
+<pre><code class="language-bash">$ minikube service list
+|-------------|-----------------------|--------------|---------------------------|
+|  NAMESPACE  |         NAME          | TARGET PORT  |            URL            |
+|-------------|-----------------------|--------------|---------------------------|
+| argocd      | argocd-dex-server     | No node port |                           |
+| argocd      | argocd-metrics        | No node port |                           |
+| argocd      | argocd-redis          | No node port |                           |
+| argocd      | argocd-repo-server    | No node port |                           |
+| argocd      | argocd-server         | No node port |                           |
+| argocd      | argocd-server-metrics | No node port |                           |
+| default     | kubernetes            | No node port |                           |
+| kube-system | kube-dns              | No node port |                           |
+| my-app      | my-app-svc            |         9000 | http://192.168.49.2:31000 |
+|-------------|-----------------------|--------------|---------------------------|
+</code></pre>
+<p>Another way to display our service URL :</p>
+<pre><code class="language-bash">$ minikube service --url my-app-svc --namespace my-app
+http://192.168.49.2:31000
+</code></pre>
+<p>In a <strong>new terminal window</strong> you can run this command :</p>
+<pre><code class="language-bash">$ watch curl --silent $(minikube service --url my-app-svc --namespace my-app)
+</code></pre>
+<p>Displays the result of the curl call every 2 seconds :</p>
+<pre><code class="language-bash">Every 2,0s: curl --silent http://192.168.492:31000
+
+version 1-0-0
+</code></pre>
+<p>Our <a href="https://github.com/jeromedecoster/argocd-test/blob/master/k8s/deployment.yaml" target="_blank" rel="noopener">application use</a> <code>http-echo</code> :</p>
+<pre><code class="language-yaml">  # ...
+  spec:
+    containers:
+    - name: my-app
+      image: hashicorp/http-echo
+      args:
+      - &quot;-text=version 1-1-0&quot;
+      ports:
+      - containerPort: 5678
+</code></pre>
+<p><a href="https://hub.docker.com/r/hashicorp/http-echo" target="_blank" rel="noopener">http-echo</a> is a simple but useful tool to simply <strong>display text content through an HTTP server</strong>.</p>
+<pre><code class="language-bash"># let's do a little test ...
+$ docker pull hashicorp/http-echo
+
+$ docker run -p 5000:5678 \
+    hashicorp/http-echo \
+    -text=&quot;Hello...&quot;
+
+# in another terminal window ...
+$ curl localhost:5000
+Hello...
+</code></pre>
+<p>And our message is simply <code>version 1-0-0</code></p>
+<h3 id="creating-a-tunnel-with-ngork">Creating a tunnel with Ngork</h3>
+<p>By default Argo CD <strong>checks for changes in the Git repository every 3 minutes</strong>.</p>
+<p>If we want the <strong>deployment of changes to be almost instantaneous</strong>, we must <strong>set up a Github webhook</strong>.</p>
+<p>The webhook system is <a href="https://docs.github.com/en/github-ae@latest/developers/webhooks-and-events/webhooks/about-webhooks" target="_blank" rel="noopener">push based</a>.</p>
+<p>In order <strong>for Github.com to send an event to our cluster in localhost, we will create a tunnel</strong> using <a href="https://ngrok.com/" target="_blank" rel="noopener">ngrok</a>.</p>
+<p><img loading="lazy" src="img/ngrok.png" alt="ngrok.png"  /></p>
+<p>Once the application is <strong>installed and authenticated</strong>, we create our tunnel very simply :</p>
+<pre><code class="language-bash">$ ngrok http https://localhost:8000
+</code></pre>
+<p>We <strong>get some URLs</strong> :</p>
+<pre><code class="language-bash">Web Interface                 http://127.0.0.1:4040
+Forwarding                    http://aaaa-bbb-ccc-dd-eee-fff-ggg-hhhh-iiii.ngrok.io -&gt; https://localhost:8000                                     
+Forwarding                    https://aaaa-bbb-ccc-dd-eee-fff-ggg-hhhh-iiii.ngrok.io -&gt; https://localhost:8000 
+</code></pre>
+<p>By copy-pasting the <strong>https</strong> address obtained, we can <strong>access out Argo CD interface from an online URL</strong>. It is <strong>magic</strong> !</p>
+<h3 id="creation-of-the-webhook">Creation of the webhook</h3>
+<p>In the <strong>Webhooks tab</strong> of our Github repository :</p>
+<p><img loading="lazy" src="img/webhook-add-01.png" alt="webhook-add-01.png"  /></p>
+<p>As written in the <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/webhook/" target="_blank" rel="noopener">documentation</a>, we need to :</p>
+<ul>
+<li>Add the <strong>path</strong> : <code>/api/webhook</code></li>
+<li>Choose the <strong>content type</strong> : <code>application/json</code></li>
+</ul>
+<p>So we have somethis like :</p>
+<p><code>https://aaaa-bbb-ccc-dd-eee-fff-ggg-hhhh-iiii.ngrok.io/api/webhook</code></p>
+<p><img loading="lazy" src="img/webhook-add-02.png" alt="webhook-add-02.png"  /></p>
+<p>It has been added. It is <strong>still gray because it has not been used yet</strong> :</p>
+<p><img loading="lazy" src="img/webhook-add-03.png" alt="webhook-add-03.png"  /></p>
+<p>I edit the <a href="https://github.com/jeromedecoster/argocd-test/master/k8s/deployment.yaml" target="_blank" rel="noopener">deployment file</a> directly on Github.</p>
+<p>I <strong>modify the version</strong> of our site :</p>
+<pre><code class="language-diff">      - name: my-app
+        image: hashicorp/http-echo
+        args:
+-       - &quot;-text=version 1-0-0&quot;
++       - &quot;-text=version 1-1-0&quot;
+        ports:
+        - containerPort: 5678
+</code></pre>
+<p><img loading="lazy" src="img/github-commit.png" alt="github-commit.png"  /></p>
+<p>I notice that the <strong>synchronization starts immediately</strong> in Argo CD :</p>
+<p><img loading="lazy" src="img/argocd-sync-01.png" alt="argocd-sync-01.png"  /></p>
+<p><img loading="lazy" src="img/argocd-sync-02.png" alt="argocd-sync-02.png"  /></p>
+<p><img loading="lazy" src="img/argocd-sync-03.png" alt="argocd-sync-03.png"  /></p>
+<p>And <strong>after a few seconds</strong> my terminal window shows :</p>
+<pre><code class="language-bash">Every 2,0s: curl --silent http://192.168.492:31000
+
+version 1-1-0
+</code></pre>
+<p>The web hook worked fine, it is <strong>no longer grey</strong> :</p>
+<p><img loading="lazy" src="img/webhook-green.png" alt="webhook-green.png"  /></p>
+<p>Our demo is over, we can <strong>delete our cluster</strong> :</p>
+<pre><code class="language-bash">$ minikube stop
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/minikube/">minikube</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ngrok/">ngrok</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 18 Feb 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

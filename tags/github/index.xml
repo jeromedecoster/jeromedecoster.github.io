@@ -5,10 +5,22 @@
     <link>/tags/github/</link>
     <description>Recent content in Github on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Tue, 07 Jul 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 17 Feb 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/github/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook</title>
+      <link>/note/argocd-minikube-ngrok-github-webhook/</link>
+      <pubDate>Thu, 17 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/argocd-minikube-ngrok-github-webhook/</guid>
+      <description>
+      
+      Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**.
+      
+      </description>
+    </item>
     <item>
       <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
       <link>/aws/github-actions-hugo-terraform-s3/</link>
