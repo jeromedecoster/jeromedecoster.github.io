@@ -11,10 +11,10 @@
     
     <item>
       <title>Prometheus &#43; Grafana &#43; Node</title>
-      <link>/note/prometheus-grafana-node/</link>
+      <link>/note/prometheus--grafana--node/</link>
       <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/prometheus-grafana-node/</guid>
+      <guid>/note/prometheus--grafana--node/</guid>
       <description>
       
       Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
-      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <link>/aws/github-flow--codesuite-pipeline--slack/</link>
       <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <guid>/aws/github-flow--codesuite-pipeline--slack/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
-      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <link>/note/jenkins-pipeline--slack--github-release/</link>
       <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <guid>/note/jenkins-pipeline--slack--github-release/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.

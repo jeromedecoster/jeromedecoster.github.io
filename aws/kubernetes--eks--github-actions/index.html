@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Kubernetes,EKS,Github Actions,Node,Gitops'><meta name="description" content='Creation of a website, hosted on a Kubernetes cluster. Use Kubectl, Kustomize and Github actions to deploy it in a GitOps way.'><meta property="og:title" content="Kubernetes &#43; EKS &#43; Github Actions" />
+<meta property="og:description" content="Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/kubernetes--eks--github-actions/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-09-11T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-09-11T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes &#43; EKS &#43; Github Actions"/>
+<meta name="twitter:description" content="Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Kubernetes &#43; EKS &#43; Github Actions | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-setup-and-explore-the-project">Install, setup and explore the project</a></li>
+        <li><a href="#creating-the-cluster-and-setting-up-the-configuration-file">Creating the cluster and setting up the configuration file</a></li>
+        <li><a href="#deployment-with-github-actions">Deployment with github actions</a></li>
+        <li><a href="#updating-the-website">Updating the website</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">11</span>
+<span class="rest">Sep 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Kubernetes &#43; EKS &#43; Github Actions</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>website</strong> with node</li>
+<li>The site uses <strong>unit tests</strong> to validate its proper functioning</li>
+<li>Create an <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html" target="_blank" rel="noopener">ECR registry</a></li>
+<li>Create a <a href="https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html" target="_blank" rel="noopener">Kubernetes cluster</a> on <a href="https://eksctl.io/" target="_blank" rel="noopener">EKS with eksctl</a></li>
+<li>Put the application online with <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">Github Actions</a>, <a href="https://kubernetes.io/docs/reference/kubectl/overview/" target="_blank" rel="noopener">kubetctl</a> and <a href="https://kustomize.io/" target="_blank" rel="noopener">kustomize</a></li>
+<li><strong>Each git push should automatically update the Kubernetes cluster if the tests pass</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-setup-and-explore-the-project">Install, setup and explore the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-kubernetes-github-actions.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># install eksctl + kubectl + yq, create aws user + ecr repository
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Install <a href="https://github.com/weaveworks/eksctl/releases" target="_blank" rel="noopener">eksctl</a> if it is not already installed.</li>
+<li>Install <a href="https://github.com/kubernetes/kubectl/releases" target="_blank" rel="noopener">kubectl</a> if it is not already installed.</li>
+<li>Install <a href="https://github.com/mikefarah/yq/releases" target="_blank" rel="noopener">yq</a> if it is not already installed.</li>
+<li>Creates an <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_job-functions.html#jf_developer-power-user" target="_blank" rel="noopener">AWS Power User</a> for the project.</li>
+<li>Creates an <a href="https://docs.aws.amazon.com/cli/latest/reference/ecr/create-repository.html" target="_blank" rel="noopener">ECR repository</a>.</li>
+<li>Creates an <strong>.env</strong> file from the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/.env.tmpl" target="_blank" rel="noopener">.env.tmpl</a> file.</li>
+</ul>
+<p>The user is created :</p>
+<p><img loading="lazy" src="img/user.png" alt="user"  /></p>
+<p>The ECR repository is created :</p>
+<p><img loading="lazy" src="img/ecr-01-registry.png" alt="ecr-01-registry"  /></p>
+<p>Let&rsquo;s test the site :</p>
+<pre><code class="language-bash"># local development (by calling npm script directly)
+$ make dev
+</code></pre>
+<p>By opening the address <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> you can see the site :</p>
+<p><img loading="lazy" src="img/website-1.0.0.png" alt="website-1.0.0"  /></p>
+<p>We can stop the website with <code>Ctrl + C</code>.</p>
+<p>The website have some <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/site/test/app.test.js" target="_blank" rel="noopener">tests</a> :</p>
+<pre><code class="language-js">const request = require('supertest')
+const expect = require('chai').expect
+
+const app = require('../app')
+
+describe('app.test', function () {
+    it('GET / should return the homepage', function (done) {
+        request(app)
+            .get('/')
+            .end(function (err, res) {
+                if (err) return done(err)
+                expect(res.status).to.eq(200)
+                expect(res.header['content-type']).to.include('text/html')
+                expect(res.text).to.include('&lt;h1&gt;Hedgehog&lt;/h1&gt;')
+                done()
+            })
+    })
+
+    it('GET /healthcheck should return a JSON', function (done) {
+        request(app)
+            .get('/healthcheck')
+            .end(function (err, res) {
+                if (err) return done(err)
+                expect(res.status).to.eq(200)
+                expect(res.header['content-type']).to.include('application/json')
+                expect(JSON.parse(res.text).uptime).to.gt(0)
+                done()
+            })
+    })
+})
+</code></pre>
+<p>We <strong>run the tests</strong> with this command :</p>
+<pre><code class="language-bash"># run tests (by calling npm script directly)
+$ make test
+
+  app.test
+    ✓ GET / should return the homepage
+    ✓ GET /healthcheck should return a JSON
+
+  2 passing (44ms)
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ npx mocha 'test/*.test.js'
+</code></pre>
+<h3 id="creating-the-cluster-and-setting-up-the-configuration-file">Creating the cluster and setting up the configuration file</h3>
+<p>We launch the <strong>creation of the EKS cluster</strong>. You have to be patient because it takes <strong>about 15 minutes</strong> !</p>
+<pre><code class="language-bash">$ make cluster-create
+</code></pre>
+<p>The cluster is created :</p>
+<p><img loading="lazy" src="img/cluster.png" alt="cluster"  /></p>
+<p>Once the deployment is complete, we check that <strong>kubectl points to the right cluster</strong> :</p>
+<pre><code class="language-bash">$ kubectl config current-context
+user@kubernetes-github-actions.eu-west-3.eksctl.io
+</code></pre>
+<p>To be able to use kubectl from github actions, you will need to <strong>install kubectl but also configure it</strong> so that it can <strong>interact with our cluster</strong>.</p>
+<p>The configuration of kubectl is done by a YAML file.</p>
+<p>On our local machine, the configuration file is located here :</p>
+<pre><code class="language-bash">$ cat $HOME/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CR....UdJTi=
+    server: https://ABC...DEF.yl4.eu-west-3.eks.amazonaws.com
+  name: kubernetes-github-actions.eu-west-3.eksctl.io
+# ...
+</code></pre>
+<p>It is possible to display this config using the following command :</p>
+<pre><code class="language-bash">$ kubectl config view   
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://ABC...DEF.yl4.eu-west-3.eks.amazonaws.com
+  name: kubernetes-github-actions.eu-west-3.eksctl.io
+# ...
+</code></pre>
+<p>Note that passing through this command, the <strong>certificate is hidden</strong> : <strong>DATA+OMITTED</strong>.</p>
+<p>Also note that this configuration file can contain the <strong>accesses of multiple clusters</strong>.</p>
+<p>To display the data of a <strong>single cluster</strong>, we use the option <code>--minify</code> :</p>
+<pre><code class="language-bash">$ CONTEXT=$(kubectl config current-context)
+$ kubectl config view --context=$CONTEXT --minify
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://ABC...DEF.yl4.eu-west-3.eks.amazonaws.com
+  name: kubernetes-github-actions.eu-west-3.eksctl.io
+contexts:
+- context:
+    cluster: kubernetes-github-actions.eu-west-3.eksctl.io
+    user: user@kubernetes-github-actions.eu-west-3.eksctl.io
+  name: user@kubernetes-github-actions.eu-west-3.eksctl.io
+current-context: user@kubernetes-github-actions.eu-west-3.eksctl.io
+kind: Config
+preferences: {}
+users:
+- name: user@kubernetes-github-actions.eu-west-3.eksctl.io
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - eks
+      - get-token
+      - --cluster-name
+      - kubernetes-github-actions
+      - --region
+      - eu-west-3
+      command: aws
+      env:
+      - name: AWS_STS_REGIONAL_ENDPOINTS
+        value: regional
+      - name: AWS_PROFILE
+        value: default
+</code></pre>
+<p>It is important to note that the connection is made using an <code>aws cli</code> command :</p>
+<pre><code class="language-bash">$ aws eks get-token --cluster-name kubernetes-github-actions --region eu-west-3
+</code></pre>
+<p>This command uses <strong>2 environment variables</strong> :</p>
+<pre><code class="language-bash">$ AWS_STS_REGIONAL_ENDPOINTS=regional
+$ AWS_PROFILE=default
+</code></pre>
+<p>As we do not want to use our <strong>root administrator accesses</strong> but that of the user we just created, we need to <strong>remove these variables</strong>.</p>
+<p>All of these steps can be done with the following command :</p>
+<pre><code class="language-bash"># create kubectl EKS configuration
+$ make cluster-create-config
+</code></pre>
+<p><img loading="lazy" src="img/terminal.png" alt="terminal"  /></p>
+<p>This command creates the <strong>kubeconfig.yaml</strong> configuration file.</p>
+<p>It also creates a <strong>KUBECONFIG</strong> file which is the same file, <strong>encoded in base64</strong>.</p>
+<p>We now need to <strong>modify our cluster</strong> so that this <strong>new user can administer it</strong>.</p>
+<p>Here is the current state of our configuration :</p>
+<pre><code class="language-bash">$ kubectl -n kube-system get configmap aws-auth -o yaml
+apiVersion: v1
+data:
+  mapRoles: |
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: arn:aws:iam::0123456789:role/eksctl-kubernetes-github-actions-NodeInstanceRole-ABCDEF
+      username: system:node:{{EC2PrivateDNSName}}
+kind: ConfigMap
+metadata:
+  creationTimestamp: &quot;2020-01-01&quot;
+  name: aws-auth
+  namespace: kube-system
+  resourceVersion: &quot;911&quot;
+  selfLink: /api/v1/namespaces/kube-system/configmaps/aws-auth
+  uid: abc...def
+</code></pre>
+<p>We will <strong>update it by adding the user kubernetes-github-actions</strong> to it like this :</p>
+<pre><code class="language-yaml">apiVersion: v1
+data:
+  mapRoles: |
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: arn:aws:iam::0123456789:role/eksctl-kubernetes-github-actions-NodeInstanceRole-ABCDEF
+      username: system:node:{{EC2PrivateDNSName}}
+  mapUsers: |
+    - userarn: arn:aws:iam::0123456789:user/kubernetes-github-actions
+      username: kubernetes-github-actions
+      groups:
+        - system:masters
+kind: ConfigMap
+metadata:
+  creationTimestamp: &quot;2020-01-01&quot;
+  name: aws-auth
+  namespace: kube-system
+  resourceVersion: &quot;911&quot;
+  selfLink: /api/v1/namespaces/kube-system/configmaps/aws-auth
+  uid: abc...def
+</code></pre>
+<p>The <code>make cluster-create-config</code> command created a <strong>aws-auth-configmap.yaml</strong> file and displayed the content to add.</p>
+<p>We modify <strong>manually</strong> the <strong>aws-auth-configmap.yaml</strong> file to obtain a YAML similar to the one above.</p>
+<p>We apply this modified file to the cluster with this command :</p>
+<pre><code class="language-bash"># apply kubectl EKS configuration
+$ make cluster-apply-config
+NAME              STATUS   AGE
+default           Active   2m
+kube-node-lease   Active   2m
+kube-public       Active   2m
+kube-system       Active   2m
+</code></pre>
+<p>This runs the following command and also does a connection test :</p>
+<pre><code class="language-bash">$ kubectl -n kube-system apply -f aws-auth-configmap.yaml
+</code></pre>
+<h3 id="deployment-with-github-actions">Deployment with github actions</h3>
+<p>The <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> file is used to <strong>update our cluster every git push</strong>.</p>
+<p>Here are some extracts :</p>
+<pre><code class="language-yaml">- name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+- name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+- name: Build, tag, and push image to Amazon ECR
+    id: build-image
+    env:
+    ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    run: |
+    cd site
+    docker image build \
+    --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
+    --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.SHORT_SHA }} \
+    .
+    docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+    docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.SHORT_SHA }}
+    
+- name: Install and configure kubectl
+    run: |
+    VERSION=$(curl --silent https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+    curl https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl \
+        --progress-bar \
+        --location \
+        --remote-name
+    chmod +x kubectl
+    sudo mv kubectl /usr/local/bin/
+    echo ${{ secrets.KUBECONFIG }} | base64 --decode &gt; kubeconfig.yaml
+
+- name: Deploy
+    env:
+    ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    run: |
+    export ECR_REPOSITORY=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+    export IMAGE_TAG=${{ env.SHORT_SHA }}
+    export KUBECONFIG=kubeconfig.yaml
+    envsubst &lt; k8s/kustomization.tmpl.yaml &gt; k8s/kustomization.yaml
+    kubectl kustomize k8s | kubectl apply -f -
+</code></pre>
+<p>We note the <strong>use of 3 secrets</strong> that must be added to our repository :</p>
+<p><img loading="lazy" src="img/secrets.png" alt="secrets"  /></p>
+<p>To update the cluster, we use the <strong>manifests</strong> from the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/tree/master/k8s" target="_blank" rel="noopener">k8s</a> directory  :</p>
+<p>Note the presence of a <strong>special file</strong> : <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/k8s/kustomization.tmpl.yaml" target="_blank" rel="noopener">kustomization.tmpl.yaml</a></p>
+<pre><code class="language-yaml">resources:
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+
+images:
+- name: amazonaws.com/kubernetes-github-actions
+  newName: ${ECR_REPOSITORY}
+  newTag: ${IMAGE_TAG}
+</code></pre>
+<p>In the <strong>Deploy step</strong> of our github actions file, the following command is used to <strong>generate the kustomization.yaml</strong> file</p>
+<pre><code class="language-bash">$ export ECR_REPOSITORY=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+$ export IMAGE_TAG=${{ env.SHORT_SHA }}
+$ envsubst &lt; k8s/kustomization.tmpl.yaml &gt; k8s/kustomization.yaml
+</code></pre>
+<p>The <a href="https://www.man7.org/linux/man-pages/man1/envsubst.1.html" target="_blank" rel="noopener">envsubst</a> executable is used to <strong>inject the variables</strong>.</p>
+<p>Then we apply these transforms using the following command :</p>
+<pre><code class="language-bash">$ export KUBECONFIG=kubeconfig.yaml
+$ kubectl kustomize k8s | kubectl apply -f -
+</code></pre>
+<p>We will test our script by committing :</p>
+<pre><code class="language-bash">$ git push
+</code></pre>
+<p>The action is successful :</p>
+<p><img loading="lazy" src="img/workflow-01-success.png" alt="workflow-01-success"  /></p>
+<p>We query our cluster :</p>
+<pre><code class="language-bash">$ kubectl get ns
+NAME                        STATUS   AGE
+default                     Active   20m
+kube-node-lease             Active   20m
+kube-public                 Active   20m
+kube-system                 Active   20m
+kubernetes-github-actions   Active   40s
+</code></pre>
+<p>The <strong>kubernetes-github-actions namespace</strong> was added.</p>
+<p>To get the <strong>URL of our Load Balancer</strong> we run the following command :</p>
+<pre><code class="language-bash"># get the cluster ELB URL
+$ make cluster-elb
+abc-466447252.eu-west-3.elb.amazonaws.com
+</code></pre>
+<p>By using this URL in our browser we can see our website :</p>
+<p><img loading="lazy" src="img/website-1.0.0.png" alt="website-1.0.0"  /></p>
+<p>A docker image has been pushed to our repository :</p>
+<p><img loading="lazy" src="img/ecr-02-image.png" alt="ecr-02-image"  /></p>
+<h3 id="updating-the-website">Updating the website</h3>
+<p>We modify the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/site/views/index.njk" target="_blank" rel="noopener">index.njk</a> template file :</p>
+<pre><code class="language-diff">- &lt;img src=&quot;img/hedgehog-1.jpg&quot; alt=&quot;A Hedgehog&quot;&gt;
++ &lt;img src=&quot;img/hedgehog-2.jpg&quot; alt=&quot;A Hedgehog&quot;&gt;
+</code></pre>
+<p>We modify the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/site/package.json" target="_blank" rel="noopener">package.json</a> file :</p>
+<pre><code class="language-diff">- &quot;version&quot;: &quot;1.0.0&quot;,
++ &quot;version&quot;: &quot;2.0.0&quot;,
+</code></pre>
+<p>We will <strong>add an error by deactivating a route</strong> in the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/site/app.js" target="_blank" rel="noopener">app.js</a> file :</p>
+<pre><code class="language-diff">- app.get('/healthcheck', (req, res) =&gt; {
+-     res.json({ uptime: process.uptime() })
+- })
++ // app.get('/healthcheck', (req, res) =&gt; {
++ //     res.json({ uptime: process.uptime() })
++ // })
+</code></pre>
+<p>We push :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m :boom:
+$ git push
+</code></pre>
+<p>The process is <strong>interrupted by the error</strong> :</p>
+<p><img loading="lazy" src="img/workflow-02-error.png" alt="workflow-02-error"  /></p>
+<p>We edit the <a href="https://github.com/jeromedecoster/aws-kubernetes-github-actions/blob/master/site/app.js" target="_blank" rel="noopener">app.js</a> file again to <strong>remove the error</strong> :</p>
+<pre><code class="language-diff">- // app.get('/healthcheck', (req, res) =&gt; {
+- //     res.json({ uptime: process.uptime() })
+- // })
++ app.get('/healthcheck', (req, res) =&gt; {
++     res.json({ uptime: process.uptime() })
++ })
+</code></pre>
+<p>We push :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m :boom:
+$ git push
+</code></pre>
+<p>This time the workflow worked :</p>
+<p><img loading="lazy" src="img/workflow-03-new-success.png" alt="workflow-03-new-success"  /></p>
+<p>By reloading our browser, we see the updated site :</p>
+<p><img loading="lazy" src="img/website-2.0.0.png" alt="website-2.0.0"  /></p>
+<p>A new docker image has been pushed to our repository :</p>
+<p><img loading="lazy" src="img/ecr-03-new-image.png" alt="ecr-03-new-image"  /></p>
+<p>The demonstration is over. We can <strong>delete our cluster</strong> with this command :</p>
+<pre><code class="language-bash">$ make cluster-delete
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github-actions/">github-actions</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/gitops/">gitops</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

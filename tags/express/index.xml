@@ -11,10 +11,10 @@
     
     <item>
       <title>Express &#43; session &#43; DynamoDB &#43; Cognito</title>
-      <link>/aws/express-session-dynamodb-cognito/</link>
+      <link>/aws/express--session--dynamodb--cognito/</link>
       <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/express-session-dynamodb-cognito/</guid>
+      <guid>/aws/express--session--dynamodb--cognito/</guid>
       <description>
       
       Playing with **express-session**. Externalize session data in **DynamoDB** and user account in **Cognito**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; session</title>
-      <link>/note/node-express-session/</link>
+      <link>/note/node--express--session/</link>
       <pubDate>Thu, 16 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-session/</guid>
+      <guid>/note/node--express--session/</guid>
       <description>
       
       Testing the **cookie-session** and **express-session** middlewares.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; form</title>
-      <link>/note/node-express-form/</link>
+      <link>/note/node--express--form/</link>
       <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-form/</guid>
+      <guid>/note/node--express--form/</guid>
       <description>
       
       Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; Sharp</title>
-      <link>/black-white/node-express-sharp/</link>
+      <link>/black-white/node--express--sharp/</link>
       <pubDate>Thu, 12 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/node-express-sharp/</guid>
+      <guid>/black-white/node--express--sharp/</guid>
       <description>
       
       Playing with **Node**, **Express** and **Sharp** to convert an color image from to black and white version.

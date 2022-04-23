@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>AWS Grafana &#43; Lambda &#43; Terraform</title>
-      <link>/aws/aws-grafana-lambda-terraform/</link>
+      <link>/aws/aws-grafana--lambda--terraform/</link>
       <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/aws-grafana-lambda-terraform/</guid>
+      <guid>/aws/aws-grafana--lambda--terraform/</guid>
       <description>
       
       Monitoring **Lambda** function with **Managed Grafana**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>CDK &#43; CDKTF &#43; Lambda &#43; DynamoDB</title>
-      <link>/aws/cdk-cdktf-lambda-dynamodb/</link>
+      <link>/aws/cdk--cdktf--lambda--dynamodb/</link>
       <pubDate>Mon, 22 Nov 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/cdk-cdktf-lambda-dynamodb/</guid>
+      <guid>/aws/cdk--cdktf--lambda--dynamodb/</guid>
       <description>
       
       Creating **API Gateway**, **Lambda** and **DynamoDB** with **CDK** and **CDKTF**.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; AWS CLI</title>
-      <link>/aws/api-gateway-lambda-aws-cli/</link>
+      <link>/aws/api-gateway--lambda--aws-cli/</link>
       <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-aws-cli/</guid>
+      <guid>/aws/api-gateway--lambda--aws-cli/</guid>
       <description>
       
       Create an **API Gateway** and a **Lambda** from CLI.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; curl</title>
-      <link>/aws/api-gateway-lambda-curl/</link>
+      <link>/aws/api-gateway--lambda--curl/</link>
       <pubDate>Wed, 18 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-curl/</guid>
+      <guid>/aws/api-gateway--lambda--curl/</guid>
       <description>
       
       Testing **API Gateway** and **Lambda** with different type of **Integration Request**.

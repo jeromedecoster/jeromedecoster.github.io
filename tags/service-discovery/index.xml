@@ -11,10 +11,10 @@
     
     <item>
       <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
-      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <link>/aws/ecs--service-discovery--node--redis/</link>
       <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <guid>/aws/ecs--service-discovery--node--redis/</guid>
       <description>
       
       Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.

@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,GitOps,Terraform,Github,CodeBuild,CI/CD'><meta name="description" content='Manage the content and infrastructure of a website in a git monorepo. Deploy automatically with each push.'><meta property="og:title" content="GitOps &#43; Terraform" />
+<meta property="og:description" content="Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/gitops--terraform/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-04-22T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-22T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="GitOps &#43; Terraform"/>
+<meta name="twitter:description" content="Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>GitOps &#43; Terraform | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#gitops-in-a-few-points">GitOps in a few points</a></li>
+        <li><a href="#exploring-the-project">Exploring the project</a></li>
+        <li><a href="#setup-github">Setup Github</a></li>
+        <li><a href="#run-the-project">Run the project</a></li>
+        <li><a href="#creation-of-the-deployment-pipeline">Creation of the deployment pipeline</a></li>
+        <li><a href="#creation-of-the-infrastructure-and-publication-of-the-site">Creation of the infrastructure and publication of the site</a></li>
+        <li><a href="#change-the-infrastructure">Change the infrastructure</a></li>
+        <li><a href="#change-the-site">Change the site</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">22</span>
+<span class="rest">Apr 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">GitOps &#43; Terraform</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The project</div>
+<div><ul>
+<li>We have created a <a href="https://github.com/jeromedecoster/aws-gitops-terraform/tree/master/www" target="_blank" rel="noopener">great HTML site</a>.</li>
+<li>It is powered via an <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/user-data.sh" target="_blank" rel="noopener">Apache VirtualHost</a>.</li>
+<li>The site is hosted on AWS. We use an <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html" target="_blank" rel="noopener">Auto Scaling Group</a>, <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html" target="_blank" rel="noopener">Elastic Load Balancer</a> and <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html" target="_blank" rel="noopener">EC2</a>.</li>
+<li>The AWS <strong>infrastructure used</strong> is defined via <a href="https://github.com/jeromedecoster/aws-gitops-terraform/tree/master/infra" target="_blank" rel="noopener">Terraform files</a>.</li>
+<li>We use <a href="https://docs.aws.amazon.com/codebuild/latest/userguide/welcome.html" target="_blank" rel="noopener">Codebuild</a> to <strong>automatically deploy any new version of our infrastructure or our website</strong>.</li>
+<li><strong>Each git push</strong> on our repository will start to a <strong>new deployment</strong>.</li>
+<li>The <strong>deployment pipeline</strong> is also created via <a href="https://github.com/jeromedecoster/aws-gitops-terraform/tree/master/deployment-pipeline" target="_blank" rel="noopener">Terraform files</a>.</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-gitops-terraform" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-gitops-terraform.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p><strong>Clone</strong> or <strong>fork</strong> the project.</p>
+<p>Then <strong>adjust this git URL</strong> in the <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/user-data.sh" target="_blank" rel="noopener">user-data.sh file</a> :</p>
+<pre><code class="language-bash"># adjust the URL with your repository
+git clone https://github.com/jeromedecoster/aws-gitops-terraform.git --depth 1
+</code></pre>
+<h3 id="gitops-in-a-few-points">GitOps in a few points</h3>
+<ul>
+<li>The concept was created by WeaveWorks. Here is the <a href="https://www.weave.works/blog/gitops-operations-by-pull-request" target="_blank" rel="noopener">founding post file</a> and here is <a href="https://www.weave.works/blog/what-is-gitops-really" target="_blank" rel="noopener">an update</a>.</li>
+<li><strong>Infrastructure as Code</strong> : We define declaratively our <strong>infrastructure using YAML files</strong>. So we use tools like <a href="https://www.terraform.io/docs/index.html" target="_blank" rel="noopener">Terraform</a>, <a href="https://www.ansible.com/overview/how-ansible-works" target="_blank" rel="noopener">Ansible</a>, &hellip;</li>
+<li><strong>Manual operations via <code>ssh</code> are prohibited</strong>. Everything must be <strong>done declaratively</strong> and stored in a <strong>git repository</strong>. So we say that : <strong>Git is our only source of truth</strong>.</li>
+<li>Since we do not make any manual changes, we can easily <strong>replicate our deployments</strong>. We are talking about <strong>immutable deployments</strong> or <strong>immutable infrastructure</strong>.</li>
+<li>The Infrastructure as Code is managed in a git repository, so we have a <strong>clear history</strong> of evolutions with the <strong>different commits and the log messages</strong>. It also <strong>facilitates rollbacks</strong>.</li>
+<li>There are <strong>2 deployment strategies</strong> : <strong>push</strong> and <strong>pull</strong>.</li>
+<li>The <strong>push strategy</strong> is the <strong>simplest</strong>. It&rsquo;s a classic approach :
+<ol>
+<li>We have a <strong>repo for the application</strong> (app) and a <strong>repo for the environment</strong> (env).</li>
+<li>A <strong>new commit</strong> to the app repo <strong>starts a build pipeline</strong>.</li>
+<li>Once the tests are successful, we <strong>build a new container with the application</strong> and <strong>store it in a registry</strong>.</li>
+<li>We notify the env repo that a new image is available.</li>
+<li>This change will trigger the <strong>deployment pipeline</strong> to <strong>replace the old image with the new one</strong>.</li>
+</ol>
+</li>
+<li>The <strong>pull strategy is more advanced</strong>. It requires <strong>specific tools</strong>. I&rsquo;m skipping for now&hellip;</li>
+</ul>
+<h3 id="exploring-the-project">Exploring the project</h3>
+<p>This project is <strong>simpler</strong> than what was described previously in the <strong>push strategy</strong>.</p>
+<p>We use a <strong>monorepo</strong> here and we <strong>do not build a docker image</strong>. This approach diverges from the recommendations and should <strong>not be used for real projects</strong>. This approach is however sufficient to make a first demonstration.</p>
+<p>Let&rsquo;s look at some parts of the source code.</p>
+<p>If we look the <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/Makefile" target="_blank" rel="noopener">Makefile</a>, we have some actions to build and use the project :</p>
+<pre><code class="language-Makefile">setup-create: # create the settings.sh files + the AWS S3 bucket
+	bin/setup.sh create
+
+ssh-key-create: # create SSH keys + import public key to AWS
+	bin/ssh-key.sh create
+
+deployment-pipeline-init: # create terraform.tfvars + terraform init the deployment pipeline
+	bin/deployment-pipeline.sh init
+
+deployment-pipeline-apply: # terraform plan + terraform apply the deployment pipeline
+	bin/deployment-pipeline.sh apply
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/deployment-pipeline/codebuild.tf" target="_blank" rel="noopener">codebuild.tf</a> file is used to :</p>
+<ul>
+<li>Create the <strong>CodeBuild project</strong> with <a href="https://www.terraform.io/docs/providers/aws/r/codebuild_project.html" target="_blank" rel="noopener">aws_codebuild_project</a>.</li>
+<li>Listen the <strong>github repository changes</strong> with <a href="https://www.terraform.io/docs/providers/aws/r/codebuild_webhook.html" target="_blank" rel="noopener">aws_codebuild_webhook</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource aws_codebuild_project codebuild {
+  name          = &quot;${local.project_name}-codebuild&quot;
+  service_role  = aws_iam_role.codebuild_role.arn
+  build_timeout = 120
+
+  source {
+    type                = &quot;GITHUB&quot;
+    location            = &quot;https://github.com/${var.github_owner}/${var.github_repository_name}.git&quot;
+    git_clone_depth     = 1
+    report_build_status = true
+  }
+
+  artifacts {
+    type = &quot;NO_ARTIFACTS&quot;
+  }
+
+  environment {
+    compute_type = &quot;BUILD_GENERAL1_SMALL&quot;
+    # https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/3.0/Dockerfile
+    image = &quot;aws/codebuild/amazonlinux2-x86_64-standard:3.0&quot;
+    type  = &quot;LINUX_CONTAINER&quot;
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name  = &quot;${local.project_name}-log-group&quot;
+      stream_name = local.project_name
+    }
+  }
+}
+
+resource aws_codebuild_webhook webhook {
+  project_name = aws_codebuild_project.codebuild.name
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PUSH&quot;
+    }
+
+    filter {
+      type    = &quot;HEAD_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+
+  filter_group {
+    filter {
+      type    = &quot;EVENT&quot;
+      pattern = &quot;PULL_REQUEST_CREATED,PULL_REQUEST_UPDATED,PULL_REQUEST_REOPENED&quot;
+    }
+
+    filter {
+      type    = &quot;BASE_REF&quot;
+      pattern = &quot;master&quot;
+    }
+  }
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/buildspec.yaml" target="_blank" rel="noopener">buildspec.yaml</a> file is used to :</p>
+<ul>
+<li>Allow CodeBuild to execute some <a href="https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html" target="_blank" rel="noopener">generation steps</a>.</li>
+</ul>
+<pre><code class="language-yaml">version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo ······ pre_build `date` ······
+      - buildspec/pre-build.sh
+  build:
+    commands:
+      - echo ······ build `date` ······
+      - buildspec/build.sh
+  post_build:
+    commands:
+      - echo ······ post_build `date` ······
+</code></pre>
+<p>The <strong>pre_build step</strong> is defined in an <strong>executable bash script</strong>. The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/buildspec/pre-build.sh" target="_blank" rel="noopener">pre-build.sh</a> file is used to :</p>
+<ul>
+<li>Simply install Terraform.</li>
+</ul>
+<pre><code class="language-bash">#!/bin/bash
+echo ······ install terraform ······
+cd /usr/bin
+curl -s -qL -o terraform.zip https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip
+unzip -o terraform.zip
+</code></pre>
+<p>The <strong>build step</strong> is also defined in an executable bash script. The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/buildspec/build.sh" target="_blank" rel="noopener">build.sh</a> file is used to :</p>
+<ul>
+<li><strong>Deploy the infrastructure</strong> described in the <a href="https://github.com/jeromedecoster/aws-gitops-terraform/tree/master/infra" target="_blank" rel="noopener">infra directory</a> with Terraform.</li>
+<li><strong>Destroy the previous EC2 instances and Auto Scaling Groups</strong> with <a href="https://docs.aws.amazon.com/cli/latest/reference/autoscaling/delete-auto-scaling-group.html" target="_blank" rel="noopener">aws cli</a> before creating new ones.</li>
+</ul>
+<pre><code class="language-bash">#!/bin/bash
+echo ······ source settings.sh ······
+cd $CODEBUILD_SRC_DIR
+source settings.sh
+echo ······ AWS_REGION=$AWS_REGION ······
+echo ······ S3_BUCKET=$S3_BUCKET ······
+echo ······ SSH_KEY=$SSH_KEY ······
+
+echo ······ terraform init ······
+cd infra
+terraform init \
+    -input=false \
+    -backend=true \
+    -backend-config=&quot;region=$AWS_REGION&quot; \
+    -backend-config=&quot;bucket=$S3_BUCKET&quot; \
+    -backend-config=&quot;key=terraform&quot; \
+    -no-color
+
+NAME=$(terraform output | grep ^project_name | sed 's|.*= ||')
+echo ······ NAME=$NAME ······
+
+if [[ -n &quot;$NAME&quot; ]]; then
+    ID=$(aws autoscaling describe-auto-scaling-groups \
+        --auto-scaling-group-names $NAME \
+        --query &quot;AutoScalingGroups[?AutoScalingGroupName == '$NAME'].Instances[*].[InstanceId]&quot; \
+        --output text)
+    echo ······ ID=$ID ······
+
+    if [[ -n &quot;$ID&quot; ]]; then
+        echo ······ terminate EC2 instances ······
+        echo &quot;$ID&quot; | while read line; do
+            aws ec2 terminate-instances --instance-ids $line
+        done
+        echo ······ sleep 5 seconds ······
+        sleep 5
+    fi
+    echo ······ delete auto scaling group ······
+    aws autoscaling delete-auto-scaling-group \
+        --auto-scaling-group-name $NAME \
+        --force-delete
+    echo ······ sleep 10 seconds ······
+    sleep 10
+
+    while [[ -n $(aws autoscaling describe-auto-scaling-groups \
+        --auto-scaling-group-names $NAME \
+        --query &quot;AutoScalingGroups[?AutoScalingGroupName == '$NAME']&quot; \
+        --output text) ]]; do
+        aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names $NAME \
+            --query &quot;AutoScalingGroups[?AutoScalingGroupName == '$NAME'].[Status]&quot; \
+            --output text
+        echo ······ waiting auto-scaling-group destruction. sleep 20 seconds ······
+        sleep 20
+    done
+fi
+
+echo ······ terraform plan ······
+terraform plan \
+    -var &quot;ssh_key_name=$SSH_KEY&quot; \
+    -out=terraform.plan \
+    -no-color
+
+echo ······ terraform apply ······
+terraform apply \
+    -auto-approve \
+    terraform.plan \
+    -no-color
+</code></pre>
+<p>It is important to note that we are using an <a href="https://www.terraform.io/docs/backends/types/s3.html" target="_blank" rel="noopener">S3 backend</a>.</p>
+<p>The <strong>state of our infrastructure</strong> will therefore be <strong>stored remotely</strong>.</p>
+<p>The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/terraform.tf" target="_blank" rel="noopener">terraform.tf</a> file declare :</p>
+<pre><code class="language-hcl">terraform {
+  # 'backend-config' options must be passed like :
+  # terraform init -input=false -backend=true \
+  #   [with] -backend-config=&quot;backend.json&quot;
+  #     [or] -backend-config=&quot;backend.tfvars&quot;
+  #     [or] -backend-config=&quot;&lt;key&gt;=&lt;value&gt;&quot;
+  backend &quot;s3&quot; {}
+}
+</code></pre>
+<p>The <strong>backend values are defined externally</strong> within the <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/buildspec/build.sh" target="_blank" rel="noopener">build.sh</a> file :</p>
+<pre><code class="language-bash">terraform init \
+  -input=false \
+  -backend=true \
+  -backend-config=&quot;region=$AWS_REGION&quot; \
+  -backend-config=&quot;bucket=$S3_BUCKET&quot; \
+  -backend-config=&quot;key=terraform&quot; \
+  -no-color
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/asg.tf" target="_blank" rel="noopener">asg.tf</a> file is used to :</p>
+<ul>
+<li>Create an <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html" target="_blank" rel="noopener">Load Balancer</a> with <a href="https://www.terraform.io/docs/providers/aws/r/lb_listener.html" target="_blank" rel="noopener">aws_lb</a>.</li>
+<li>Create a <a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html" target="_blank" rel="noopener">EC2 Auto Scaling Group</a> with <a href="https://www.terraform.io/docs/providers/aws/r/autoscaling_group.html" target="_blank" rel="noopener">aws_autoscaling_group</a>.</li>
+<li>Create a <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html" target="_blank" rel="noopener">listener</a> with <a href="https://www.terraform.io/docs/providers/aws/r/lb_listener.html" target="_blank" rel="noopener">aws_lb_listener</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource aws_launch_configuration launch_configuration {
+  name          = local.project_name
+  image_id      = data.aws_ami.latest_amazon_linux.id
+  instance_type = &quot;t2.micro&quot;
+
+  security_groups = [aws_security_group.security_group.id]
+
+  user_data = file(&quot;${path.module}/user-data.sh&quot;)
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource aws_autoscaling_group default {
+  name = local.project_name
+
+  max_size         = 3
+  min_size         = 1
+  desired_capacity = 1
+
+  launch_configuration = aws_launch_configuration.launch_configuration.name
+
+  target_group_arns = [aws_lb_target_group.target_group.arn]
+
+  vpc_zone_identifier = data.aws_subnet_ids.subnet_ids.ids
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource aws_lb_listener http {
+  load_balancer_arn = aws_lb.lb.arn
+  port              = &quot;80&quot;
+  protocol          = &quot;HTTP&quot;
+
+  default_action {
+    target_group_arn = aws_lb_target_group.target_group.arn
+    type             = &quot;forward&quot;
+  }
+}
+</code></pre>
+<p>Each EC2 instance started will execute this <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/user-data.sh" target="_blank" rel="noopener">user-data.sh</a> script :</p>
+<ul>
+<li>We install <strong>httpd</strong> and <strong>git</strong>.</li>
+<li>We <strong>clone</strong> our <strong>git repository</strong>.</li>
+<li>We move our website to the <code>/var/www/vhosts/example.com</code> directory.</li>
+<li>Then we <strong>enable</strong> and <strong>start httpd</strong> with <strong>systemd</strong>.</li>
+</ul>
+<pre><code class="language-bash">#!/bin/bash
+sudo yum --assumeyes update
+sudo yum --assumeyes install httpd git
+mkdir /var/www/vhosts
+cd /tmp
+git clone https://github.com/jeromedecoster/aws-gitops-terraform.git --depth 1
+mv aws-gitops-terraform/www /var/www/vhosts/example.com
+
+cat &lt;&lt;EOF &gt; /etc/httpd/conf.d/vhost.conf
+&lt;VirtualHost *:80&gt;
+    # REQUIRED. Set this to the host/domain/subdomain that
+    # you want this VirtualHost record to handle.
+    ServerName example.com
+
+    # REQUIRED. Set this to the directory you want to use for
+    # this vhost site's files.
+    DocumentRoot /var/www/vhosts/example.com
+
+    # REQUIRED. Let's make sure that .htaccess files work on
+    # this site. Don't forget to change the file path to
+    # match your DocumentRoot setting above.
+    &lt;Directory /var/www/vhosts/example.com&gt;
+        AllowOverride All
+    &lt;/Directory&gt;
+&lt;/VirtualHost&gt;
+EOF
+
+sudo systemctl enable httpd
+sudo systemctl start httpd
+</code></pre>
+<p>And of course we have our <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/www/index.html" target="_blank" rel="noopener">great website</a> page :</p>
+<pre><code class="language-html">&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;title&gt;Fox or Bear&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Fox&lt;/h1&gt;
+    &lt;img src=&quot;fox.jpg&quot; alt=&quot;A Fox&quot;&gt;
+    &lt;!-- &lt;h1&gt;Bear&lt;/h1&gt;
+    &lt;img src=&quot;bear.jpg&quot; alt=&quot;A Bear&quot;&gt; --&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3 id="setup-github">Setup Github</h3>
+<p>We need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github token</a> with <strong>repo</strong> and <strong>admin:repo_hook</strong> selected :</p>
+<p><img loading="lazy" src="img/github-token-1.png" alt="github-token-1.png"  /></p>
+<p>We receive our <strong>Github token</strong> :</p>
+<p><img loading="lazy" src="img/github-token-2.png" alt="github-token-2.png"  /></p>
+<h3 id="run-the-project">Run the project</h3>
+<p>Let&rsquo;s start :</p>
+<pre><code class="language-bash"># create the settings.sh files + the AWS S3 bucket
+$ make setup-create
+create settings.sh
+
+# it creates a bucket with a random suffix
+create gitops-terraform-vlw4 bucket
+make_bucket: gitops-terraform-vlw4
+</code></pre>
+<p>The <strong>settings.sh</strong> file has been created. You can change the region if you want :</p>
+<pre><code class="language-bash">AWS_REGION=eu-west-3
+SSH_KEY=gitops-terraform
+S3_BUCKET=gitops-terraform-vlw4
+</code></pre>
+<p>We <strong>create an SSH key</strong> to connect to EC2 instances if we need to :</p>
+<pre><code class="language-bash"># create SSH keys + import public key to AWS
+$ make ssh-key-create
+create gitops-terraform.pem + gitops-terraform.pub keys — without passphrase
+import gitops-terraform.pub key to AWS EC2
+{
+    &quot;KeyFingerprint&quot;: &quot;2b:a0:de:aa:bb:cc:dd:ee:ff:gg:hh:ii:jj:kk:ll:mm&quot;,
+    &quot;KeyName&quot;: &quot;gitops-terraform&quot;
+}
+</code></pre>
+<p>The key is displayed in the <strong>Key pairs sub-menu</strong> of the EC2 interface :</p>
+<p><img loading="lazy" src="img/ssh-key.png" alt="ssh-key.png"  /></p>
+<h3 id="creation-of-the-deployment-pipeline">Creation of the deployment pipeline</h3>
+<p>We will create the <strong>CodeBuild pipeline</strong> linked to our <strong>github project</strong> :</p>
+<pre><code class="language-bash"># create terraform.tfvars + terraform init the deployment pipeline
+$ make deployment-pipeline-init
+init terraform
+Initializing the backend...
+# ...
+
+create terraform.tfvars file
+warn you must define /tmp/aws/deployment-pipeline/terraform.tfvars
+terraform.tfvars 
+
+github_token           = &quot;&quot;
+github_owner           = &quot;&quot;
+github_repository_name = &quot;&quot;
+</code></pre>
+<p>We must <strong>define the 3 variables</strong> :</p>
+<ul>
+<li>Use your previously generated <strong>github token</strong>.</li>
+</ul>
+<pre><code class="language-bash">github_token           = &quot;2.....2&quot;
+github_owner           = &quot;jeromedecoster&quot;
+github_repository_name = &quot;aws-gitops-terraform&quot;
+</code></pre>
+<p>We must now validate and push this file in our repository on github because <strong>these variables will be used by the deployment pipeline</strong>.</p>
+<p>I choose to create the file <strong>directly from the web interface</strong>.</p>
+<p>I create a file :</p>
+<p><img loading="lazy" src="img/github-new-file.png" alt="github-new-file.png"  /></p>
+<p>I name it <strong>settings.sh</strong> and copy and paste the content :</p>
+<p><img loading="lazy" src="img/github-settings-edit.png" alt="github-settings-edit.png"  /></p>
+<p>Then I commit it :</p>
+<p><img loading="lazy" src="img/github-settings-commit.png" alt="github-settings-commit.png"  /></p>
+<p>Our pipeline can now <strong>be deployed</strong> :</p>
+<pre><code class="language-bash"># terraform plan + terraform apply the deployment pipeline
+$ make deployment-pipeline-apply
+</code></pre>
+<p>CodeBuild is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-ready.png" alt="codebuild-ready.png"  /></p>
+<h3 id="creation-of-the-infrastructure-and-publication-of-the-site">Creation of the infrastructure and publication of the site</h3>
+<p>We will now modify the file <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/www/index.html" target="_blank" rel="noopener">index.html</a>. The commit <strong>will trigger the deployment pipeline</strong>.</p>
+<p><img loading="lazy" src="img/github-edit-html-1.png" alt="github-edit-html-1.png"  /></p>
+<p>We <strong>uncomment</strong> the Fox part :</p>
+<p><img loading="lazy" src="img/github-edit-html-2-fox.png" alt="github-edit-html-2-fox.png"  /></p>
+<p>We commit this modification :</p>
+<p><img loading="lazy" src="img/github-edit-html-3-commit.png" alt="github-edit-html-3-commit.png"  /></p>
+<p>CodeBuild activates <strong>automatically</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-build.png" alt="codebuild-build.png"  /></p>
+<p>We can see in the logs that <strong>Terraform is installed</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-build-logs-1.png" alt="codebuild-build-logs-1.png"  /></p>
+<p>After a short wait we have the final success message :</p>
+<p><img loading="lazy" src="img/codebuild-build-logs-2.png" alt="codebuild-build-logs-2.png"  /></p>
+<p>We can see in the EC2 interface that the <strong>Auto Scaling group is running</strong> :</p>
+<p><img loading="lazy" src="img/ec2-1-auto-scaling-group.png" alt="ec2-1-auto-scaling-group.png"  /></p>
+<p>We have <strong>1 instance started</strong> :</p>
+<p><img loading="lazy" src="img/ec2-1-instance.png" alt="ec2-1-instance.png"  /></p>
+<p>Let&rsquo;s go see the Load Balancer. We get the <strong>DNS name URL</strong> :</p>
+<p><img loading="lazy" src="img/ec2-1-load-balancer.png" alt="ec2-1-load-balancer.png"  /></p>
+<p>And by pasting this <strong>address into our browser</strong>, we see :</p>
+<p><img loading="lazy" src="img/a-fox.png" alt="a-fox.png"  /></p>
+<h3 id="change-the-infrastructure">Change the infrastructure</h3>
+<p>We now want to update our architecture.</p>
+<p>Our site is a huge success.  We want to <strong>have 2 instances started</strong> to support the incessant traffic.</p>
+<p>We <strong>just need to edit</strong> the file <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/infra/asg.tf" target="_blank" rel="noopener">asg.tf</a> :</p>
+<p><img loading="lazy" src="img/github-asg-edit-1.png" alt="github-asg-edit-1.png"  /></p>
+<p>We change the value <strong>desired_capacity</strong> from <code>1</code> to <code>2</code> :</p>
+<p><img loading="lazy" src="img/github-asg-edit-2.png" alt="github-asg-edit-2.png"  /></p>
+<p>We commit this change :</p>
+<p><img loading="lazy" src="img/github-asg-edit-3.png" alt="github-asg-edit-3.png"  /></p>
+<p>The deployment pipeline activates again. We see in the logs that the <strong>Auto Scaling Group is stopped</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-delete-asg.png" alt="codebuild-delete-asg.png"  /></p>
+<p>This is the <strong>major weakness of this infrastructure</strong> : an auto scaling group <strong>takes about 5 minutes to stop</strong> ! Such an architecture is therefore <strong>not acceptable in production</strong>.</p>
+<p>Here are some possible solutions :</p>
+<ul>
+<li><a href="https://medium.com/@endofcake/using-terraform-for-zero-downtime-updates-of-an-auto-scaling-group-in-aws-60faca582664" target="_blank" rel="noopener">Using Terraform for zero downtime updates of an Auto Scaling group in AWS</a></li>
+<li><a href="https://github.com/deitch/aws-asg-roller" target="_blank" rel="noopener">Amazon Web Services AutoScaling Group Roller</a></li>
+</ul>
+<p>We would however like to use <strong>simpler solutions</strong>.</p>
+<p>After <strong>a long wait</strong>, here is <strong>our new Auto Scaling Group</strong> :</p>
+<p><img loading="lazy" src="img/ec2-new-asg.png" alt="ec2-new-asg.png"  /></p>
+<p>We now have <strong>2 instances running</strong> :</p>
+<p><img loading="lazy" src="img/ec2-new-asg-2-instances.png" alt="ec2-new-asg-2-instances.png"  /></p>
+<h3 id="change-the-site">Change the site</h3>
+<p>We now want to update our site. We will edit the file <a href="https://github.com/jeromedecoster/aws-gitops-terraform/blob/master/www/index.html" target="_blank" rel="noopener">index.html</a> :</p>
+<ul>
+<li>We <strong>comment</strong> on the Fox part.</li>
+<li>We <strong>uncomment</strong> the Bear part.</li>
+</ul>
+<p><img loading="lazy" src="img/github-edit-bear-1.png" alt="github-edit-bear-1.png"  /></p>
+<p>We commit this modification :</p>
+<p><img loading="lazy" src="img/github-edit-bear-2.png" alt="github-edit-bear-2.png"  /></p>
+<p>CodeBuild activates <strong>automatically</strong> :</p>
+<p><img loading="lazy" src="img/codebuild-a-bear-build.png" alt="codebuild-a-bear-build.png"  /></p>
+<p>And after 5 minutes, by <strong>reloading our browser</strong> :</p>
+<p><img loading="lazy" src="img/a-bear.png" alt="a-bear.png"  /></p>
+<p>We have <strong>2 new instances started</strong> :</p>
+<p><img loading="lazy" src="img/ec2-a-bear-instances.png" alt="ec2-a-bear-instances.png"  /></p>
+<p>We finished. We can <strong>destroy our architecture</strong>. We start with the deployment pipeline :</p>
+<pre><code class="language-bash"># terraform destroy the deployment pipeline
+$ make deployment-pipeline-destroy
+</code></pre>
+<p>To destroy the site infrastructure, we must <strong>first initialize terraform locally</strong> :</p>
+<pre><code class="language-bash"># terraform init the project infrastructure
+$ make infra-init
+</code></pre>
+<p>Then <strong>ask for destruction</strong> :</p>
+<pre><code class="language-bash"># terraform destroy the project infrastructure
+$ make infra-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/codebuild/">codebuild</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/gitops/">gitops</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

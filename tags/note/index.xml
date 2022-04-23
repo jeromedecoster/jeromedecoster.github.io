@@ -5,16 +5,52 @@
     <link>/tags/note/</link>
     <description>Recent content in Note on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 17 Feb 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 20 Apr 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/note/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>Kubernetes &#43; Adapter Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--adapter-pattern--minikube/</link>
+      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--adapter-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Adapter Kubernetes Pattern** with **Minikube**, **Redis**, **Prometheus** and **Grafana**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; Sidecar Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--sidecar-pattern--minikube/</link>
+      <pubDate>Thu, 14 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--sidecar-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Sidecar Kubernetes Pattern** with **Minikube**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; Init Container Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--init-container-pattern--minikube/</link>
+      <pubDate>Mon, 11 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--init-container-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Init Container Kubernetes Pattern**  with **Minikube**.
+      
+      </description>
+    </item>
+    <item>
       <title>ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook</title>
-      <link>/note/argocd-minikube-ngrok-github-webhook/</link>
+      <link>/note/argocd--minikube--ngrok--github-webhook/</link>
       <pubDate>Thu, 17 Feb 2022 00:00:00 +0000</pubDate>
       
-      <guid>/note/argocd-minikube-ngrok-github-webhook/</guid>
+      <guid>/note/argocd--minikube--ngrok--github-webhook/</guid>
       <description>
       
       Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**.
@@ -35,10 +71,10 @@
     </item>
     <item>
       <title>Prometheus &#43; Grafana &#43; Node</title>
-      <link>/note/prometheus-grafana-node/</link>
+      <link>/note/prometheus--grafana--node/</link>
       <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/prometheus-grafana-node/</guid>
+      <guid>/note/prometheus--grafana--node/</guid>
       <description>
       
       Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**.
@@ -47,10 +83,10 @@
     </item>
     <item>
       <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
-      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <link>/note/jenkins-pipeline--slack--github-release/</link>
       <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <guid>/note/jenkins-pipeline--slack--github-release/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.
@@ -59,10 +95,10 @@
     </item>
     <item>
       <title>Jenkins &#43; github</title>
-      <link>/note/jenkins-github/</link>
+      <link>/note/jenkins--github/</link>
       <pubDate>Tue, 03 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-github/</guid>
+      <guid>/note/jenkins--github/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins**.
@@ -71,10 +107,10 @@
     </item>
     <item>
       <title>git-flow &#43; github</title>
-      <link>/note/git-flow-github/</link>
+      <link>/note/git-flow--github/</link>
       <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/git-flow-github/</guid>
+      <guid>/note/git-flow--github/</guid>
       <description>
       
       Playing with **git-flow** and **github**.
@@ -83,10 +119,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; session</title>
-      <link>/note/node-express-session/</link>
+      <link>/note/node--express--session/</link>
       <pubDate>Thu, 16 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-session/</guid>
+      <guid>/note/node--express--session/</guid>
       <description>
       
       Testing the **cookie-session** and **express-session** middlewares.
@@ -95,10 +131,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; form</title>
-      <link>/note/node-express-form/</link>
+      <link>/note/node--express--form/</link>
       <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-form/</guid>
+      <guid>/note/node--express--form/</guid>
       <description>
       
       Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms.
@@ -107,10 +143,10 @@
     </item>
     <item>
       <title>nc &#43; curl</title>
-      <link>/note/nc-curl/</link>
+      <link>/note/nc--curl/</link>
       <pubDate>Thu, 05 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/nc-curl/</guid>
+      <guid>/note/nc--curl/</guid>
       <description>
       
       Playing with **nc** and **curl**.
@@ -119,10 +155,10 @@
     </item>
     <item>
       <title>Docker &#43; Bash</title>
-      <link>/note/docker-bash/</link>
+      <link>/note/docker--bash/</link>
       <pubDate>Tue, 03 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/docker-bash/</guid>
+      <guid>/note/docker--bash/</guid>
       <description>
       
       Some tips and helpers for **Docker**.

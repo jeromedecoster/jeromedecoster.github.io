@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Docker,ECS,Fargate,Docker Hub'><meta name="description" content='Use Docker to develop locally. Host docker image on Docker Hub and ECR. Deploy manually with ECS Fargate. Deploy again with ecs-cli.'><meta property="og:title" content="Docker &#43; ECS &#43; Fargate" />
+<meta property="og:description" content="Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/docker--ecs--fargate/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-06-05T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-06-05T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Docker &#43; ECS &#43; Fargate"/>
+<meta name="twitter:description" content="Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Docker &#43; ECS &#43; Fargate | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-the-project">Install the project</a></li>
+        <li><a href="#run-the-site-locally">Run the site locally</a></li>
+        <li><a href="#run-the-site-locally-with-docker">Run the site locally with Docker</a></li>
+        <li><a href="#hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</a></li>
+        <li><a href="#start-the-docker-image-in-ecs-fargate">Start the Docker image in ECS FARGATE</a></li>
+        <li><a href="#updating-the-site">Updating the site</a></li>
+        <li><a href="#hosting-the-docker-image-on-ecr">Hosting the docker image on ECR</a></li>
+        <li><a href="#use-ecs-cli-to-start-the-image-in-ecs-fargate">Use ecs-cli to start the image in ECS FARGATE</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">05</span>
+<span class="rest">Jun 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Docker &#43; ECS &#43; Fargate</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Develop a site with node <strong>using Docker</strong></li>
+<li>Create an docker image optimized for production and host it <strong>on Docker hub</strong></li>
+<li>Use <strong>Fargate manually</strong> to put the site online</li>
+<li>Update the site</li>
+<li>Create a new docker image for production and host it <strong>on ECR</strong></li>
+<li>Use <strong>ecs-cli</strong> to put the site online</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-the-project">Install the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/docker-ecs-fargate" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/docker-ecs-fargate.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="run-the-site-locally">Run the site locally</h3>
+<p>Let&rsquo;s start by seeing the site locally.</p>
+<p>The site uses <a href="https://github.com/expressjs/express" target="_blank" rel="noopener">express</a> and <a href="https://github.com/mde/ejs" target="_blank" rel="noopener">ejs</a>. In the development phase we also use <a href="https://github.com/remy/nodemon" target="_blank" rel="noopener">nodemon</a> and <a href="https://github.com/napcs/node-livereload" target="_blank" rel="noopener">livereload</a>.</p>
+<pre><code class="language-json">{
+  &quot;dependencies&quot;: {
+    &quot;ejs&quot;: &quot;^3.1.3&quot;,
+    &quot;express&quot;: &quot;^4.17.1&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;connect-livereload&quot;: &quot;^0.6.1&quot;,
+    &quot;livereload&quot;: &quot;^0.9.1&quot;,
+    &quot;nodemon&quot;: &quot;^2.0.4&quot;
+  }
+}
+</code></pre>
+<p>We install the packages :</p>
+<pre><code class="language-bash">$ npm install
+</code></pre>
+<p>The <strong>Makefile</strong> allows you to run the <strong>development version</strong> or the <strong>production version</strong> :</p>
+<pre><code class="language-makefile">dev: # start the site with nodemon and livereload
+	npx livereload . --wait 200 --extraExts 'ejs' &amp; \
+	NODE_ENV=development npx nodemon --ext js,json index.js
+
+prod: # start the site in production environment
+	NODE_ENV=production node index.js
+</code></pre>
+<p>We launch the development version:</p>
+<pre><code class="language-bash">$ make dev
+</code></pre>
+<p><img loading="lazy" src="img/site-0.1.0.png" alt="site-0.1.0.png"  /></p>
+<h3 id="run-the-site-locally-with-docker">Run the site locally with Docker</h3>
+<p>There are <a href="https://medium.com/containers-on-aws/how-i-do-local-docker-development-for-my-aws-fargate-application-8957e3fdb50" target="_blank" rel="noopener">different approaches</a> to local development with Docker.</p>
+<p>We will use this :</p>
+<ul>
+<li>The <strong>build + run method</strong> with the use of a <strong>Docker volume for local updates</strong>.</li>
+<li>We will use the <a href="https://docs.docker.com/develop/develop-images/multistage-build/" target="_blank" rel="noopener">multi-stage builds</a> to minimize build time as much as possible.</li>
+<li>We will also use <a href="https://dev.to/alex_barashkov/using-docker-for-nodejs-in-development-and-production-3cgp" target="_blank" rel="noopener">two separate Dockerfiles</a> for the development and production to simplify their writing.</li>
+</ul>
+<p>There are <a href="https://hub.docker.com/_/node?tab=description" target="_blank" rel="noopener">many Docker images</a> of node.</p>
+<p>The most used are the versions <a href="https://github.com/nodejs/docker-node/blob/2f7f7ebce71a98dd8fe2182a0adf8f6db952ca80/14/stretch/Dockerfile" target="_blank" rel="noopener">latest</a>, <a href="https://github.com/nodejs/docker-node/blob/2f7f7ebce71a98dd8fe2182a0adf8f6db952ca80/14/stretch-slim/Dockerfile" target="_blank" rel="noopener">slim</a> and <a href="https://github.com/nodejs/docker-node/blob/2f7f7ebce71a98dd8fe2182a0adf8f6db952ca80/14/alpine3.11/Dockerfile" target="_blank" rel="noopener">apline</a>.</p>
+<p>We download them :</p>
+<pre><code class="language-bash">$ docker pull --quiet node:14.3
+$ docker pull --quiet node:14.3-slim
+$ docker pull --quiet node:14.3-alpine
+</code></pre>
+<p>The three images have <strong>really different sizes</strong> :</p>
+<pre><code class="language-bash">$ docker images node
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+node                14.3-alpine         72eea7c426fc        5 days ago          117MB
+node                14.3-slim           8ec3841e41bb        5 days ago          165MB
+node                14.3                91a3cf793116        5 days ago          942MB
+</code></pre>
+<p>Using the <strong>alpine</strong> version is tempting, but you can sometimes run into <strong>problems</strong>. This <a href="https://pythonspeed.com/articles/alpine-docker-python/" target="_blank" rel="noopener">blog post</a> concerns Python but it remains valid for Node :</p>
+<ul>
+<li>For the <strong>development</strong> phase we will use the <a href="https://github.com/nodejs/docker-node/tree/master/14/stretch-slim" target="_blank" rel="noopener">slim</a> version.</li>
+<li>The image used in production uses the <a href="https://github.com/nodejs/docker-node/tree/master/14/alpine3.11" target="_blank" rel="noopener">alpine</a> version.</li>
+</ul>
+<p>The <a href="https://github.com/jeromedecoster/docker-ecs-fargate/blob/master/env.dev.dockerfile" target="_blank" rel="noopener">env.dev.dockerfile</a> file :</p>
+<pre><code class="language-Dockerfile">FROM node:14.3-slim AS build
+WORKDIR /app
+ADD package.json package.json
+RUN npm install
+
+FROM node:14.3-slim
+WORKDIR /app
+COPY --from=build /app .
+ADD . .
+EXPOSE 3000
+CMD [&quot;./dev.sh&quot;]
+</code></pre>
+<p>To <strong>build the Docker image</strong> we execute this command :</p>
+<pre><code class="language-bash">$ docker image build \
+    --file env.dev.dockerfile \
+    --tag site \
+    .
+</code></pre>
+<p>Or more simply :</p>
+<pre><code class="language-bash">$ make dev-build
+</code></pre>
+<p>Now we have our <strong>site image</strong> as well as our <strong>intermediate image</strong>, the <code>AS build</code> version.</p>
+<pre><code class="language-bash">$ docker images
+REPOSITORY            TAG                 IMAGE ID            CREATED              SIZE
+site                  latest              21b812386d58        About a minute ago   181MB
+&lt;none&gt;                &lt;none&gt;              011d9d84e2a4        About a minute ago   175MB
+</code></pre>
+<p>To <strong>start the container</strong> we execute the following command.</p>
+<ul>
+<li>We open <code>port 3000</code> for the <strong>node server</strong>.</li>
+<li>And <code>port 35729</code> for the <strong>livereload server</strong>.</li>
+</ul>
+<pre><code class="language-bash">docker run \
+    --name site \
+    --publish 3000:3000 \
+    --publish 35729:35729 \
+    --volume &quot;$PWD:/app&quot; \
+    site
+</code></pre>
+<p>Or more simply :</p>
+<pre><code class="language-bash">$ make dev-run
+</code></pre>
+<p>If we change the sources, the site <strong>updates instantly</strong>.</p>
+<p>We modify the <a href="https://github.com/jeromedecoster/docker-ecs-fargate/blob/master/public/css/style.css" target="_blank" rel="noopener">style.css</a> file  :</p>
+<pre><code class="language-css">img {
+    max-height: 600px;
+    border: 5px solid #fff;
+    box-shadow: 0px 6px 10px -2px #999;
+}
+</code></pre>
+<p><img loading="lazy" src="img/site-0.1.0-updated.png" alt="site-0.1.0-updated.png"  /></p>
+<h3 id="hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</h3>
+<p>Now we want to host our image on <a href="https://hub.docker.com/" target="_blank" rel="noopener">docker hub</a>.</p>
+<p>I will host this image on <a href="https://hub.docker.com/u/jeromedecoster" target="_blank" rel="noopener">my account</a>. You need to create an account.</p>
+<p><img loading="lazy" src="img/docker-hub.png" alt="docker-hub.png"  /></p>
+<p>We use a specific Dockerfile for production, <a href="https://github.com/jeromedecoster/docker-ecs-fargate/blob/master/env.prod.dockerfile" target="_blank" rel="noopener">env.prod.dockerfile</a> :</p>
+<pre><code class="language-Dockerfile">FROM softonic/node-prune AS prune
+
+FROM node:14.3-slim AS build
+WORKDIR /app
+COPY --from=prune /go/bin/node-prune /usr/local/bin/
+ADD . .
+RUN npm install --only=prod
+RUN node-prune
+
+FROM node:14.3-alpine
+ENV NODE_ENV production
+ENV PORT 80
+WORKDIR /app
+COPY --from=build /app .
+EXPOSE 80
+CMD [&quot;node&quot;, &quot;index.js&quot;]
+</code></pre>
+<p>Some remarks about this Dockerfile :</p>
+<ul>
+<li>It uses <a href="https://github.com/tj/node-prune" target="_blank" rel="noopener">node-prune</a> via a <a href="https://github.com/softonic/docker-node-prune/blob/master/Dockerfile" target="_blank" rel="noopener">specific image</a>.</li>
+<li>It copies the node-prune executable from <code>prune</code> to <code>build</code>.</li>
+<li>It installs the npm packages with the <code>--only=prod</code> <a href="https://docs.npmjs.com/cli/install#description" target="_blank" rel="noopener">option</a> to <strong>not install</strong> the <code>devDependencies</code> packages.</li>
+<li>Then it runs node-prune to <strong>delete unnecessary files</strong>.</li>
+<li>Final image uses <code>14.3-alpine</code> to <strong>minimize weight</strong>.</li>
+<li>The final image declares <strong>2 environment variables</strong> for the node server : <code>NODE_ENV</code> and <code>PORT</code>.</li>
+</ul>
+<blockquote>
+<p><strong>Important</strong> : Fargate work with the <code>awsvpc</code> <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html" target="_blank" rel="noopener">Network Mode</a>. This means that <strong>we cannot do port mapping</strong>, redirect <code>port 80</code> to <code>port 3000</code>.</p>
+</blockquote>
+<p>Our production server <strong>must</strong> listen the <code>port 80</code>.</p>
+<p>Some remarks to build our production image :</p>
+<ul>
+<li>To <strong>tag an image for docker hub</strong> you must respect the format <code>&lt;user&gt;/&lt;image&gt;</code> or <code>&lt;user&gt;/&lt;image&gt;:&lt;tag&gt;</code>.</li>
+<li>We <strong>create 2 tags</strong> : one for <code>:latest</code> which is <strong>omitted</strong>, another for <code>:0.1.0</code>, which is the <strong>current version</strong>.</li>
+</ul>
+<p>We build the image with this command :</p>
+<pre><code class="language-bash">$ docker image build \
+    --file env.prod.dockerfile \
+    --tag jeromedecoster/site \
+    --tag jeromedecoster/site:0.1.0 \
+    .
+</code></pre>
+<p>Or more simply :</p>
+<pre><code class="language-bash">$ make prod-build
+</code></pre>
+<p>To <strong>start the container</strong> we execute the following command.</p>
+<ul>
+<li>We open <code>port 80</code> for the <strong>node server</strong>.</li>
+</ul>
+<pre><code class="language-bash">$ docker run \
+    --name site \
+    --publish 80:80 \
+    jeromedecoster/site
+</code></pre>
+<p>Or more simply :</p>
+<pre><code class="language-bash">$ make prod-run
+</code></pre>
+<p>If we open <a href="http://localhost" target="_blank" rel="noopener">http://localhost</a> we see :</p>
+<p><img loading="lazy" src="img/site-0.1.0-prod.png" alt="site-0.1.0-prod.png"  /></p>
+<p>We <strong>put the tagged image</strong> <code>0.1.0</code> <strong>on docker hub</strong> with the <a href="https://docs.docker.com/engine/reference/commandline/push/" target="_blank" rel="noopener">docker push</a> command :</p>
+<pre><code class="language-bash">$ docker push jeromedecoster/site:0.1.0
+</code></pre>
+<p>We will then <strong>push the</strong> <code>latest</code> <strong>tag</strong>. As the <strong>layers already exist</strong>, the upload is <strong>useless</strong> and the action is <strong>almost instantaneous</strong> :</p>
+<pre><code class="language-bash">$ docker push jeromedecoster/site:latest
+The push refers to repository [docker.io/jeromedecoster/site]
+dc28c82abf6a: Layer already exists 
+ac36867bb244: Layer already exists 
+d952e2787940: Layer already exists 
+ac91e43942f7: Layer already exists 
+c314a2fc89cb: Layer already exists 
+7480ff3a7cf4: Layer already exists 
+daee265ea6cb: Layer already exists 
+83b43189420d: Layer already exists
+</code></pre>
+<p><img loading="lazy" src="img/docker-hub-0.1.0.png" alt="docker-hub-0.1.0.png"  /></p>
+<h3 id="start-the-docker-image-in-ecs-fargate">Start the Docker image in ECS FARGATE</h3>
+<p>Now we are going to start this production image in an <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html" target="_blank" rel="noopener">ECS FARGATE</a> cluster.</p>
+<p>We <strong>create a cluster</strong> via the EC2 interface :</p>
+<p><img loading="lazy" src="img/create-cluster.png" alt="create-cluster.png"  /></p>
+<p>We choose <strong>Networking only</strong>  :</p>
+<p><img loading="lazy" src="img/network-only.png" alt="network-only.png"  /></p>
+<p>We name it <strong>ecs-fargate</strong> :</p>
+<p><img loading="lazy" src="img/create-ecs-fargate.png" alt="create-ecs-fargate.png"  /></p>
+<p>The <strong>cluster is created</strong> :</p>
+<p><img loading="lazy" src="img/created-cluster.png" alt="created-cluster.png"  /></p>
+<p>To complete the creation of the cluster, you <strong>must define</strong> its <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html" target="_blank" rel="noopener">capacity provider</a> property.</p>
+<p>The <strong>Capacity Providers</strong> tab is selected. We click the <strong>Update Cluster</strong> button :</p>
+<p><img loading="lazy" src="img/cluster-update-provider.png" alt="cluster-update-provider.png"  /></p>
+<p>We will choose the <strong>default capacity provider strategy</strong> :</p>
+<p><img loading="lazy" src="img/cluster-add-provider.png" alt="cluster-add-provider.png"  /></p>
+<p>We choose <code>FARGATE_SPOT</code> for this demonstration.</p>
+<p>For a <strong>real production site</strong> we should of course choose <code>FARGATE</code>.</p>
+<p><img loading="lazy" src="img/cluster-provider-spot.png" alt="cluster-provider-spot.png"  /></p>
+<p>We will create a <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html" target="_blank" rel="noopener">task definition</a> :</p>
+<p><img loading="lazy" src="img/create-task-definition.png" alt="create-task-definition.png"  /></p>
+<p>We choose <strong>FARGATE</strong> :</p>
+<p><img loading="lazy" src="img/create-task-fargate.png" alt="create-task-fargate.png"  /></p>
+<p>We give the name <strong>test</strong> and choose the role <code>ecsTaskExecutionRole</code> :</p>
+<p><img loading="lazy" src="img/create-task-name-and-role.png" alt="create-task-name-and-role.png"  /></p>
+<p>We choose the <strong>smallest value for the memory</strong> :</p>
+<p><img loading="lazy" src="img/create-task-memory.png" alt="create-task-memory.png"  /></p>
+<p>We choose the <strong>smallest value for the CPU</strong> :</p>
+<p><img loading="lazy" src="img/create-task-cpu.png" alt="create-task-cpu.png"  /></p>
+<p>We will now <strong>define a container</strong> :</p>
+<p><img loading="lazy" src="img/create-task-add-container.png" alt="create-task-add-container.png"  /></p>
+<p>We use these values :</p>
+<ul>
+<li><strong>Name</strong> : <code>site</code></li>
+<li><strong>Image</strong> : <code>jeromedecoster/site:latest</code></li>
+<li><strong>Soft limit</strong> : <code>128</code></li>
+<li><strong>Port Mapping</strong> : <code>80</code></li>
+</ul>
+<p><img loading="lazy" src="img/create-task-site.png" alt="create-task-site.png"  /></p>
+<p>The container <code>site</code> is defined :</p>
+<p><img loading="lazy" src="img/create-task-site-created.png" alt="create-task-site-created.png"  /></p>
+<p>We have finished :</p>
+<p><img loading="lazy" src="img/task-created.png" alt="task-created.png"  /></p>
+<p>We will now <strong>run this task definition</strong> :</p>
+<p><img loading="lazy" src="img/run-task.png" alt="run-task.png"  /></p>
+<p>We use these values :</p>
+<ul>
+<li><strong>Launch type</strong> : <code>FARGATE</code></li>
+<li><strong>VPC</strong> : the default VPC</li>
+<li><strong>Subnets</strong> : all available subnets</li>
+</ul>
+<p><img loading="lazy" src="img/run-task-settings.png" alt="run-task-settings.png"  /></p>
+<p>Then click <strong>run task</strong> :</p>
+<p><img loading="lazy" src="img/run-task-click.png" alt="run-task-click.png"  /></p>
+<p>The task status is <code>PROVISIONING</code>.</p>
+<p>We click the task <strong>id</strong> to open the detailed view  :</p>
+<p><img loading="lazy" src="img/run-task-running-open.png" alt="run-task-running-open.png"  /></p>
+<p>After few seconds the task status is now <code>RUNNING</code> and we have the <strong>Public IP</strong> :</p>
+<p><img loading="lazy" src="img/run-task-running-opened.png" alt="run-task-running-opened.png"  /></p>
+<p>If we use <strong>this URL</strong> in our browser we see our great site :</p>
+<p><img loading="lazy" src="img/site-0.1.0-prod.png" alt="site-0.1.0-prod.png"  /></p>
+<p>We can now <strong>stop our task</strong> :</p>
+<p><img loading="lazy" src="img/run-task-stop.png" alt="run-task-stop.png"  /></p>
+<h3 id="updating-the-site">Updating the site</h3>
+<p>We modify the file <a href="https://github.com/jeromedecoster/docker-ecs-fargate/blob/master/views/index.ejs" target="_blank" rel="noopener">index.ejs</a> to <strong>change the image</strong> of the squirrel :</p>
+<pre><code class="language-diff">- &lt;img src=&quot;img/squirrel-1.jpg&quot;&gt;
++ &lt;img src=&quot;img/squirrel-2.jpg&quot;&gt;
+</code></pre>
+<p>We modify the <a href="https://github.com/jeromedecoster/docker-ecs-fargate/blob/master/package.json" target="_blank" rel="noopener">package.json</a> file to <strong>change our version number</strong> :</p>
+<pre><code class="language-diff">{
+  &quot;name&quot;: &quot;docker-ecs-fargate&quot;,
+-  &quot;version&quot;: &quot;0.1.0&quot;,
++  &quot;version&quot;: &quot;0.2.0&quot;,
+</code></pre>
+<p>Our local page is <strong>reloaded</strong> and look like :</p>
+<p><img loading="lazy" src="img/site-0.2.0.png" alt="site-0.2.0.png"  /></p>
+<h3 id="hosting-the-docker-image-on-ecr">Hosting the docker image on ECR</h3>
+<p>We <a href="https://docs.aws.amazon.com/cli/latest/reference/ecr/create-repository.html" target="_blank" rel="noopener">create a repository</a> on ECR using aws cli. We get the URL of the repository :</p>
+<pre><code class="language-bash">$ aws ecr create-repository \
+    --repository-name ecs-fargate
+{
+    &quot;repository&quot;: {
+        &quot;repositoryArn&quot;: &quot;arn:aws:ecr:eu-west-3:&lt;aws-account-id&gt;:repository/ecs-fargate&quot;,
+        &quot;repositoryName&quot;: &quot;ecs-fargate&quot;,
+        &quot;repositoryUri&quot;: &quot;&lt;aws-account-id&gt;.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate&quot;,
+        &quot;//&quot;: &quot;...&quot;
+    }
+}
+</code></pre>
+<p>The repository has been created :</p>
+<p><img loading="lazy" src="img/ecr-created.png" alt="ecr-created.png"  /></p>
+<p>The <strong>View push commands</strong> button open a modal window containing all the information to push a docker image on this repository :</p>
+<p><img loading="lazy" src="img/ecr-view-commands.png" alt="ecr-view-commands.png"  /></p>
+<p>I copy the <code>get-login-password</code> command to the clipboard :</p>
+<p><img loading="lazy" src="img/ecr-push-commands.png" alt="ecr-push-commands.png"  /></p>
+<p>Let&rsquo;s look at the current state of the <strong>docker config file</strong> :</p>
+<pre><code class="language-bash">$ cat /home/$USER/.docker/config.json
+{
+    &quot;auths&quot;: {
+        &quot;https://index.docker.io/v1/&quot;: {
+            &quot;auth&quot;: &quot;xxxxx&quot;
+        }
+    },
+    &quot;HttpHeaders&quot;: {
+        &quot;User-Agent&quot;: &quot;Docker-Client/19.03.8 (linux)&quot;
+    }
+}
+</code></pre>
+<p>I execute the previously copied command :</p>
+<pre><code class="language-bash">$ aws ecr get-login-password \
+    --region eu-west-3 \
+    | docker login \
+    --username AWS \
+    --password-stdin xxxxx.dkr.ecr.eu-west-3.amazonaws.com
+</code></pre>
+<p>the docker config file has been <strong>updated</strong> :</p>
+<pre><code class="language-bash">$ cat /home/$USER/.docker/config.json
+{
+    &quot;auths&quot;: {
+        &quot;xxxxx.dkr.ecr.eu-west-3.amazonaws.com&quot;: {
+            &quot;auth&quot;: &quot;xxxxx&quot;
+        },
+        &quot;https://index.docker.io/v1/&quot;: {
+            &quot;auth&quot;: &quot;xxxxx&quot;
+        }
+    },
+    &quot;HttpHeaders&quot;: {
+        &quot;User-Agent&quot;: &quot;Docker-Client/19.03.8 (linux)&quot;
+    }
+}
+</code></pre>
+<p>We create the new production image with this <strong>make</strong> command :</p>
+<pre><code class="language-bash">$ make prod-ecr-build
+</code></pre>
+<p>Here is what is executed :</p>
+<ul>
+<li>The image is built with tags <code>ecs-fargate:latest</code> and <code>ecs-fargate:0.2.0</code>.</li>
+<li>Tags are added with the URL of the ECR repository.</li>
+</ul>
+<pre><code class="language-bash">VERSION=$(node -e &quot;console.log(require('./package.json').version)&quot;)
+docker image build \
+    --file env.prod.dockerfile \
+    --tag ecs-fargate \
+    --tag ecs-fargate:$VERSION \
+    .
+
+URL=$(aws ecr describe-repositories \
+    --query &quot;repositories[?repositoryName == 'ecs-fargate'].repositoryUri&quot; \
+    --output text)
+docker tag ecs-fargate:latest &quot;$URL:latest&quot;
+docker tag ecs-fargate:latest &quot;$URL:$VERSION&quot;
+</code></pre>
+<p>Our local images :</p>
+<pre><code class="language-bash">$ docker images
+REPOSITORY            TAG                 IMAGE ID            CREATED             SIZE
+xxxx.dkr.ecr.eu-wes.. 0.2.0               9f578704f1f6        51 minutes ago      119MB
+xxxx.dkr.ecr.eu-wes.. latest              9f578704f1f6        51 minutes ago      119MB
+ecs-fargate           0.2.0               9f578704f1f6        51 minutes ago      119MB
+ecs-fargate           latest              9f578704f1f6        51 minutes ago      119MB
+</code></pre>
+<p>We can now <strong>push</strong> the <code>latest</code> version <strong>on ECR</strong>. It takes a few moments :</p>
+<pre><code class="language-bash">$ docker push xxxxx.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate:latest
+The push refers to repository [xxxxx.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate]
+539efa4f40fd: Pushed 
+35831c3230bc: Pushed 
+846843578a94: Pushed 
+333d276b2ed4: Pushed 
+e4c8c61d9c2a: Pushed 
+3e207b409db3: Pushed
+</code></pre>
+<p>Now we <strong>push</strong> the <code>0.2.0</code> version. The layers are already existing, it is <strong>almost instantaneous</strong> :</p>
+<pre><code class="language-bash">$ docker push xxxxx.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate:0.2.0
+The push refers to repository [xxxxx.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate]
+539efa4f40fd: Layer already exists 
+35831c3230bc: Layer already exists 
+846843578a94: Layer already exists 
+333d276b2ed4: Layer already exists 
+e4c8c61d9c2a: Layer already exists 
+3e207b409db3: Layer already exists 
+0.2.0: digest: sha256:e087dc381753ea1a997b7ae0afd3134a87c9973ad583e6c8af6a43cb7601a33a size: 1575
+</code></pre>
+<p>The image is hosted on ECR :</p>
+<p><img loading="lazy" src="img/ecr-pushed.png" alt="ecr-pushed.png"  /></p>
+<h3 id="use-ecs-cli-to-start-the-image-in-ecs-fargate">Use ecs-cli to start the image in ECS FARGATE</h3>
+<p><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI.html" target="_blank" rel="noopener">ecs-cli</a> makes it easier to manage AWS ECS.</p>
+<p>It is a specific tool, coded in Go, <a href="https://github.com/aws/amazon-ecs-cli" target="_blank" rel="noopener">hosted on github</a>.</p>
+<p>The ecs-cli tool should not be confused with <a href="https://docs.aws.amazon.com/cli/latest/reference/ecs/index.html" target="_blank" rel="noopener">aws ecs</a> commands, which are lower level.</p>
+<p>The <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html" target="_blank" rel="noopener">installation instructions</a>.</p>
+<pre><code class="language-bash"># download
+$ sudo curl https://amazon-ecs-cli.s3.amazonaws.com/ecs-cli-linux-amd64-latest \
+    --output /usr/local/bin/ecs-cli
+
+# make it executable
+$ sudo chmod +x /usr/local/bin/ecs-cli
+</code></pre>
+<p>We <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-configure-profile.html" target="_blank" rel="noopener">configure our profile</a> with our <strong>access and secret keys</strong> :</p>
+<pre><code class="language-bash">$ ecs-cli configure profile \
+    --access-key xxxx \
+    --secret-key xxxx
+</code></pre>
+<p>This creates a file <code>~/.ecs/credentials</code> :</p>
+<pre><code class="language-bash"># read the credentials
+$ cat ~/.ecs/credentials 
+version: v1
+default: default
+ecs_profiles:
+  default:
+    aws_access_key_id: xxxx
+    aws_secret_access_key: xxxx
+</code></pre>
+<p>The option <code>--profile-name</code> is very useful :</p>
+<pre><code class="language-bash">$ ecs-cli configure profile \
+    --access-key yyyy \
+    --secret-key yyyy \
+    --profile-name bob
+</code></pre>
+<p>Read the credentials again :</p>
+<pre><code class="language-bash"># read the credentials
+$ cat ~/.ecs/credentials 
+version: v1
+default: default
+ecs_profiles:
+  default:
+    aws_access_key_id: xxxx
+    aws_secret_access_key: xxxx
+  bob:
+    aws_access_key_id: yyyy
+    aws_secret_access_key: yyyy
+</code></pre>
+<p>We <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-configure.html" target="_blank" rel="noopener">configure</a> ecs-cli to work on a <strong>new cluster</strong> called <code>ecs-fargate-cli</code> :</p>
+<pre><code class="language-bash"># configure a cluster
+$ ecs-cli configure \
+    --cluster ecs-fargate-cli \
+    --region eu-west-3 \
+    --default-launch-type FARGATE \
+    --config-name ecs-fargate-cli
+
+# set it as default (in case there are others)
+$ ecs-cli configure default \
+    --config-name ecs-fargate-cli
+</code></pre>
+<p>This creates a file <code>~/.ecs/config</code> :</p>
+<pre><code class="language-bash"># read the config
+$ cat ~/.ecs/config
+version: v1
+default: ecs-fargate-cli
+clusters:
+  ecs-fargate-cli:
+    cluster: ecs-fargate-cli
+    region: eu-west-3
+    default_launch_type: FARGATE
+</code></pre>
+<p>Note that there is <strong>no command to delete this configuration</strong>.</p>
+<p>If you want to <strong>clean</strong> the <code>~/.ecs/config</code> file you have to do it <strong>manually</strong>.</p>
+<p>We <strong>create a cluster</strong> with <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-up.html" target="_blank" rel="noopener">up</a> :</p>
+<pre><code class="language-bash">$ ecs-cli up \
+    --cluster-config ecs-fargate-cli \
+    --tags Name=ecs-fargate-cli
+VPC created: vpc-09d18311f91fa1609
+Subnet created: subnet-03eebf83eca2ddd9e
+Subnet created: subnet-0f21c83cc59d140a9
+Cluster creation succeeded.
+</code></pre>
+<p>This simple command creates a <strong>CloudFormation stack</strong> :</p>
+<p><img loading="lazy" src="img/cli-cloudformation-creating.png" alt="cli-cloudformation-creating.png"  /></p>
+<p>The list of <strong>resources created</strong> by this small command :</p>
+<p><img loading="lazy" src="img/cli-resources-created.png" alt="cli-resources-created.png"  /></p>
+<p>I used the <code>-–tags</code> option in the previous command to allows me to <strong>easily identify the VPC</strong> in the AWS interface :</p>
+<p><img loading="lazy" src="img/cli-vpc-created.png" alt="cli-vpc-created.png"  /></p>
+<p>And also the <strong>subnets</strong> :</p>
+<p><img loading="lazy" src="img/cli-subnets-created.png" alt="cli-subnets-created.png"  /></p>
+<p>The <code>--tags</code> options allow me to <strong>easily target these resources</strong> via aws cli.</p>
+<p>I can get the <code>id</code> of my <strong>VPC</strong> :</p>
+<pre><code class="language-bash">$ aws ec2 describe-vpcs \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Vpcs[].VpcId&quot; \
+    --output text
+vpc-09d18311f91fa1609
+</code></pre>
+<p>Get the <code>id</code> of the <strong>first subnet</strong> :</p>
+<pre><code class="language-bash">$ aws ec2 describe-subnets \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Subnets[0].SubnetId&quot; \
+    --output text
+subnet-0f21c83cc59d140a9
+</code></pre>
+<p>Get the <code>id</code> of the <strong>second subnet</strong> :</p>
+<pre><code class="language-bash">$ aws ec2 describe-subnets \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Subnets[1].SubnetId&quot; \
+    --output text
+subnet-03eebf83eca2ddd9e
+</code></pre>
+<p>Get the <code>id</code> of the <strong>security group</strong> :</p>
+<pre><code class="language-bash">$ aws ec2 describe-security-groups \
+    --query &quot;SecurityGroups[?VpcId == 'vpc-09d18311f91fa1609'].GroupId&quot; \
+    --output text
+sg-0991f4877b441af14
+</code></pre>
+<p>Let&rsquo;s see the <strong>inbound rules</strong> for this security group :</p>
+<p><img loading="lazy" src="img/cli-security-groups-inbound-default.png" alt="cli-security-groups-inbound-default.png"  /></p>
+<p>And the <strong>outbound rules</strong> :</p>
+<p><img loading="lazy" src="img/cli-security-groups-outbound-default.png" alt="cli-security-groups-outbound-default.png"  /></p>
+<p>We need to allow the <code>port 80</code> in the <strong>inbound rules</strong> with <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/authorize-security-group-ingress.html" target="_blank" rel="noopener">authorize-security-group-ingress</a>  :</p>
+<pre><code class="language-bash">$ aws ec2 authorize-security-group-ingress \
+  --group-id sg-0991f4877b441af14 \
+  --protocol tcp \
+  --port 80 \
+  --cidr 0.0.0.0/0 \
+  --region eu-west-3
+</code></pre>
+<p>The rule is <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/cli-security-groups.png" alt="cli-security-groups.png"  /></p>
+<p>One of the <strong>main advantages</strong> of ecs-cli is that it <strong>works directly</strong> with the <a href="https://docs.docker.com/compose/compose-file/" target="_blank" rel="noopener">docker-compose.yml</a> file.</p>
+<p>We need to create a <code>docker-compose.yml</code> file :</p>
+<ul>
+<li>Replace the <code>image</code> value with the value received.</li>
+</ul>
+<pre><code class="language-yaml">version: '3'
+services:
+  site:
+    image: xxxx.dkr.ecr.eu-west-3.amazonaws.com/ecs-fargate
+    ports:
+      - &quot;80:80&quot;
+    logging:
+      driver: awslogs     
+      options: 
+        awslogs-group: ecs-fargate-cli
+        awslogs-region: eu-west-3
+        awslogs-stream-prefix: site
+</code></pre>
+<p>Configuring ecs <strong>tasks and services requires a lot of options</strong>. We must <strong>create</strong> an <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-ecsparams.html" target="_blank" rel="noopener">ecs-params.yml</a> file to define them :</p>
+<ul>
+<li>Replace the <code>subnets</code> and <code>security_groups</code> values with the values received.</li>
+</ul>
+<pre><code class="language-yaml">version: 1
+task_definition:
+  task_execution_role: ecsTaskExecutionRole 
+  ecs_network_mode: awsvpc
+  task_size:
+    mem_limit: 0.5GB
+    cpu_limit: 256
+run_params:
+  network_configuration:
+    awsvpc_configuration:
+      subnets:
+        - &quot;subnet-xxxx&quot;
+        - &quot;subnet-xxxx&quot;
+      security_groups:
+        - &quot;sg-xxxx&quot;
+      assign_public_ip: ENABLED
+</code></pre>
+<p>We <strong>create a service</strong> with the <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-service-up.html" target="_blank" rel="noopener">compose service up</a> command :</p>
+<pre><code class="language-bash">$ ecs-cli compose \
+  --project-name ecs-fargate-cli \
+  service up \
+  --create-log-groups \
+  --cluster-config ecs-fargate-cli
+</code></pre>
+<p>The <strong>service is created</strong> with <strong>one running task</strong> :</p>
+<p><img loading="lazy" src="img/cli-clusters-running-service.png" alt="cli-clusters-running-service.png"  /></p>
+<p>The <strong>running service</strong> page :</p>
+<p><img loading="lazy" src="img/cli-running-service.png" alt="cli-running-service.png"  /></p>
+<p>Let&rsquo;s see the tab of the <strong>running task</strong> :</p>
+<p><img loading="lazy" src="img/cli-running-task.png" alt="cli-running-task.png"  /></p>
+<p>We get the <strong>Public IP</strong> on the <strong>details page</strong> of this task :</p>
+<p><img loading="lazy" src="img/cli-running-task-details.png" alt="cli-running-task-details.png"  /></p>
+<p>And if we open this <strong>Public IP</strong> in our browser, we see our wonderful site :</p>
+<p><img loading="lazy" src="img/site-0.2.0-prod.png" alt="site-0.2.0-prod.png"  /></p>
+<p>Now we can terminate the service with <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-compose-service-rm.html" target="_blank" rel="noopener">compose service down</a> :</p>
+<pre><code class="language-bash">$ ecs-cli compose \
+    --project-name ecs-fargate-cli \
+    service down \
+    --cluster-config ecs-fargate-cli
+</code></pre>
+<p>The <strong>service is terminated</strong> :</p>
+<p><img loading="lazy" src="img/cli-clusters-no-services.png" alt="cli-clusters-no-services.png"  /></p>
+<p>Now we can <strong>delete the cluster</strong> and <strong>the CloudFormation stack</strong> with <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cmd-ecs-cli-down.html" target="_blank" rel="noopener">down</a> :</p>
+<pre><code class="language-bash">$ ecs-cli down \
+    --force \
+    --cluster-config ecs-fargate-cli
+</code></pre>
+<p>Everything is <strong>removed</strong> :</p>
+<p><img loading="lazy" src="img/cli-clusters-empty.png" alt="cli-clusters-empty.png"  /></p>
+<p>All these commands are combined into <strong>2 make tasks</strong> :</p>
+<pre><code class="language-bash">service-up: # create the cluster and start a service
+	./service-up.sh
+
+service-down: # terminate the service and the cluster
+	./service-down.sh
+</code></pre>
+<p>The script service-up.sh allows us to deploy a service in seconds :</p>
+<pre><code class="language-bash"># create the cluster
+echo ecs-cli up...
+ecs-cli up \
+    --cluster-config ecs-fargate-cli \
+    --tags Name=ecs-fargate-cli
+
+# vpc id
+VPC=$(aws ec2 describe-vpcs \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Vpcs[].VpcId&quot; \
+    --output text)
+echo VPC:$VPC
+
+# subnet 1 id
+SUBNET_1=$(aws ec2 describe-subnets \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Subnets[0].SubnetId&quot; \
+    --output text)
+echo SUBNET_1:$SUBNET_1
+
+# subnet 2 id
+SUBNET_2=$(aws ec2 describe-subnets \
+    --filters &quot;Name=tag:Name,Values=ecs-fargate-cli&quot; \
+    --query &quot;Subnets[1].SubnetId&quot; \
+    --output text)
+echo SUBNET_2:$SUBNET_2
+
+# security group id
+SG=$(aws ec2 describe-security-groups \
+    --query &quot;SecurityGroups[?VpcId == '$VPC'].GroupId&quot; \
+    --output text)
+echo SG:$SG
+
+# open the port 80
+echo aws ec2 authorize-security-group-ingress...
+aws ec2 authorize-security-group-ingress \
+  --group-id $SG \
+  --protocol tcp \
+  --port 80 \
+  --cidr 0.0.0.0/0 \
+  --region eu-west-3
+
+# user id
+USER=$(aws sts get-caller-identity --output text --query 'Account')
+echo USER:$USER
+
+# create the docker-compose.yml file
+echo create docker-compose.yml file...
+sed --expression &quot;s|{{USER}}|$USER|&quot; \
+    docker-compose.sample.yml \
+    &gt; docker-compose.yml
+
+# create the ecs-params.yml file
+echo create ecs-params.yml file...
+sed --expression &quot;s|{{SUBNET_1}}|$SUBNET_1|&quot; \
+    --expression &quot;s|{{SUBNET_2}}|$SUBNET_2|&quot; \
+    --expression &quot;s|{{SG}}|$SG|&quot; \
+    ecs-params.sample.yml \
+    &gt; ecs-params.yml
+
+# create the service
+echo ecs-cli compose service up...
+ecs-cli compose \
+  --project-name ecs-fargate-cli \
+  service up \
+  --create-log-groups \
+  --cluster-config ecs-fargate-cli
+
+# service status
+echo ecs-cli compose service ps...
+ecs-cli compose \
+    --project-name ecs-fargate-cli \
+    service ps \
+    --cluster-config ecs-fargate-cli
+
+# task arn
+TASK=$(aws ecs list-tasks \
+    --cluster ecs-fargate-cli \
+    --query 'taskArns' \
+    --output text)
+echo TASK:$TASK
+
+# network interface id
+ENI=$(aws ecs describe-tasks \
+    --cluster ecs-fargate-cli \
+    --tasks &quot;$TASK&quot; \
+    --query &quot;tasks[0].attachments[0].details[?name == 'networkInterfaceId'].value&quot; \
+    --output text)
+echo ENI:$ENI
+
+# get the public ip
+echo aws ec2 describe-network-interfaces...
+aws ec2 describe-network-interfaces \
+    --network-interface-ids $ENI \
+    --query 'NetworkInterfaces[*].Association.PublicIp' \
+    --output text
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker-hub/">docker-hub</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecs/">ecs</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/fargate/">fargate</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

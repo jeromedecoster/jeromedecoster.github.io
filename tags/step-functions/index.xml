@@ -11,10 +11,10 @@
     
     <item>
       <title>Step Functions &#43; Rekognition</title>
-      <link>/aws/step-functions-rekognition/</link>
+      <link>/aws/step-functions--rekognition/</link>
       <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/step-functions-rekognition/</guid>
+      <guid>/aws/step-functions--rekognition/</guid>
       <description>
       
       Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**.

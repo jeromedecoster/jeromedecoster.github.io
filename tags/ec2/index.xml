@@ -11,10 +11,10 @@
     
     <item>
       <title>EC2 &#43; Ansible &#43; AWS CLI</title>
-      <link>/aws/ec2-ansible-aws-cli/</link>
+      <link>/aws/ec2--ansible--aws-cli/</link>
       <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ec2-ansible-aws-cli/</guid>
+      <guid>/aws/ec2--ansible--aws-cli/</guid>
       <description>
       
       Creating **EC2 instances** with **AWS CLI**. Uptading them with **Ansible**.

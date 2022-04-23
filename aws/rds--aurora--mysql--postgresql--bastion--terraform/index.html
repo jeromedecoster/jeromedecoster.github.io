@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,MySQL,PostgreSQL,RDS,Aurora,Terraform'><meta name="description" content='Create MySQL and PostgreSQL databases using Terraform. Interract with them using a bastion host and an SSH tunnel.'><meta property="og:title" content="RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform" />
+<meta property="og:description" content="Create **MySQL** and **PostgreSQL databases** using Terraform. Interract with them using a **bastion host** and an **SSH tunnel**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/rds--aurora--mysql--postgresql--bastion--terraform/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-02-08T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-02-08T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform"/>
+<meta name="twitter:description" content="Create **MySQL** and **PostgreSQL databases** using Terraform. Interract with them using a **bastion host** and an **SSH tunnel**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-the-project">Install the project</a></li>
+        <li><a href="#create-a-publicly-accessible-mysql-database-on-rds">Create a publicly accessible MySQL database on RDS</a></li>
+        <li><a href="#add-data-from-terminal">Add data from terminal</a></li>
+        <li><a href="#query-the-database-from-docker-images">Query the database from docker images</a></li>
+        <li><a href="#create-a-private-mysql-database-on-rds">Create a private MySQL database on RDS</a></li>
+        <li><a href="#connect-from-an-ec2-instance">Connect from an EC2 instance</a></li>
+        <li><a href="#query-the-database-by-using-a-bastion-host-and-an-ssh-tunnel">Query the database by using a bastion host and an SSH tunnel</a></li>
+        <li><a href="#query-the-database-by-using-a-bastion-host-and-dbearer">Query the database by using a bastion host and DBearer</a></li>
+        <li><a href="#create-a-private-postgresql-database-on-aurora">Create a private PostgreSQL database on Aurora</a></li>
+        <li><a href="#connect-from-an-ec2-instance-1">Connect from an EC2 instance</a></li>
+        <li><a href="#query-the-database-by-using-a-bastion-host-and-a-ssh-tunnel">Query the database by using a bastion host and a ssh tunnel</a></li>
+        <li><a href="#query-the-database-by-using-a-bastion-host-and-dbearer-1">Query the database by using a bastion host and DBearer</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">08</span>
+<span class="rest">Feb 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>publicly available MySQL database</strong> on RDS with Terraform</li>
+<li>Connect to this database and <strong>interact from the terminal</strong> or docker images</li>
+<li>Create a <strong>private MySQL database</strong> on RDS with Terraform</li>
+<li>Connect to this database <strong>from an EC2 instance</strong> within the same VPC</li>
+<li>Create a <strong>bastion host</strong>, an <strong>SSH tunnel</strong> and interract with the database <strong>from the terminal</strong> or the <strong>DBearer app</strong></li>
+<li>Create a <strong>private PostgreSQL database on Aurora</strong> with Terraform</li>
+<li>Redo the same interaction tests</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-the-project">Install the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="create-a-publicly-accessible-mysql-database-on-rds">Create a publicly accessible MySQL database on RDS</h3>
+<p>To setup the project, run the following command in the <code>rds-mysql-public</code> directory :</p>
+<pre><code class="language-bash">$ cd rds-mysql-public
+
+# terraform setup
+$ make setup
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/setup.sh" target="_blank" rel="noopener">command</a> initialize Terraform</p>
+<p>We are now deploying our infrastructure :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>The Terraform code to <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/terraform/db.tf" target="_blank" rel="noopener">create the database</a> is simple :</p>
+<pre><code class="language-hcl">resource &quot;aws_db_instance&quot; &quot;db_instance&quot; {
+  allocated_storage    = 10
+  engine               = &quot;mysql&quot;
+  engine_version       = &quot;5.7&quot;
+  instance_class       = &quot;db.t2.micro&quot;
+  identifier           = var.mysql_identifier
+  username             = var.mysql_username
+  password             = var.mysql_password
+  parameter_group_name = &quot;default.mysql5.7&quot;
+
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.vpc_sg.id]
+
+  publicly_accessible = true
+  skip_final_snapshot = true
+}
+
+resource &quot;aws_db_subnet_group&quot; &quot;db_subnet_group&quot; {
+  name       = &quot;${var.project_name}-db-subnet-group&quot;
+  subnet_ids = module.vpc.public_subnets
+}
+</code></pre>
+<p>The database creation <strong>require a VPC</strong>.</p>
+<p>It is <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/terraform/vpc.tf" target="_blank" rel="noopener">created</a> using the famous <a href="https://github.com/terraform-aws-modules/terraform-aws-vpc" target="_blank" rel="noopener">Terraform module</a> :</p>
+<pre><code class="language-hcl">module &quot;vpc&quot; {
+  source  = &quot;terraform-aws-modules/vpc/aws&quot;
+  version = &quot;3.11.5&quot;
+
+  name                 = var.project_name
+  cidr                 = &quot;10.0.0.0/16&quot;
+  azs                  = data.aws_availability_zones.zones.names
+  public_subnets       = [&quot;10.0.4.0/24&quot;, &quot;10.0.5.0/24&quot;, &quot;10.0.6.0/24&quot;]
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+}
+</code></pre>
+<p>The created VPC :</p>
+<p><img loading="lazy" src="img/rds-public-vpc.png" alt="rds-public-vpc"  /></p>
+<p>The created MySQL database :</p>
+<p><img loading="lazy" src="img/rds-public-database.png" alt="rds-public-database"  /></p>
+<h3 id="add-data-from-terminal">Add data from terminal</h3>
+<p>We can setup the database and add some data using the <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/mysql-create.sh" target="_blank" rel="noopener">mysql-create</a> command :</p>
+<pre><code class="language-bash"># create database + tables + insert values
+$ make mysql-create
+</code></pre>
+<p>This command use <code>mysql</code> (assuming it’s already installed on your machine) :</p>
+<pre><code class="language-bash">$ mysql --user=$MYSQL_USERNAME --password=$MYSQL_PASSWORD --host=$HOST &lt; create.sql
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/sql/create.sql" target="_blank" rel="noopener">create.sql</a> file is simple :</p>
+<pre><code class="language-sql">drop database if exists rds;
+create database rds;
+use rds;
+
+CREATE TABLE the_beatles (
+  albumName varchar(60) DEFAULT NULL,
+  trackName varchar(60) DEFAULT NULL,
+  trackNumber varchar(2) DEFAULT NULL,
+  releaseDate datetime DEFAULT NULL
+)
+ENGINE = INNODB,
+AVG_ROW_LENGTH = 655,
+CHARACTER SET latin1,
+COLLATE latin1_swedish_ci;
+
+INSERT INTO the_beatles VALUES
+('The Beatles 1967-1970 (The Blue Album)', 'Hey Jude', '13', '1968-08-26 12:00:00'),
+('The Beatles (The White Album)', 'While My Guitar Gently Weeps', '7', '1968-11-22 12:00:00'),
+('The Beatles 1967-1970 (The Blue Album)', 'Revolution', '14', '1968-08-26 12:00:00');
+</code></pre>
+<h3 id="query-the-database-from-docker-images">Query the database from docker images</h3>
+<p>We can connect to interact with the database using <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/mysql-connect.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># connect to rds
+$ make mysql-connect
+
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+
+MySQL [(none)]&gt;
+</code></pre>
+<p>This command assume you already has <code>mysql</code> installed on your machine :</p>
+<pre><code class="language-bash">mysql --user=$MYSQL_USERNAME --password=$MYSQL_PASSWORD --host=$HOST
+</code></pre>
+<p>Let&rsquo;s try to connect <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/mysql-query-alpine.sh" target="_blank" rel="noopener">using a docker image</a> :</p>
+<pre><code class="language-bash"># query values from 'apline' docker image
+$ make mysql-query-alpine
+</code></pre>
+<p>Why <strong>from a docker image</strong> since we can assume that we already have mysql <strong>installed on our computer</strong> ?</p>
+<ul>
+<li>We might want to <strong>test things in an easy-to-remove sandbox</strong> without wanting to leave traces on our machine</li>
+<li>We could create a <strong>ready-made docker image for a project</strong> and use it in environments <strong>other than our own machine</strong></li>
+</ul>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/mysql-query-alpine.sh" target="_blank" rel="noopener">command</a> run the alpine docker image :</p>
+<pre><code class="language-bash">docker run \
+    --interactive \
+    --tty \
+    --rm \
+    --volume $(pwd):/var/task \
+    --workdir /var/task \
+    --env MYSQL_USERNAME=$MYSQL_USERNAME \
+    --env MYSQL_PASSWORD=$MYSQL_PASSWORD \
+    --env HOST=$HOST \
+    --entrypoint=/bin/sh \
+    alpine entrypoint.sh
+</code></pre>
+<p>By passing some environment variables to an <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/sql/entrypoint.sh" target="_blank" rel="noopener">entrypoint script</a> :</p>
+<pre><code class="language-bash">apk add mysql mysql-client
+
+mysql --user=$MYSQL_USERNAME --password=$MYSQL_PASSWORD --host=$HOST --execute=&quot;source query.sql&quot;
+</code></pre>
+<p>And the <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/sql/query.sql" target="_blank" rel="noopener">query.sql</a> is simple :</p>
+<pre><code class="language-sql">use rds;
+
+select * from the_beatles;
+</code></pre>
+<p>Let&rsquo;s do another test using an already <strong>containerized mysql client</strong> available on the <a href="https://hub.docker.com/r/arey/mysql-client" target="_blank" rel="noopener">docker hub registry</a> :</p>
+<pre><code class="language-bash"># query values from 'arey/mysql-client' docker image
+$ make mysql-query-client
+</code></pre>
+<p>The docker image is built by using a <a href="https://github.com/arey/mysql-client/blob/master/Dockerfile" target="_blank" rel="noopener">simple Dockerfile</a>.</p>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/mysql-query-client.sh" target="_blank" rel="noopener">command</a> is simpler and clearer  :</p>
+<pre><code class="language-bash">docker run \
+    --volume $(pwd):/sql \
+    --interactive \
+    --tty \
+    arey/mysql-client \
+    --user=$MYSQL_USERNAME \
+    --password=$MYSQL_PASSWORD \
+    --host=$HOST \
+    --execute=&quot;source /sql/query.sql&quot;
+</code></pre>
+<p>The output is shown in the terminal :</p>
+<pre><code class="language-text">+----------------------------------------+------------------------------------+-------------+---------------------+
+| albumName                              | trackName                          | trackNumber | releaseDate         |
++----------------------------------------+------------------------------------+-------------+---------------------+
+| The Beatles 1967-1970 (The Blue Album) | Hey Jude                           | 13          | 1968-08-26 12:00:00 |
+| The Beatles (The White Album)          | While My Guitar Gently Weeps       | 7           | 1968-11-22 12:00:00 |
+| The Beatles 1967-1970 (The Blue Album) | Revolution                         | 14          | 1968-08-26 12:00:00 |
+...
+| The Beatles (The White Album)          | Sexy Sadie                         | 5           | 1968-11-22 12:00:00 |
+| The Beatles 1967-1970 (The Blue Album) | Get Back                           | 4           | 1969-04-11 12:00:00 |
+| The Beatles (The White Album)          | Yer Blues                          | 2           | 1968-11-22 12:00:00 |
++----------------------------------------+------------------------------------+-------------+---------------------+
+</code></pre>
+<p>The demonstration is over. We can <strong>delete our resources</strong> with <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/destroy.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># destroy all resources
+$ make destroy
+</code></pre>
+<h3 id="create-a-private-mysql-database-on-rds">Create a private MySQL database on RDS</h3>
+<p>To setup the project, run the following command in the <code>rds-mysql-private</code> directory :</p>
+<pre><code class="language-bash">$ cd rds-mysql-private
+
+# terraform setup
+$ make setup
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/scripts/setup.sh" target="_blank" rel="noopener">command</a> initialize Terraform.</p>
+<p>We are now deploying our infrastructure :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>The Terraform code to <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/terraform/db.tf" target="_blank" rel="noopener">create the database</a> is simple :</p>
+<pre><code class="language-hcl">resource &quot;aws_db_instance&quot; &quot;db_instance&quot; {
+  allocated_storage    = 10
+  engine               = &quot;mysql&quot;
+  engine_version       = &quot;5.7&quot;
+  instance_class       = &quot;db.t2.micro&quot;
+  identifier           = var.mysql_identifier
+  username             = var.mysql_username
+  password             = var.mysql_password
+  parameter_group_name = &quot;default.mysql5.7&quot;
+
+  db_subnet_group_name = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  
+  # private db
+  publicly_accessible = false
+  skip_final_snapshot = true
+}
+
+resource &quot;aws_db_subnet_group&quot; &quot;db_subnet_group&quot; {
+  name       = &quot;${var.project_name}-db-subnet-group&quot;
+  subnet_ids = module.vpc.private_subnets
+}
+</code></pre>
+<p>The VPC is built with <strong>2 public subnets and 2 private subnets</strong> :</p>
+<pre><code class="language-hcl">module &quot;vpc&quot; {
+  source  = &quot;terraform-aws-modules/vpc/aws&quot;
+  version = &quot;3.11.5&quot;
+
+  name = var.project_name
+  cidr = &quot;10.0.0.0/16&quot;
+  azs  = data.aws_availability_zones.zones.names
+
+  public_subnets = [&quot;10.0.1.0/24&quot;, &quot;10.0.2.0/24&quot;]
+  # rds require at least 2 subnet to launch an instance
+  private_subnets      = [&quot;10.0.3.0/24&quot;, &quot;10.0.4.0/24&quot;]
+  
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+}
+</code></pre>
+<p>The created VPC :</p>
+<p><img loading="lazy" src="img/rds-private-vpc.png" alt="rds-private-vpc"  /></p>
+<p>The created MySQL database :</p>
+<p><img loading="lazy" src="img/rds-private-database.png" alt="rds-private-database"  /></p>
+<p>Here are our 4 subnets :</p>
+<p><img loading="lazy" src="img/rds-private-4-subnets.png" alt="rds-private-4-subnets"  /></p>
+<p>It is important to note that the <strong>private subnets do not contain a rule with an internet gateway</strong> :</p>
+<p><img loading="lazy" src="img/rds-private-route-table-private.png" alt="rds-private-route-table-private"  /></p>
+<p>And that the <strong>public subnets have one rule with an internet gateway</strong> :</p>
+<p><img loading="lazy" src="img/rds-private-route-table-public.png" alt="rds-private-route-table-public"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/terraform/vpc.tf" target="_blank" rel="noopener">VPC require some security setup</a> to be private.</p>
+<p>Allow <strong>all inbound traffic</strong> on <code>self</code> :</p>
+<pre><code class="language-hcl">resource &quot;aws_default_security_group&quot; &quot;vpc_security_group&quot; {
+  vpc_id = module.vpc.vpc_id
+
+  # allow all inbound traffic 
+  ingress {
+    protocol  = -1
+    from_port = 0
+    to_port   = 0
+    self      = true
+  }
+
+  # allow all outbound traffic
+  egress {
+    protocol    = -1
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = [&quot;0.0.0.0/0&quot;]
+  }
+}
+</code></pre>
+<p>And <strong>allow incoming traffic on the MySQL port only for EC2 instances that trust a specific security group</strong> :</p>
+<pre><code class="language-hcl">resource &quot;aws_security_group_rule&quot; &quot;mysql_ec2_instances_sg&quot; {
+  # this rule is added to the security group defined by `security_group_id`
+  # and this id target the `default` security group associated with the created VPC
+  security_group_id = aws_default_security_group.vpc_security_group.id
+
+  type      = &quot;ingress&quot;
+  protocol  = &quot;tcp&quot;
+  from_port = 3306
+  to_port   = 3306
+
+  source_security_group_id = aws_security_group.instance.id
+}
+</code></pre>
+<h3 id="connect-from-an-ec2-instance">Connect from an EC2 instance</h3>
+<p>We connect to the EC2 instance with <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/scripts/ec2-connect.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># ssh connect to the ec2 instance
+$ make ec2-connect
+</code></pre>
+<p>This command connects like this :</p>
+<pre><code class="language-bash"># SSH add key to known_hosts to not be prompt by :
+# 'key fingerprint ... Are you sure you want to continue connecting (yes/no) ?'
+ssh-keyscan -t rsa $EC2_PUBLIC_DNS &gt;&gt; ~/.ssh/known_hosts
+
+ssh -i &quot;$PROJECT_NAME.pem&quot; ec2-user@$EC2_PUBLIC_DNS
+</code></pre>
+<p>We can connect to the database by copy-pasting the command displayed in the terminal :</p>
+<pre><code class="language-bash">$ mysql --user=admin --password=adminpass --host=rds-mysql-private.xxx.eu-west-3.rds.amazonaws.com
+
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+
+MySQL [(none)]&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| innodb             |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+</code></pre>
+<p>So we know how to create <strong>EC2 instances that can interact with our private database</strong>.</p>
+<h3 id="query-the-database-by-using-a-bastion-host-and-an-ssh-tunnel">Query the database by using a bastion host and an SSH tunnel</h3>
+<p>We will now <strong>connect to the database using a temporary bastion host</strong>.</p>
+<p>This machine will allow us to access the database <strong>through an SSH tunnel</strong> that we will also set up.</p>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/scripts/bastion-create.sh" target="_blank" rel="noopener">command</a> creates our bastion instance :</p>
+<pre><code class="language-bash"># create an ec2 bastion host
+$ make bastion-create
+</code></pre>
+<p>It is important that our bastion is created with these options :</p>
+<ul>
+<li><code>--security-group-ids</code> : use the <strong>security group allowing connection via port 3306</strong>.</li>
+<li><code>--subnet-id</code> : with one of the 2 <strong>publicly accessible subnets</strong>.</li>
+<li><code>--associate-public-ip-address</code> : create a <strong>public address to be able to connect to it</strong>.</li>
+</ul>
+<pre><code class="language-bash">aws ec2 run-instances \
+    --image-id $AMI_ID \
+    --count 1 \
+    --instance-type t2.micro \
+    --security-group-ids $SECURITY_GROUP_ID \
+    --subnet-id $SUBNET_ID \
+    --iam-instance-profile &quot;Name=$PROJECT_NAME-ec2-profile&quot; \
+    --associate-public-ip-address \
+    --key-name $PROJECT_NAME \
+    --tag-specifications &quot;ResourceType=instance,Tags=[{Key=Name,Value=$PROJECT_NAME-bastion}]&quot; \
+    --query 'Instances[0].InstanceId' \
+    --region $AWS_REGION \
+    --output text
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/scripts/ssh-tunnel-create.sh" target="_blank" rel="noopener">command</a> creates our <strong>SSH tunnel</strong> :</p>
+<pre><code class="language-bash"># create a ssh tunnel
+$ make ssh-tunnel-create
+</code></pre>
+<p>The tunnel is done via this line of script :</p>
+<pre><code class="language-bash">ssh -i &quot;$KEY_FILE&quot; -f -N -L 3307:$HOST:3306 ec2-user@$EC2_PUBLIC_DNS -v
+</code></pre>
+<p>We can <strong>connect by copy-pasting the command</strong> displayed in <strong>another</strong> terminal window :</p>
+<pre><code class="language-bash"># in another terminal window
+$ mysql --user=admin --password=adminpass --port=3307 --host=127.0.0.1
+
+MySQL [(none)]&gt; drop database if exists rds;
+MySQL [(none)]&gt; create database rds;
+MySQL [(none)]&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| innodb             |
+| mysql              |
+| performance_schema |
+| rds                |
+| sys                |
++--------------------+
+</code></pre>
+<h3 id="query-the-database-by-using-a-bastion-host-and-dbearer">Query the database by using a bastion host and DBearer</h3>
+<p>Connecting and interacting with the database via the terminal is a good exercise that can be <strong>valid in scripting and automation operations</strong>.</p>
+<p>If we want to interact with the database, we will <strong>use an application to make our life easier</strong> :</p>
+<p>We install <a href="https://dbeaver.io/" target="_blank" rel="noopener">DBeaver Community Edition</a> :</p>
+<pre><code class="language-bash"># https://dbeaver.io/download/
+$ sudo snap install dbeaver-ce
+</code></pre>
+<p>To be able to connect, we retrieve the information via <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-private/scripts/bastion-info.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># get bastion + database endpoints
+$ make bastion-info
+</code></pre>
+<p>To connect, we go through these steps&hellip;</p>
+<p>The SSH tunnel :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-ssh-tunnel.png" alt="rds-private-dbeaver-ssh-tunnel"  /></p>
+<p>The main panel :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-connexion.png" alt="rds-private-dbeaver-connexion"  /></p>
+<p>Create a script panel :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-create-script.png" alt="rds-private-dbeaver-create-script"  /></p>
+<p>Load a SQL script :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-load-script.png" alt="rds-private-dbeaver-load-script"  /></p>
+<p>Run the script :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-script-loaded.png" alt="rds-private-dbeaver-script-loaded"  /></p>
+<p>The connection works, we can <strong>query the database</strong> :</p>
+<p><img loading="lazy" src="img/rds-private-dbeaver-script-select.png" alt="rds-private-dbeaver-script-select"  /></p>
+<p>The demonstration is over. We can <strong>delete our resources</strong> with <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/rds-mysql-public/scripts/destroy.sh" target="_blank" rel="noopener">these commands</a> :</p>
+<pre><code class="language-bash"># close the ssh tunnel
+$ make ssh-tunnel-close
+
+# close the ec2 bastion host
+$ make bastion-terminate
+
+# destroy all resources
+$ make destroy
+</code></pre>
+<p><strong>Warning</strong> : deleting resources can take a <strong>long time</strong>. It is important to <strong>verify</strong> via the AWS website that the resources have indeed disappeared.</p>
+<h3 id="create-a-private-postgresql-database-on-aurora">Create a private PostgreSQL database on Aurora</h3>
+<p>To setup the project, run the following command in the <code>aurora-postgres-private</code> directory :</p>
+<pre><code class="language-bash">$ cd aurora-postgres-private
+
+# terraform setup
+$ make setup
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/scripts/setup.sh" target="_blank" rel="noopener">command</a> initialize Terraform.</p>
+<p>We are now deploying our infrastructure :</p>
+<pre><code class="language-bash"># terraform plan + apply (deploy)
+$ make apply
+</code></pre>
+<p>The Terraform code to <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/terraform/db.tf" target="_blank" rel="noopener">create an Aurora database</a> is <strong>bigger than for simple RDS</strong> :</p>
+<pre><code class="language-hcl">resource &quot;aws_rds_cluster&quot; &quot;cluster&quot; {
+  engine                  = &quot;aurora-postgresql&quot;
+  engine_mode             = &quot;provisioned&quot;
+  engine_version          = &quot;12.7&quot;
+  cluster_identifier      = var.project_name
+  master_username         = var.postgres_username
+  master_password         = var.postgres_password
+
+  db_subnet_group_name    = aws_db_subnet_group.db_subnet_group.name
+  
+  backup_retention_period = 7
+  skip_final_snapshot     = true
+}
+
+resource &quot;aws_rds_cluster_instance&quot; &quot;cluster_instances&quot; {
+  identifier         = &quot;${var.project_name}-${count.index}&quot;
+  count              = 1
+  cluster_identifier = aws_rds_cluster.cluster.id
+  instance_class     = &quot;db.t3.medium&quot;
+  engine             = aws_rds_cluster.cluster.engine
+  engine_version     = aws_rds_cluster.cluster.engine_version
+
+  publicly_accessible = false
+}
+
+resource &quot;aws_db_subnet_group&quot; &quot;db_subnet_group&quot; {
+  name = &quot;${var.project_name}-db-subnet-group&quot;
+  subnet_ids = module.vpc.private_subnets
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/terraform/vpc.tf" target="_blank" rel="noopener">VPC is created</a> with <strong>2 public subnets and 2 private subnets</strong> using the <a href="https://github.com/terraform-aws-modules/terraform-aws-vpc" target="_blank" rel="noopener">terraform-aws-vpc module</a>, as before :</p>
+<pre><code class="language-hcl">public_subnets = [&quot;10.0.1.0/24&quot;, &quot;10.0.2.0/24&quot;]
+# rds require at least 2 subnet to launch an instance
+private_subnets      = [&quot;10.0.3.0/24&quot;, &quot;10.0.4.0/24&quot;]
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/terraform/vpc.tf" target="_blank" rel="noopener">VPC require some security setup</a> to be private.</p>
+<p>Allow <strong>all inbound traffic</strong> on <code>self</code> and <strong>allow incoming traffic on the PostgreSQL port only for EC2 instances that trust a specific security group</strong> :</p>
+<pre><code class="language-hcl">resource &quot;aws_security_group_rule&quot; &quot;postgresql_ec2_instances_sg&quot; {
+  security_group_id = aws_default_security_group.vpc_security_group.id
+
+  type      = &quot;ingress&quot;
+  protocol  = &quot;tcp&quot;
+  from_port = 5432
+  to_port   = 5432
+
+  source_security_group_id = aws_security_group.instance.id
+}
+</code></pre>
+<p>The Aurora PostgreSQL database :</p>
+<p><img loading="lazy" src="img/aurora-db.png" alt="aurora-db"  /></p>
+<h3 id="connect-from-an-ec2-instance-1">Connect from an EC2 instance</h3>
+<p>We connect to the EC2 instance with <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/scripts/ec2-connect.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># ssh connect to the ec2 instance
+$ make ec2-connect
+</code></pre>
+<p>We can connect to the database by copy-pasting the command displayed in the terminal :</p>
+<pre><code class="language-bash">$ psql psql postgresql://master:masterpass@aurora-postgres-private.cluster-xxxx.eu-west-3.rds.amazonaws.com:5432/postgres?sslmode=require
+
+postgres=&gt; \l
+                                  Liste des bases de données
+    Nom    | Propriétaire | Encodage | Collationnement | Type caract. |    Droits d accès     
+-----------+--------------+----------+-----------------+--------------+-----------------------
+ postgres  | master       | UTF8     | en_US.UTF-8     | en_US.UTF-8  | 
+ rdsadmin  | rdsadmin     | UTF8     | en_US.UTF-8     | en_US.UTF-8  | rdsadmin=CTc/rdsadmin
+</code></pre>
+<p>So we know how to create <strong>EC2 instances that can interact with our private database</strong>.</p>
+<h3 id="query-the-database-by-using-a-bastion-host-and-a-ssh-tunnel">Query the database by using a bastion host and a ssh tunnel</h3>
+<p>We will now <strong>connect to the database using a temporary bastion host through an SSH tunnel</strong>.</p>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/scripts/bastion-create.sh" target="_blank" rel="noopener">command</a> creates our bastion instance :</p>
+<pre><code class="language-bash"># create an ec2 bastion host
+$ make bastion-create
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/scripts/ssh-tunnel-create.sh" target="_blank" rel="noopener">command</a> creates our SSH tunnel :</p>
+<pre><code class="language-bash"># create a ssh tunnel
+$ make ssh-tunnel-create
+</code></pre>
+<p>We can <strong>connect by copy-pasting the command</strong> displayed in the terminal :</p>
+<pre><code class="language-bash">$ psql postgresql://master:masterpass@127.0.0.1:5433/postgres?sslmode=require
+
+postgres=&gt; \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges   
+-----------+----------+----------+-------------+-------------+-----------------------
+ postgres  | master   | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+ rdsadmin  | rdsadmin | UTF8     | en_US.UTF-8 | en_US.UTF-8 | rdsadmin=CTc/rdsadmin
+</code></pre>
+<h3 id="query-the-database-by-using-a-bastion-host-and-dbearer-1">Query the database by using a bastion host and DBearer</h3>
+<p>To be able to connect, we retrieve the information via <a href="https://github.com/jeromedecoster/rds-mysql-aurora-postgres-bastion/blob/master/aurora-postgres-private/scripts/bastion-info.sh" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># get bastion + database endpoints
+$ make bastion-info
+</code></pre>
+<p>To connect, we go through these steps&hellip;</p>
+<p>The SSH tunnel :</p>
+<p><img loading="lazy" src="img/aurora-dbeaver-ssh-tunnel.png" alt="aurora-dbeaver-ssh-tunnel"  /></p>
+<p>The main panel :</p>
+<p><img loading="lazy" src="img/aurora-dbeaver-connexion.png" alt="aurora-dbeaver-connexion"  /></p>
+<p>Load a SQL script :</p>
+<p><img loading="lazy" src="img/aurora-dbeaver-load-script.png" alt="aurora-dbeaver-load-script"  /></p>
+<p>Run the script :</p>
+<p><img loading="lazy" src="img/aurora-dbeaver-script-loaded.png" alt="aurora-dbeaver-script-loaded"  /></p>
+<p>The connection works, we can <strong>query the database</strong> :</p>
+<p><img loading="lazy" src="img/aurora-dbeaver-script-select.png" alt="aurora-dbeaver-script-select"  /></p>
+<p>The demonstration is over. We can <strong>delete our resources</strong> with these commands :</p>
+<pre><code class="language-bash"># close the ssh tunnel
+$ make ssh-tunnel-close
+
+# close the ec2 bastion host
+$ make bastion-terminate
+
+# destroy all resources
+$ make destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/aurora/">aurora</a>
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/mysql/">mysql</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/postgresql/">postgresql</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/rds/">rds</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

@@ -11,10 +11,10 @@
     
     <item>
       <title>Kubernetes &#43; EKS &#43; Canary Deployment</title>
-      <link>/aws/kubernetes-eks-canary-deployment/</link>
+      <link>/aws/kubernetes--eks--canary-deployment/</link>
       <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-canary-deployment/</guid>
+      <guid>/aws/kubernetes--eks--canary-deployment/</guid>
       <description>
       
       Testing **Kubernetes Canary Deployment** on **EKS**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Blue/Green Deployment</title>
-      <link>/aws/kubernetes-eks-blue/green-deployment/</link>
+      <link>/aws/kubernetes--eks--blue/green-deployment/</link>
       <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-blue/green-deployment/</guid>
+      <guid>/aws/kubernetes--eks--blue/green-deployment/</guid>
       <description>
       
       Testing **Kubernetes Blue/Green Deployment** on **EKS**.

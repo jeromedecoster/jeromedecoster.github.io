@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,Kubernetes,Pattern,Minikube,Redis,Prometheus,Grafana'><meta name="description" content='Testing the Adapter Kubernetes Pattern with Minikube, Redis, Prometheus and Grafana.'><meta property="og:title" content="Kubernetes &#43; Adapter Pattern &#43; Minikube" />
+<meta property="og:description" content="Testing the **Adapter Kubernetes Pattern** with **Minikube**, **Redis**, **Prometheus** and **Grafana**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/kubernetes--adapter-pattern--minikube/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2022-04-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-04-20T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes &#43; Adapter Pattern &#43; Minikube"/>
+<meta name="twitter:description" content="Testing the **Adapter Kubernetes Pattern** with **Minikube**, **Redis**, **Prometheus** and **Grafana**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Kubernetes &#43; Adapter Pattern &#43; Minikube | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#setup-the-project">Setup the project</a></li>
+        <li><a href="#the-adapter-pattern">The Adapter pattern</a></li>
+        <li><a href="#exploring-the-project">Exploring the project</a></li>
+        <li><a href="#running-the-project">Running the project</a></li>
+        <li><a href="#running-promethethus-locally">Running Promethethus locally</a></li>
+        <li><a href="#enable-metrics">Enable metrics</a></li>
+        <li><a href="#visualize-in-grafana">Visualize in Grafana</a></li>
+        <li><a href="#local-test-using-docker-compose">Local test using docker-compose</a></li>
+        <li><a href="#using-minikube">Using minikube</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">20</span>
+<span class="rest">Apr 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Kubernetes &#43; Adapter Pattern &#43; Minikube</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Run a <strong>voting application</strong> using an <strong>express website</strong> and <strong>redis</strong></li>
+<li>Run locally using <strong>docker images</strong> and <strong>docker-compose</strong></li>
+<li>Run locally using <strong>minikube</strong></li>
+<li>Explore the <strong>Adapter pattern</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="setup-the-project">Setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/k8s-adapter-pattern" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/k8s-adapter-pattern.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+</code></pre>
+<h3 id="the-adapter-pattern">The Adapter pattern</h3>
+<p>The <strong>Adapter pattern</strong> is the third of the structural models described in the <a href="https://www.oreilly.com/library/view/kubernetes-patterns/9781492050278/" target="_blank" rel="noopener">Bilgin Ibryam and Roland Huß book</a></p>
+<p><img loading="lazy" src="img/book.jpg" alt="book.jpg"  /></p>
+<p>Kubernetes manages pods instead of containers and pods encapsulate containers. <strong>A pod may contain one or more containers</strong>.</p>
+<p>A pod that contains one container refers to a <strong>single container pod</strong> and it is the <strong>most common kubernetes use case</strong>.</p>
+<p>A pod that contains Multiple co-related containers refers to a <strong>multi-container pod</strong>.</p>
+<p>The <strong>adapter pattern</strong> is a specialization of the sidecar pattern.</p>
+<p>It is used to transform one content to another, usually :</p>
+<ul>
+<li>The main container generates outputs (logs or other).</li>
+<li>The adapter container reads these outputs and generates new content for specific software. The output is formatted, adapted.</li>
+</ul>
+<p>Adapter containers are typically used to generate monitoring metrics from logs or another data sources.</p>
+<p>For example generate <a href="https://prometheus.io/docs/concepts/data_model/" target="_blank" rel="noopener">metrics usable by Prometheus</a>.</p>
+<h3 id="exploring-the-project">Exploring the project</h3>
+<p>The project is a simple voting application. A website that uses a Redis database.</p>
+<p><img loading="lazy" src="img/project.png" alt="project.png"  /></p>
+<p>We reuse and modify the Init Container Pattern demo project.</p>
+<p>The goal of this demo is to <strong>generate a metrics file suitable for Promotheus</strong> to display the evolution of <code>up</code> and <code>down</code> data coming from Redis.</p>
+<p>We can then follow these developments via a nice Grafana dashboard.</p>
+<p>The <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/tree/master/metrics" target="_blank" rel="noopener">metrics container</a> is added as an adapter container. It&rsquo;s an express server that collects Redis data and returns it at the URL <code>/metrics</code>.</p>
+<p>This small server is used for our demonstration. But in reality one will use as adapt a <a href="https://grafana.com/oss/prometheus/exporters/redis-exporter/" target="_blank" rel="noopener">redis-exporter</a>. It is a ready-to-use docker image. It comes from this <a href="https://github.com/oliver006/redis_exporter" target="_blank" rel="noopener">git repository</a>.</p>
+<p>Here is the classic usage of exporting redis datas within a kubernetes manifest :</p>
+<pre><code class="language-yaml">spec:
+  containers:
+  - name: redis
+    image: redis
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+    ports:
+    - containerPort: 6379
+  - name: redis-exporter
+    image: oliver006/redis_exporter:latest
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+    ports:
+    - containerPort: 9121
+</code></pre>
+<p>The use of this exporter is not the subject of this article.</p>
+<h3 id="running-the-project">Running the project</h3>
+<p>We start the project :</p>
+<pre><code class="language-bash"># run redis alpine docker image
+$ make redis
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ docker run \
+  --rm \
+  --name redis \
+  --publish 6379:6379 \
+  redis:alpine
+</code></pre>
+<p>We execute the following command in another terminal :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode (livereload + nodemon)
+$ make vote
+</code></pre>
+<p>We open the URL <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a></p>
+<p><img loading="lazy" src="img/localhost.png" alt="localhost.png"  /></p>
+<h3 id="running-promethethus-locally">Running Promethethus locally</h3>
+<p>We start Promethethus via its <a href="https://registry.hub.docker.com/r/prom/prometheus" target="_blank" rel="noopener">docker image</a> :</p>
+<pre><code class="language-bash"># run prometheus
+$ make prometheus
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash"># run prometheus
+$ docker run \
+  --network host \
+  --volume $(pwd)/prometheus.yaml:/etc/prometheus/prometheus.yaml \
+  prom/prometheus \
+  --config.file=/etc/prometheus/prometheus.yaml
+</code></pre>
+<p>Prometheus is configured with the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/prometheus.yaml" target="_blank" rel="noopener">prometheus.yaml</a> file defining its <strong>metric harvesting parameters</strong> :</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: 'local'
+    scrape_interval: 10s
+    static_configs:
+    - targets:
+      - '0.0.0.0:5000' # to work with make prometheus + metrics
+      - 'metrics:5000' # to work with make docker-compose
+      - '192.168.49.2:32000' # minikube
+</code></pre>
+<p>We open <a href="http://localhost:9090/" target="_blank" rel="noopener">http://localhost:9090/</a></p>
+<p><img loading="lazy" src="img/prometheus.png" alt="prometheus.png"  /></p>
+<p>Prometheus is working fine but for now it is not retrieving any data :</p>
+<p>We see <a href="http://localhost:9090/service-discovery" target="_blank" rel="noopener">http://localhost:9090/service-discovery</a></p>
+<p><img loading="lazy" src="img/service-discovery.png" alt="service-discovery.png"  /></p>
+<p>The targets defined by the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/prometheus.yaml" target="_blank" rel="noopener">prometheus.yaml</a> file currently have a <code>status down</code> :</p>
+<p>We open <a href="http://localhost:9090/targets" target="_blank" rel="noopener">http://localhost:9090/targets</a></p>
+<p><img loading="lazy" src="img/targets.png" alt="targets.png"  /></p>
+<h3 id="enable-metrics">Enable metrics</h3>
+<p>In a new terminal window :</p>
+<pre><code class="language-bash"># run metrics server using npm
+$ make metrics
+</code></pre>
+<p>This command starts the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/vote/index.js" target="_blank" rel="noopener">node server</a> which collects <code>up</code> and <code>down</code> data from Redis and returns it to the URL <code>/metrics</code> :</p>
+<pre><code class="language-js">const app = express()
+
+const redis = new Redis({
+  port: 6379,
+  host: REDIS_HOST
+})
+
+// ...
+
+const up_gauge = new client.Gauge({
+  name: 'up_gauge',
+  help: 'Number of up.'
+})
+
+app.get('/metrics', async (req, res) =&gt; {
+  let up = await redis.get('up')
+  up_gauge.set(Number(up))
+
+  res.set('Content-Type', client.register.contentType)
+  res.end(await client.register.metrics())
+})
+</code></pre>
+<p>We open <a href="http://localhost:5000/metrics" target="_blank" rel="noopener">http://localhost:5000/metrics</a></p>
+<p>We now see our exported metrics :</p>
+<p><img loading="lazy" src="img/metrics.png" alt="metrics.png"  /></p>
+<p>By reloading <a href="http://localhost:9090/targets" target="_blank" rel="noopener">http://localhost:9090/targets</a> we can see that Prometheus now manages to collect this data :</p>
+<p><img loading="lazy" src="img/targets-2.png" alt="targets-2.png"  /></p>
+<p>We can display two graphs of our data</p>
+<p><a href="http://localhost:9090/graph?g0.expr=up_gauge%20&amp;g0.tab=0&amp;g0.stacked=0&amp;g0.show_exemplars=0&amp;g0.range_input=5m&amp;g1.expr=down_gauge&amp;g1.tab=0&amp;g1.stacked=0&amp;g1.show_exemplars=0&amp;g1.range_input=5m" target="_blank" rel="noopener">http://localhost:9090/graph?g0.expr=up_gauge</a>  :</p>
+<p><img loading="lazy" src="img/gauge.png" alt="gauge.png"  /></p>
+<p>When we interact with the website :</p>
+<p><img loading="lazy" src="img/up-2.png" alt="up-2.png"  /></p>
+<p>By reloading our <a href="http://localhost:9090/graph?g0.expr=up_gauge%20&amp;g0.tab=0&amp;g0.stacked=0&amp;g0.show_exemplars=0&amp;g0.range_input=5m&amp;g1.expr=down_gauge&amp;g1.tab=0&amp;g1.stacked=0&amp;g1.show_exemplars=0&amp;g1.range_input=5m" target="_blank" rel="noopener">graphs page</a> we see the update :</p>
+<p><img loading="lazy" src="img/gauge-2.png" alt="gauge-2.png"  /></p>
+<h3 id="visualize-in-grafana">Visualize in Grafana</h3>
+<p>We start the docker image of grafana :</p>
+<pre><code class="language-bash"># run grafana
+$ make grafana
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash"># run grafana
+$ docker run \
+    --network host \
+    --env GF_AUTH_BASIC_ENABLED=false \
+    --env GF_AUTH_ANONYMOUS_ENABLED=true \
+    --env GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
+    grafana/grafana
+</code></pre>
+<p>We open <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a></p>
+<p>Grafana is working but <a href="http://localhost:3000/datasources" target="_blank" rel="noopener">not configured yet</a> :</p>
+<p><img loading="lazy" src="img/no-datasource.png" alt="no-datasource.png"  /></p>
+<p>To <strong>configure Grafana</strong>, we run this command in a new terminal window :</p>
+<pre><code class="language-bash"># configure grafana
+$ make configure
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash"># add datasource
+$ curl http://localhost:3000/api/datasources \
+    --header 'Content-Type: application/json' \
+    --data '{ &quot;name&quot;: &quot;Prometheus&quot;, &quot;type&quot;: &quot;prometheus&quot;, &quot;access&quot;: &quot;proxy&quot;, &quot;url&quot;: &quot;http://localhost:9090&quot;, &quot;basicAuth&quot;: false, &quot;isDefault&quot;: true }'
+
+# add my-dashboard
+$ curl http://localhost:3000/api/dashboards/db \
+      --header 'Content-Type: application/json' \
+      --data @my-dashboard.json
+</code></pre>
+<p>The dashboard is a <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/my-dashboard.json" target="_blank" rel="noopener">verbose JSON file</a> :</p>
+<pre><code class="language-json">{
+  &quot;overwrite&quot;: true,
+  &quot;dashboard&quot;: {
+    &quot;__inputs&quot;: [
+      {
+        &quot;name&quot;: &quot;DS_PROMETHEUS&quot;,
+        &quot;label&quot;: &quot;Prometheus&quot;,
+        &quot;description&quot;: &quot;&quot;,
+        &quot;type&quot;: &quot;datasource&quot;,
+        &quot;pluginId&quot;: &quot;prometheus&quot;,
+        &quot;pluginName&quot;: &quot;Prometheus&quot;
+      }
+    ],
+    &quot;__requires&quot;: [
+      {
+        &quot;type&quot;: &quot;panel&quot;,
+        &quot;id&quot;: &quot;gauge&quot;,
+        &quot;name&quot;: &quot;Gauge&quot;,
+        &quot;version&quot;: &quot;&quot;
+      },
+      { &quot;...&quot;: &quot;...&quot; }
+    ],
+    &quot;...&quot;: &quot;...&quot;,
+    &quot;timezone&quot;: &quot;browser&quot;,
+    &quot;title&quot;: &quot;My dashboard&quot;,
+    &quot;variables&quot;: {
+      &quot;list&quot;: []
+    },
+    &quot;uid&quot;: &quot;cT-ufiKGz&quot;,
+    &quot;version&quot;: 1
+  }
+}
+</code></pre>
+<p>By reloading <a href="http://localhost:3000/datasources" target="_blank" rel="noopener">http://localhost:3000/datasources</a></p>
+<p><img loading="lazy" src="img/datasource.png" alt="datasource.png"  /></p>
+<p>We <a href="http://localhost:3000/dashboards" target="_blank" rel="noopener">access our dashboard</a> via the menu :</p>
+<p><img loading="lazy" src="img/dashboard-link.png" alt="dashboard-link.png"  /></p>
+<p>The dashboard works correctly :</p>
+<p><img loading="lazy" src="img/dashboard.png" alt="dashboard.png"  /></p>
+<p>This part of the demo is complete. We can <strong>close all instances</strong> running in our different terminals.</p>
+<h3 id="local-test-using-docker-compose">Local test using docker-compose</h3>
+<p>Before testing in minikube, it’s a good idea to use docker-compose to orchestrate the containers that make up the application locally. It’s a good step.</p>
+<p>The <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/docker-compose.dev.yml" target="_blank" rel="noopener">docker-compose.dev.yml</a> file starts to grow to a certain size :</p>
+<pre><code class="language-yaml">services:
+  vote:
+    build:
+      context: ./vote
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+        - WEBSITE_PORT=4000
+    volumes:
+      - &quot;./vote:/app&quot;
+    ports:
+      - &quot;4000:4000&quot;
+      - &quot;35729:35729&quot;
+    networks:
+      - backend
+    depends_on:
+      - redis
+    
+  redis:
+    image: redis:alpine
+    ports:
+      - &quot;6379:6379&quot;
+    networks:
+      - backend
+
+  metrics:
+    build:
+      context: ./metrics
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+        - SERVER_PORT=5000
+        - REDIS_HOST=redis
+    volumes:
+      - &quot;./metrics:/app&quot;
+    ports:
+      - &quot;5000:5000&quot;
+    networks:
+      - backend
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    ports: 
+      - &quot;9090:9090&quot;
+    command: --config.file=/etc/prometheus/prometheus.yaml
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    networks:
+      - backend
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - &quot;3000:3000&quot;
+    environment:
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - backend
+
+  grafana-setup:
+    container_name: grafana-setup
+    image: alpine:3.10
+    depends_on:
+      - grafana
+    volumes:
+      - ./datasource.json:/etc/grafana/datasource.json
+      - ./my-dashboard.json:/etc/grafana/my-dashboard.json
+    command: &gt;
+      /bin/sh -c &quot;
+        apk add --no-cache curl
+        cd /etc/grafana/
+        sleep 10
+        until nc -vz grafana 3000 ; do echo 'Waiting for grafana' ; sleep 5 ; done
+
+        sleep 5
+        curl --silent http://grafana:3000/api/datasources
+        echo
+
+        curl http://grafana:3000/api/datasources \
+          --header 'Content-Type: application/json' \
+          --data @datasource.json
+        
+        curl http://grafana:3000/api/dashboards/db \
+          --silent \
+          --header 'Content-Type: application/json' \
+          --data @my-dashboard.json&quot;
+    networks:
+      - backend
+
+networks:
+  backend: {}
+</code></pre>
+<p>Note above the use of a <code>grafana-setup</code> service which uses an <code>alpine:3.10</code> image to <strong>configure grafana</strong> with a <code>command</code> shell script.</p>
+<p>Note that the command <strong>waits for grafana to be available</strong> with this line using <a href="https://linuxhandbook.com/nc-command/" target="_blank" rel="noopener">nc</a> :</p>
+<pre><code class="language-bash">$ until nc -vz grafana 3000 ; do echo 'Waiting for grafana' ; sleep 5 ; done
+</code></pre>
+<p>Run the following command :</p>
+<pre><code class="language-bash"># run the project using docker-compose (same as redis + vote + ...)
+$ make compose-dev
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ export COMPOSE_PROJECT_NAME=k8s_adapter
+$ docker-compose \
+  --file docker-compose.dev.yml \
+  up \
+  --remove-orphans \
+  --force-recreate \
+  --build \
+  --no-deps
+</code></pre>
+<p>We open <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a></p>
+<p><img loading="lazy" src="img/compose-vote.png" alt="compose-vote.png"  /></p>
+<p>We open <a href="http://localhost:5000/metrics" target="_blank" rel="noopener">http://localhost:5000/metrics</a></p>
+<p><img loading="lazy" src="img/compose-metrics.png" alt="compose-metrics.png"  /></p>
+<p>And the dashboard <a href="http://localhost:3000/d/cT-ufiKGz/my-dashboard?orgId=1&amp;refresh=1m" target="_blank" rel="noopener">http://localhost:3000/d/cT-ufiKGz/my-dashboard</a> :</p>
+<p><img loading="lazy" src="img/compose-dashboard.png" alt="compose-dashboard.png"  /></p>
+<p>This part of the demo is complete. You can end the docker-compose process with <code>Ctrl+C</code>.</p>
+<h3 id="using-minikube">Using minikube</h3>
+<p>We start minikube :</p>
+<pre><code class="language-bash">$ minikube start --driver=docker
+</code></pre>
+<p>If minikube won’t start with a <code>PROVIDER_DOCKER_NOT_RUNNING</code> error or another error, try a <a href="https://stackoverflow.com/a/54994074" target="_blank" rel="noopener">hard reset</a> :</p>
+<pre><code class="language-bash">$ minikube delete -p minikube
+</code></pre>
+<p>We check the context :</p>
+<pre><code class="language-bash">$ kubectl config current-context
+minikube
+</code></pre>
+<p>We launch the Kubernetes dashboard in a new terminal window :</p>
+<pre><code class="language-bash"># new terminal window
+$ minikube dashboard
+</code></pre>
+<p><img loading="lazy" src="img/minikube-ns.png" alt="minikube-ns.png"  /></p>
+<p>We create the kubernetes namespace with the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/k8s/ns.yaml" target="_blank" rel="noopener">ns.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/ns.yaml
+</code></pre>
+<p><img loading="lazy" src="img/minikube-ns-2.png" alt="minikube-ns-2.png"  /></p>
+<p>Target the <a href="https://stackoverflow.com/a/56392747" target="_blank" rel="noopener">local docker registry</a> :</p>
+<pre><code class="language-bash">$ eval $(minikube -p minikube docker-env)
+</code></pre>
+<p><strong>Rebuild the docker images</strong> in this registry :</p>
+<pre><code class="language-bash"># /!\ must be in the same terminal window than previous command
+# build the site + metrics docker image
+$ make docker-build
+</code></pre>
+<p>We now launch the redis instance with the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/k8s/redis.yaml" target="_blank" rel="noopener">redis.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/redis.yaml
+</code></pre>
+<p>The Redis manifest defines the <strong>multi-container pod</strong>. It contains a <code>redis:alpine</code> image and our <code>metrics:latest</code> <strong>adapter container</strong> :</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deploy
+  namespace: k8s-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: mem-cache
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: mem-cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:alpine
+        ports:
+        - name: redis
+          containerPort: 6379
+      - name: metrics
+        image: metrics:latest
+        env:
+        - name: SERVER_PORT
+          value: &quot;5000&quot;
+        - name: REDIS_HOST
+          value: &quot;localhost&quot;
+        ports:
+        - containerPort: 5000
+          name: metrics 
+        imagePullPolicy: Never
+</code></pre>
+<p>The deployment is a success :</p>
+<p><img loading="lazy" src="img/minikube-replica-set.png" alt="minikube-replica-set.png"  /></p>
+<p>To access the service, we get its URL :</p>
+<pre><code class="language-bash">$ minikube service list --namespace k8s-adapter
+|----------------------|---------------------------|--------------|---------------------------|
+|      NAMESPACE       |           NAME            | TARGET PORT  |            URL            |
+|----------------------|---------------------------|--------------|---------------------------|
+| k8s-adapter          | metrics-svc               | metrics/9100 | http://192.168.49.2:32000 |
+| k8s-adapter          | redis-svc                 | No node port |
+|----------------------|---------------------------|--------------|---------------------------|
+</code></pre>
+<p>Metrics can be accessed at <a href="http://192.168.49.2:32000/metrics" target="_blank" rel="noopener">http://192.168.49.2:32000/metrics</a></p>
+<p><img loading="lazy" src="img/minikube-metrics.png" alt="minikube-metrics.png"  /></p>
+<p>We apply the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/k8s/vote.yaml" target="_blank" rel="noopener">vote.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/vote.yaml
+</code></pre>
+<p>To access the service, we get its URL :</p>
+<pre><code class="language-bash">$ minikube service list --namespace k8s-adapter
+|-------------|-------------|--------------|---------------------------|
+|  NAMESPACE  |    NAME     | TARGET PORT  |            URL            |
+|-------------|-------------|--------------|---------------------------|
+| k8s-adapter | metrics-svc | metrics/9100 | http://192.168.49.2:32000 |
+| k8s-adapter | redis-svc   | No node port |
+| k8s-adapter | vote-svc    |         9000 | http://192.168.49.2:31000 |
+|-------------|-------------|--------------|---------------------------|
+</code></pre>
+<p>The vote website is accessed at <a href="http://192.168.49.2:31000" target="_blank" rel="noopener">http://192.168.49.2:31000</a></p>
+<p><img loading="lazy" src="img/minikube-vote.png" alt="minikube-vote.png"  /></p>
+<p>To complete our tests, we will use Prometheus and Grafana.</p>
+<p>To simplify this demonstration, they will <strong>not be launched within minikube</strong>.</p>
+<p>Launching and configuring these 2 software within Kubernetes is <strong>not a simple task</strong>.</p>
+<p>This is one of the disadvantages of Kubernetes : <strong>some tasks become over-engineered</strong>.</p>
+<p>We start Prometheus :</p>
+<pre><code class="language-bash"># run prometheus
+$ make prometheus
+</code></pre>
+<p>We open <a href="http://localhost:9090/" target="_blank" rel="noopener">http://localhost:9090/</a></p>
+<p>Prometheus is configured with the <a href="https://github.com/jeromedecoster/k8s-adapter-pattern/blob/master/prometheus.yaml" target="_blank" rel="noopener">prometheus.yaml</a> file with the following targets :</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: 'local'
+    scrape_interval: 10s
+    static_configs:
+    - targets:
+      - '0.0.0.0:5000' # to work with make prometheus + metrics
+      - 'metrics:5000' # to work with make docker-compose
+      - '192.168.49.2:32000' # minikube
+</code></pre>
+<p>We can see that the <a href="http://localhost:9090/targets" target="_blank" rel="noopener">target works</a> :</p>
+<p><img loading="lazy" src="img/minikube-targets.png" alt="minikube-targets.png"  /></p>
+<p>We launch grafana via a new terminal window :</p>
+<pre><code class="language-bash"># run grafana
+$ make grafana
+</code></pre>
+<p>Grafana is currently not defined. There is <a href="http://localhost:3000/datasources" target="_blank" rel="noopener">no datasources</a> :</p>
+<p><img loading="lazy" src="img/no-datasource.png" alt="no-datasource.png"  /></p>
+<p>We <strong>add a datasource</strong> with this command line :</p>
+<pre><code class="language-bash">$ curl http://localhost:3000/api/datasources \
+    --header 'Content-Type: application/json' \
+    --data '{ &quot;name&quot;: &quot;Prometheus&quot;, &quot;type&quot;: &quot;prometheus&quot;, &quot;access&quot;: &quot;proxy&quot;, &quot;url&quot;: &quot;http://localhost:9090&quot;, &quot;basicAuth&quot;: false, &quot;isDefault&quot;: true }'
+</code></pre>
+<p><img loading="lazy" src="img/datasource.png" alt="datasource.png"  /></p>
+<p>it is a success :</p>
+<p><img loading="lazy" src="img/datasource-success.png" alt="datasource-success.png"  /></p>
+<p>We add the dashboard with this command line :</p>
+<pre><code class="language-bash">$ curl http://localhost:3000/api/dashboards/db \
+    --header 'Content-Type: application/json' \
+    --data @my-dashboard.json
+</code></pre>
+<p>We open the <a href="http://localhost:3000/d/cT-ufiKGz/my-dashboard?orgId=1&amp;refresh=1m&amp;from=now-30m&amp;to=now" target="_blank" rel="noopener">dashboard</a> :</p>
+<p><img loading="lazy" src="img/minikube-dashboard.png" alt="minikube-dashboard.png"  /></p>
+<p>You can vary the values from the website :</p>
+<p><img loading="lazy" src="img/minikube-vote-2.png" alt="minikube-vote-2.png"  /></p>
+<p>We see the update :</p>
+<p><img loading="lazy" src="img/minikube-dashboard-2.png" alt="minikube-dashboard-2.png"  /></p>
+<p>The demonstration is over, we can destroy our resources.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/grafana/">grafana</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/minikube/">minikube</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/pattern/">pattern</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/prometheus/">prometheus</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/redis/">redis</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

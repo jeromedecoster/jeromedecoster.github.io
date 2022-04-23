@@ -11,10 +11,10 @@
     
     <item>
       <title>GitOps &#43; Terraform</title>
-      <link>/aws/gitops-terraform/</link>
+      <link>/aws/gitops--terraform/</link>
       <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/gitops-terraform/</guid>
+      <guid>/aws/gitops--terraform/</guid>
       <description>
       
       Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
-      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <link>/aws/github-flow--codesuite-pipeline--slack/</link>
       <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <guid>/aws/github-flow--codesuite-pipeline--slack/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Codesuite pipeline &#43; Terraform</title>
-      <link>/aws/codesuite-pipeline-terraform/</link>
+      <link>/aws/codesuite-pipeline--terraform/</link>
       <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/codesuite-pipeline-terraform/</guid>
+      <guid>/aws/codesuite-pipeline--terraform/</guid>
       <description>
       
       Building a C&#43;&#43; program after each commit using **CodeCommit**, **CodeBuild** and **CodePipeline**.

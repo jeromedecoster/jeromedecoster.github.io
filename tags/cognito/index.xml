@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Express &#43; session &#43; DynamoDB &#43; Cognito</title>
-      <link>/aws/express-session-dynamodb-cognito/</link>
+      <link>/aws/express--session--dynamodb--cognito/</link>
       <pubDate>Mon, 20 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/express-session-dynamodb-cognito/</guid>
+      <guid>/aws/express--session--dynamodb--cognito/</guid>
       <description>
       
       Playing with **express-session**. Externalize session data in **DynamoDB** and user account in **Cognito**.

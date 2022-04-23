@@ -11,10 +11,10 @@
     
     <item>
       <title>Troposphere &#43; Lambda &#43; Sharp</title>
-      <link>/black-white/troposphere-lambda-sharp/</link>
+      <link>/black-white/troposphere--lambda--sharp/</link>
       <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/troposphere-lambda-sharp/</guid>
+      <guid>/black-white/troposphere--lambda--sharp/</guid>
       <description>
       
       Playing with **Trophosphere**, **Lambda** and **Sharp** to convert an color image from to black and white version.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; curl</title>
-      <link>/aws/api-gateway-lambda-curl/</link>
+      <link>/aws/api-gateway--lambda--curl/</link>
       <pubDate>Wed, 18 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-curl/</guid>
+      <guid>/aws/api-gateway--lambda--curl/</guid>
       <description>
       
       Testing **API Gateway** and **Lambda** with different type of **Integration Request**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; form</title>
-      <link>/note/node-express-form/</link>
+      <link>/note/node--express--form/</link>
       <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-form/</guid>
+      <guid>/note/node--express--form/</guid>
       <description>
       
       Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; Sharp</title>
-      <link>/black-white/node-express-sharp/</link>
+      <link>/black-white/node--express--sharp/</link>
       <pubDate>Thu, 12 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/node-express-sharp/</guid>
+      <guid>/black-white/node--express--sharp/</guid>
       <description>
       
       Playing with **Node**, **Express** and **Sharp** to convert an color image from to black and white version.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>nc &#43; curl</title>
-      <link>/note/nc-curl/</link>
+      <link>/note/nc--curl/</link>
       <pubDate>Thu, 05 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/nc-curl/</guid>
+      <guid>/note/nc--curl/</guid>
       <description>
       
       Playing with **nc** and **curl**.

@@ -11,10 +11,10 @@
     
     <item>
       <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
-      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <link>/aws/github-flow--codesuite-pipeline--slack/</link>
       <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <guid>/aws/github-flow--codesuite-pipeline--slack/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.

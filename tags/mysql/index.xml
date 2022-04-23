@@ -11,10 +11,10 @@
     
     <item>
       <title>RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform</title>
-      <link>/aws/rds-aurora-mysql-postgresql-bastion-terraform/</link>
+      <link>/aws/rds--aurora--mysql--postgresql--bastion--terraform/</link>
       <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
       
-      <guid>/aws/rds-aurora-mysql-postgresql-bastion-terraform/</guid>
+      <guid>/aws/rds--aurora--mysql--postgresql--bastion--terraform/</guid>
       <description>
       
       Create **MySQL** and **PostgreSQL databases** using Terraform. Interract with them using a **bastion host** and an **SSH tunnel**.

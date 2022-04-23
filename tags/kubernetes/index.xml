@@ -5,16 +5,52 @@
     <link>/tags/kubernetes/</link>
     <description>Recent content in Kubernetes on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 05 Jul 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 20 Apr 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>Kubernetes &#43; Adapter Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--adapter-pattern--minikube/</link>
+      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--adapter-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Adapter Kubernetes Pattern** with **Minikube**, **Redis**, **Prometheus** and **Grafana**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; Sidecar Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--sidecar-pattern--minikube/</link>
+      <pubDate>Thu, 14 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--sidecar-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Sidecar Kubernetes Pattern** with **Minikube**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes &#43; Init Container Pattern &#43; Minikube</title>
+      <link>/note/kubernetes--init-container-pattern--minikube/</link>
+      <pubDate>Mon, 11 Apr 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/note/kubernetes--init-container-pattern--minikube/</guid>
+      <description>
+      
+      Testing the **Init Container Kubernetes Pattern**  with **Minikube**.
+      
+      </description>
+    </item>
+    <item>
       <title>Kubernetes &#43; EKS &#43; Canary Deployment</title>
-      <link>/aws/kubernetes-eks-canary-deployment/</link>
+      <link>/aws/kubernetes--eks--canary-deployment/</link>
       <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-canary-deployment/</guid>
+      <guid>/aws/kubernetes--eks--canary-deployment/</guid>
       <description>
       
       Testing **Kubernetes Canary Deployment** on **EKS**.
@@ -23,10 +59,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Blue/Green Deployment</title>
-      <link>/aws/kubernetes-eks-blue/green-deployment/</link>
+      <link>/aws/kubernetes--eks--blue/green-deployment/</link>
       <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-blue/green-deployment/</guid>
+      <guid>/aws/kubernetes--eks--blue/green-deployment/</guid>
       <description>
       
       Testing **Kubernetes Blue/Green Deployment** on **EKS**.
@@ -35,10 +71,10 @@
     </item>
     <item>
       <title>EKS &#43; Prometheus &#43; Grafana</title>
-      <link>/aws/eks-prometheus-grafana/</link>
+      <link>/aws/eks--prometheus--grafana/</link>
       <pubDate>Mon, 05 Oct 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/eks-prometheus-grafana/</guid>
+      <guid>/aws/eks--prometheus--grafana/</guid>
       <description>
       
       Install **Prometheus** and **Grafana** on **Kubernetes**. Perform a **CPU stress test** to see the evolution of **Prometheus metrics** and **Kubernetes autoscaling**.
@@ -47,10 +83,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Github Actions</title>
-      <link>/aws/kubernetes-eks-github-actions/</link>
+      <link>/aws/kubernetes--eks--github-actions/</link>
       <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-github-actions/</guid>
+      <guid>/aws/kubernetes--eks--github-actions/</guid>
       <description>
       
       Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way.
@@ -59,10 +95,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
-      <link>/aws/kubernetes-eks-docker-node/</link>
+      <link>/aws/kubernetes--eks--docker--node/</link>
       <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <guid>/aws/kubernetes--eks--docker--node/</guid>
       <description>
       
       Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.

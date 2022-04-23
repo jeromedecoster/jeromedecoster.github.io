@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Kubernetes,EKS,S3,Docker,Node,Black-White,Sharp'><meta name="description" content='Creation of a web application to convert images to black and white. 3 microservices orchestrated by Docker-Compose locally and by Kubernetes on AWS.'><meta property="og:title" content="Kubernetes &#43; EKS &#43; Docker &#43; Node" />
+<meta property="og:description" content="Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/kubernetes--eks--docker--node/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-09-01T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-09-01T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes &#43; EKS &#43; Docker &#43; Node"/>
+<meta name="twitter:description" content="Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Kubernetes &#43; EKS &#43; Docker &#43; Node | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-setup-and-explore-the-project">Install, setup and explore the project</a></li>
+        <li><a href="#run-the-site-locally">Run the site locally</a></li>
+        <li><a href="#hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</a></li>
+        <li><a href="#creating-the-kubernetes-cluster">Creating the Kubernetes cluster</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">01</span>
+<span class="rest">Sep 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Kubernetes &#43; EKS &#43; Docker &#43; Node</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>website</strong> to convert our images to black and white</li>
+<li>Create <strong>3 microservices</strong> : the <strong>website</strong>, the black and white <strong>image converter</strong>, the <strong>uploader to S3</strong></li>
+<li>Use <a href="https://docs.docker.com/compose/" target="_blank" rel="noopener">Docker-compose</a> to orchestrate these microservices locally</li>
+<li>Create a <a href="https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html" target="_blank" rel="noopener">Kubernetes cluster</a> on <a href="https://eksctl.io/" target="_blank" rel="noopener">EKS with eksctl</a></li>
+<li>Create 3 <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html" target="_blank" rel="noopener">ECR registries</a> and push the production docker images of our services</li>
+<li>Putting the application online with <a href="https://kubernetes.io/docs/reference/kubectl/overview/" target="_blank" rel="noopener">kubectl</a></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-setup-and-explore-the-project">Install, setup and explore the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># install eksctl + kubectl, create aws user + s3 bucket
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Install <a href="https://github.com/weaveworks/eksctl/releases" target="_blank" rel="noopener">eksctl</a> if it is not already installed.</li>
+<li>Install <a href="https://github.com/kubernetes/kubectl/releases" target="_blank" rel="noopener">kubectl</a> if it is not already installed.</li>
+<li>Creates an <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_job-functions.html#jf_developer-power-user" target="_blank" rel="noopener">AWS Power User</a> for the project.</li>
+<li>Creates an <a href="https://docs.aws.amazon.com/cli/latest/reference/s3/mb.html" target="_blank" rel="noopener">S3 bucket</a>.</li>
+<li>Creates an <strong>.env</strong> file from the <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/.env.sample" target="_blank" rel="noopener">.env.sample</a> file. You can modify some variables if you wish.</li>
+</ul>
+<p>Let&rsquo;s test the image conversion service by starting the development version :</p>
+<pre><code class="language-bash"># convert service local development (on current machine, by calling npm script directly)
+$ make convert-dev
+</code></pre>
+<p>This script performs the following :</p>
+<pre><code class="language-bash">$ DOTENV_CONFIG_PATH=../.env DEBUG=convert npx nodemon --require dotenv/config server.js
+</code></pre>
+<p>We can test the service with curl :</p>
+<pre><code class="language-bash">$ cd convert
+
+# convert the jpeg to greyscale
+$ curl http://localhost:4000/greyscale \
+  --form &quot;file=@test/duck.jpg&quot; \
+  --silent \
+  --output /tmp/duck.jpg
+</code></pre>
+<p>It works :</p>
+<p><img loading="lazy" src="img/duck.jpg" alt="duck.jpg"  /></p>
+<p>We can stop the service with <code>Ctrl + C</code>.</p>
+<p>The services have a series of <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/tree/master/convert/test" target="_blank" rel="noopener">tests</a> of which here are some extracts :</p>
+<pre><code class="language-js">const expect = require('chai').expect
+const request = require('supertest')
+
+const app = require('../app.js')
+
+describe('app.js routes', function () {
+
+    it('GET /', function (done) {
+        request(app)
+            .get('/')
+            .expect(200)
+            .end(function (err, res) {
+                if (err) return done(err)
+                expect(res.text).to.include('API')
+                done()
+            })
+    })
+
+    it('GET /healthcheck', function (done) {
+        request(app)
+            .get('/healthcheck')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) return done(err)
+                const data = JSON.parse(res.text)
+                expect(data.uptime).to.not.be.NaN
+                expect(data.uptime).to.be.above(0)
+                done()
+            })
+    })
+})
+
+describe('app.js POST /greyscale', function () {
+
+    it('no file', function (done) {
+        request(app)
+            .post('/greyscale')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) return done(err)
+                expect(res.text).to.match(/file is required/i)
+                done()
+            })
+    })
+  
+  // ...
+})
+</code></pre>
+<p>We <strong>run the tests</strong> with this command :</p>
+<pre><code class="language-bash"># run convert service tests (on current machine, by calling npm script directly)
+$ make convert-test
+</code></pre>
+<p>This script performs the following :</p>
+<pre><code class="language-bash">$ DOTENV_CONFIG_PATH=../.env npx mocha --require dotenv/config 'test/*.test.js'
+</code></pre>
+<h3 id="run-the-site-locally">Run the site locally</h3>
+<p>The application is an <strong>association of 3 microservices</strong> :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/tree/master/website" target="_blank" rel="noopener">website</a> : which <strong>displays the gallery</strong> and allows the <strong>upload of new images</strong> to convert.</li>
+<li><a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/tree/master/convert" target="_blank" rel="noopener">convert</a> : which converts <strong>JPG</strong>, <strong>PNG</strong> or <strong>WEBP</strong> images to black and white.</li>
+<li><a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/tree/master/storage" target="_blank" rel="noopener">storage</a> : which stores the <strong>converted image</strong> in an <strong>S3 bucket</strong>.</li>
+</ul>
+<p>It is possible to start the services separately like this :</p>
+<pre><code class="language-bash"># sample script, don't do this !
+$ make convert-dev
+$ make storage-dev
+$ make website-dev
+</code></pre>
+<p>But we choose to use <a href="https://docs.docker.com/compose/" target="_blank" rel="noopener">docker-compose</a> to <strong>orchestrate the local development</strong> :</p>
+<pre><code class="language-bash"># local development with docker-compose
+$ make dev
+</code></pre>
+<p>This script performs the following :</p>
+<pre><code class="language-bash">$ docker-compose \
+    --file docker-compose.dev.yml \
+    --project-name compose_gallery_kubernetes_dev \
+    --env-file .env \
+    up
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/docker-compose.dev.yml" target="_blank" rel="noopener">docker-compose.dev.yml</a> file <strong>defines the 3 services</strong> like this :</p>
+<pre><code class="language-yaml">version: &quot;3&quot;
+
+services:
+    convert:
+        build:
+            context: ./convert
+            dockerfile: Dockerfile.dev
+        # define volume to enable livereload
+        volumes:
+            - &quot;./convert:/app&quot;
+        # port variables are not received from the env_file below
+        # but defined by `docker-compose --env-file &lt;file&gt; up`
+        ports:
+            - &quot;${CONVERT_PORT}:${CONVERT_PORT}&quot;
+        # define environment variables in the built image
+        env_file:
+            - .env
+
+    storage:
+        build:
+            context: ./storage
+            dockerfile: Dockerfile.dev
+        # define volume to enable livereload
+        volumes:
+            - &quot;./storage:/app&quot;
+        # port variables are not received from the env_file below
+        # but defined by `docker-compose --env-file &lt;file&gt; up`
+        ports:
+            - &quot;${STORAGE_PORT}:${STORAGE_PORT}&quot;
+        # define environment variables in the built image
+        env_file:
+            - .env
+
+    website:
+        build:
+            context: ./website
+            dockerfile: Dockerfile.dev
+        volumes:
+            - &quot;./website:/app&quot;
+        ports:
+            - &quot;${WEBSITE_PORT}:${WEBSITE_PORT}&quot;
+        env_file:
+            - .env
+        environment:
+            DOCKER_COMPOSE: &quot;true&quot;
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/convert/Dockerfile.dev" target="_blank" rel="noopener">Dockerfile.dev</a> file from the convert service :</p>
+<pre><code class="language-Dockerfile">FROM node:14.5-slim AS build
+WORKDIR /app
+ADD package.json .
+RUN npm install
+
+FROM node:14.5-slim
+WORKDIR /app
+COPY --from=build /app .
+ADD . .
+CMD [&quot;npm&quot;, &quot;run&quot;, &quot;dev&quot;]
+</code></pre>
+<p>Our services are launched, we can go and see <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> :</p>
+<p><img loading="lazy" src="img/localhost-1-browse.png" alt="localhost-1-browse"  /></p>
+<p>We choose <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/convert/test/duck.png" target="_blank" rel="noopener">an image</a> to <strong>upload</strong> then click the <strong>Send</strong> button :</p>
+<p><img loading="lazy" src="img/localhost-2-upload.png" alt="localhost-2-upload"  /></p>
+<p>The page is <strong>reloaded</strong>, we can see the black and white image :</p>
+<p><img loading="lazy" src="img/localhost-3-converted.png" alt="localhost-3-converted"  /></p>
+<p>We can see the uploaded file on S3 :</p>
+<p><img loading="lazy" src="img/s3-uploaded.png" alt="s3-uploaded"  /></p>
+<p>The upload is done via the <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/storage/app.js" target="_blank" rel="noopener">storage</a> service, here is an extract :</p>
+<pre><code class="language-js">app.post('/upload', upload.any(), async (req, res) =&gt; {
+    debug('req.files:', req.files)
+    if (req.files == undefined || req.files.length == 0) {
+        return res.status(400).send('Field file is required')
+    }
+    const file = req.files.find(e =&gt; e.fieldname == 'file')
+    debug('file:', file)
+    
+    const params = {
+        ContentType: 'image',
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: file.originalname,
+        Body: file.buffer,
+        ACL : 'public-read'
+    }
+    
+    try {
+        const result =  await s3.upload(params).promise()
+        debug('result:', result)
+        return res.send(result.Location)
+    } catch(err) {
+        return res.status(400).send(`Error: ${err.message}`)
+    }
+})
+</code></pre>
+<h3 id="hosting-the-production-image-on-the-docker-hub">Hosting the production image on the docker hub</h3>
+<p>We build the 3 production images and push them with this command :</p>
+<pre><code class="language-bash"># build production images and push to ECR
+$ make build-push
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash"># create ECR repository
+$ aws ecr create-repository \
+    --repository-name convert \
+    --region $AWS_REGION \
+    --profile $AWS_PROFILE
+
+# get repository URI
+$ REPOSITORY_URI=$(aws ecr describe-repositories \
+    --query &quot;repositories[?repositoryName == 'convert'].repositoryUri&quot; \
+    --region $AWS_REGION \
+    --profile $AWS_PROFILE \
+    --output text)
+
+# root account id
+$ ACCOUNT_ID=$(aws sts get-caller-identity \
+    --query 'Account' \
+    --profile $AWS_PROFILE \
+    --output text)     
+
+# add login data into /home/$USER/.docker/config.json (create or update authorization token)
+$ aws ecr get-login-password \
+    --region $AWS_REGION \
+    --profile $AWS_PROFILE \
+    | docker login \
+    --username AWS \
+    --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com   
+
+# build, tag and push storage
+$ docker image build \
+    --tag convert:latest \
+    --tag convert:1.0.0 \
+    .
+
+$ docker tag convert:latest $REPOSITORY_URI:latest
+$ docker tag convert:latest $REPOSITORY_URI:1.0.0
+
+$ docker push $REPOSITORY_URI:latest
+$ docker push $REPOSITORY_URI:$VERSION
+</code></pre>
+<p>The script build <strong>3 production images</strong> and push them <strong>on ECR</strong>.</p>
+<p>The state of my <strong>ECR repositories</strong> page <strong>before</strong> the script execution :</p>
+<p><img loading="lazy" src="img/ecr-1-before.png" alt="ecr-1-before.png"  /></p>
+<p>The creation of the production image uses a specific, <strong>optimized</strong> <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/convert/Dockerfile" target="_blank" rel="noopener">Dockerfile</a>.</p>
+<p>The optimization of the image weight is achieved with :</p>
+<ul>
+<li>The declaration of the environment variable <code>NODE_ENV=production</code>. The installation of <a href="https://docs.npmjs.com/cli/install" target="_blank" rel="noopener">npm modules</a> will be reduced.</li>
+<li>The use of <a href="https://github.com/tj/node-prune" target="_blank" rel="noopener">node-prune</a> to reduce the weight of the node_modules folder.</li>
+</ul>
+<pre><code class="language-Dockerfile">FROM softonic/node-prune AS prune
+
+FROM node:14.5-alpine AS build
+# With `NODE_ENV=production` npm install will skip devDependencies packages
+ENV NODE_ENV production
+WORKDIR /app
+COPY --from=prune /go/bin/node-prune /usr/local/bin/
+ADD . .
+RUN npm install --quiet
+RUN node-prune
+
+FROM node:14.5-alpine
+ENV NODE_ENV production
+WORKDIR /app
+COPY --from=build /app .
+CMD [&quot;node&quot;, &quot;server.js&quot;]
+</code></pre>
+<p>The build and push action is <strong>quite long</strong>. We end up with our 3 repositories :</p>
+<p><img loading="lazy" src="img/ecr-2-after.png" alt="ecr-2-after.png"  /></p>
+<p>The uploaded convert image :</p>
+<p><img loading="lazy" src="img/ecr-3-convert.png" alt="ecr-3-convert.png"  /></p>
+<h3 id="creating-the-kubernetes-cluster">Creating the Kubernetes cluster</h3>
+<p>We launch the <strong>creation of the EKS cluster</strong>. You have to be patient because it takes <strong>about 15 minutes</strong> !</p>
+<pre><code class="language-bash">$ make cluster-create
+</code></pre>
+<p>The creation of the cluster is managed via a <strong>Cloudformation Stack</strong> :</p>
+<p><img loading="lazy" src="img/cloudformation-1-create.png" alt="cloudformation-1-create.png"  /></p>
+<p>Here are some more details :</p>
+<p><img loading="lazy" src="img/cloudformation-2-details.png" alt="cloudformation-2-details.png"  /></p>
+<p>We see the cluster being created in the EKS interface :</p>
+<p><img loading="lazy" src="img/eks-1-create.png" alt="eks-1-create.png"  /></p>
+<p>Once the deployment is complete, we check that <strong>kubectl points to the right cluster</strong> :</p>
+<pre><code class="language-bash">$ kubectl config current-context
+user@gallery-kubernetes.eu-west-3.eksctl.io
+</code></pre>
+<p>We query the <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/" target="_blank" rel="noopener">namespaces</a> :</p>
+<pre><code class="language-bash">$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   20m
+kube-node-lease   Active   20m
+kube-public       Active   20m
+kube-system       Active   20m
+</code></pre>
+<p>We will <strong>deploy the services</strong> :</p>
+<pre><code class="language-bash">$ make cluster-deploy 
+namespace/gallery-kubernetes created
+secret/gallery-kubernetes created
+deployment.apps/storage created
+service/storage created
+deployment.apps/convert created
+service/convert created
+deployment.apps/website created
+service/website created
+</code></pre>
+<p>This command takes the <strong>templates</strong> present in the <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/tree/master/k8s" target="_blank" rel="noopener">k8s directory</a> and <strong>injects the variables</strong> contained in the <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/.env.sample" target="_blank" rel="noopener">.env</a> file previously created :</p>
+<p>The starting <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/k8s/namespace.yaml" target="_blank" rel="noopener">namespace.yml</a> template :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{PROJECT_NAME}}
+</code></pre>
+<p>Go through a <strong>bash script</strong> similar to this :</p>
+<pre><code class="language-bash">$ source .env
+$ sed --expression &quot;s|{{PROJECT_NAME}}|$PROJECT_NAME|g&quot; namespace.yml
+</code></pre>
+<p>The template therefore becomes :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: gallery-kubernetes
+</code></pre>
+<p>The template is sent directly <strong>to the cluster</strong> by adding :</p>
+<pre><code class="language-bash">$ source .env
+$ sed --expression &quot;s|{{PROJECT_NAME}}|$PROJECT_NAME|g&quot; namespace.yml \
+    | kubectl apply --filename -
+</code></pre>
+<p>If we <strong>query the namespaces again</strong> we see the one we just added :</p>
+<pre><code class="language-bash">$ kubectl get ns
+NAME                 STATUS   AGE
+default              Active   22m
+gallery-kubernetes   Active   10s
+kube-node-lease      Active   22m
+kube-public          Active   22m
+kube-system          Active   22m
+</code></pre>
+<p>We query the pods :</p>
+<pre><code class="language-bash">$ kubectl get pods -n gallery-kubernetes
+NAME                       READY   STATUS    RESTARTS   AGE
+convert-5c85c7c869-5vzgd   1/1     Running   0          22m
+convert-5c85c7c869-xlvwq   1/1     Running   0          22m
+storage-66b6998c9-s46m5    1/1     Running   0          40s
+storage-66b6998c9-wjsxd    1/1     Running   0          40s
+website-584cc7f864-bmjdg   1/1     Running   0          22m
+website-584cc7f864-th4fx   1/1     Running   0          22m
+</code></pre>
+<p>The website service uses a <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/k8s/website-service.yaml" target="_blank" rel="noopener">LoadBalancer type</a> :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: website
+  namespace: {{PROJECT_NAME}}
+  labels:
+    app: website
+spec:
+  selector:
+    app: website
+  ports:
+  - port: 80
+    protocol: TCP  
+    targetPort: {{WEBSITE_PORT}}
+  type: LoadBalancer
+</code></pre>
+<p>We get the URL of the LoadBalancer with this command :</p>
+<pre><code class="language-bash">$ make cluster-elb
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ kubectl get svc \
+    --namespace gallery-kubernetes \
+    --output jsonpath=&quot;{.items[?(@.metadata.name=='website')].status.loadBalancer.ingress[].hostname}&quot;
+</code></pre>
+<p>By using this URL in our browser we should see the service working. We select <a href="https://github.com/jeromedecoster/aws-black-white-gallery-kubernetes-docker-node/blob/master/convert/test/duck.jpg" target="_blank" rel="noopener">an image type</a> :</p>
+<p><img loading="lazy" src="img/eks-2-browse.png" alt="eks-2-browse.png"  /></p>
+<p>By clicking on the <strong>Send</strong> button, the page reloads and displays the <strong>converted image</strong> in black and white :</p>
+<p><img loading="lazy" src="img/eks-3-converted.png" alt="eks-3-converted.png"  /></p>
+<p>We can <strong>query the logs</strong> of the <strong>convert service</strong> with this command :</p>
+<pre><code class="language-bash">$ make cluster-log-convert
+Listening on port 4000
+2020-01-01T09:00:00.000Z convert req.files: [
+  {
+    fieldname: 'file',
+    originalname: 'duck.jpg',
+    encoding: '7bit',
+    mimetype: 'image/jpeg',
+    buffer: &lt;Buffer ff d8 ff e0 00 10 4a 46 49 46 00 01 01 00 00 01 00 01 ... 243154 more bytes&gt;,
+    size: 243204
+  }
+]
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ kubectl logs \
+    --namespace gallery-kubernetes \
+    --selector app=convert \
+    --tail=1000
+</code></pre>
+<p>The demonstration is over. We can <strong>delete our cluster</strong> with this command :</p>
+<pre><code class="language-bash">$ make cluster-delete
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/black-white/">black-white</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3/">s3</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/sharp/">sharp</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

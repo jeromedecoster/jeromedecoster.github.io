@@ -11,10 +11,10 @@
     
     <item>
       <title>Docker &#43; ECS &#43; Fargate</title>
-      <link>/aws/docker-ecs-fargate/</link>
+      <link>/aws/docker--ecs--fargate/</link>
       <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/docker-ecs-fargate/</guid>
+      <guid>/aws/docker--ecs--fargate/</guid>
       <description>
       
       Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**.

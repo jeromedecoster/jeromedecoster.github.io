@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Terraform,S3,S3 Event Notification,Lambda'><meta name="description" content='Terraforming S3 and S3 Event Notification to change object ACL with Lambda.'><meta property="og:title" content="Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda" />
+<meta property="og:description" content="Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/terraform--s3--s3-event-notification--lambda/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-01-27T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-01-27T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda"/>
+<meta name="twitter:description" content="Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-terraform">Install Terraform</a></li>
+        <li><a href="#create-a-first-test">Create a first test</a></li>
+        <li><a href="#install-and-explore-the-project">Install and explore the project</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">27</span>
+<span class="rest">Jan 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda</h1>
+</div>
+</div>
+
+<div class="markdown">
+<p><a href="https://github.com/cloudtools/troposphere" target="_blank" rel="noopener">Troposphere</a> is a good tool to simplify your life when you create CloudFormation templates. But <a href="https://github.com/hashicorp/terraform" target="_blank" rel="noopener">Terraform</a> is a much more advanced <a href="https://en.wikipedia.org/wiki/Infrastructure_as_code" target="_blank" rel="noopener">Infrastructure as code</a> management tool. We will create a small project to test this software.</p>
+<p>The <strong>goal</strong> : when you upload a file to an S3 bucket, the default permissions declare that file private. We will create an <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html" target="_blank" rel="noopener">S3 event notification</a> and associate it with a Lambda function to define this file as public. :</p>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-terraform">Install Terraform</h3>
+<p>Download the <a href="https://www.terraform.io/downloads.html" target="_blank" rel="noopener">latest binary</a> then install it :</p>
+<pre><code class="language-bash"># extract and install
+$ sudo unzip -o terraform_0.xx.xx_linux_amd64.zip -d /usr/local/bin
+
+# installed with success
+$ terraform -version
+Terraform v0.xx.xx
+</code></pre>
+<h3 id="create-a-first-test">Create a first test</h3>
+<p>To create an S3 bucket we need to :</p>
+<ol>
+<li>Declare the <a href="https://www.terraform.io/docs/providers/aws/index.html" target="_blank" rel="noopener">aws provider</a></li>
+<li>Create a bucket with the <a href="https://www.terraform.io/docs/providers/aws/r/s3_bucket.html" target="_blank" rel="noopener">aws_s3_bucket</a> resource</li>
+<li>Use the <a href="https://www.terraform.io/docs/providers/random/r/id.html" target="_blank" rel="noopener">random_id</a> resource to have a unique bucket name</li>
+</ol>
+<p>Let&rsquo;s create a <code>test.tf</code> file :</p>
+<pre><code class="language-hcl">provider &quot;aws&quot; {
+  region = &quot;eu-west-3&quot;
+}
+resource &quot;random_id&quot; &quot;random&quot; {
+  byte_length = 3
+}
+
+resource &quot;aws_s3_bucket&quot; &quot;bucket&quot; {
+  bucket = &quot;my-bucket-${random_id.random.hex}&quot;
+  acl    = &quot;private&quot;
+
+  force_destroy = true
+}
+
+output &quot;bucket&quot; {
+  value = &quot;${aws_s3_bucket.bucket.id}&quot;
+}
+</code></pre>
+<p>We can now initialize our terraform project with the <a href="https://www.terraform.io/docs/commands/init.html" target="_blank" rel="noopener">init command</a> :</p>
+<pre><code class="language-bash"># download the plugins
+$ terraform init
+
+# the `.terraform` directory is created
+$ tree -a
+.
+├── test.tf
+└── .terraform
+    └── plugins                 
+        └── linux_amd64                                                         
+            ├── lock.json                                                                
+            ├── terraform-provider-aws_v2.46.0_x4
+            └── terraform-provider-random_v2.2.1_x4
+3 directories, 5 files
+</code></pre>
+<p>Now we can :</p>
+<ol>
+<li><a href="https://www.terraform.io/docs/commands/validate.html" target="_blank" rel="noopener">Validate</a> the configuration files</li>
+<li>Create an <a href="https://www.terraform.io/docs/commands/plan.html" target="_blank" rel="noopener">execution plan</a> to preview what will be created</li>
+<li><a href="https://www.terraform.io/docs/commands/apply.html" target="_blank" rel="noopener">Apply</a> the changes</li>
+</ol>
+<pre><code class="language-bash"># validate the config
+$ terraform validate
+Success! The configuration is valid.
+
+# generate modification plan
+$ terraform plan -out=tfplan
+
+# the generated `tfplan` file is a zip
+$ unzip -l tfplan
+Archive:  tfplan
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      795  2000-01-01 09:00   tfplan
+      121  2000-01-01 09:00   tfstate
+      284  2000-01-01 09:00   tfconfig/m-/test.tf
+       41  2000-01-01 09:00   tfconfig/modules.json
+---------                     -------
+     1241                     4 files
+
+# apply the plan. The bucket `my-bucket-e8cd2b` is created
+$ terraform apply -auto-approve tfplan
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+bucket = my-bucket-e8cd2b
+</code></pre>
+<p>Let&rsquo;s upload a test file :</p>
+<pre><code class="language-bash"># we can see the created bucket
+$ aws s3api list-buckets \
+    --region eu-west-3 \
+    --query 'Buckets[].[Name]' \
+    --output text
+my-bucket-e8cd2b
+
+# upload a file
+$ aws s3 cp jellyfish.jpg s3://my-bucket-e8cd2b
+upload: ./jellyfish.jpg to s3://my-bucket-e8cd2b/jellyfish.jpg
+</code></pre>
+<p>If we try to download the file, we get an <strong>error</strong> because the file is <strong>private</strong> :</p>
+<pre><code class="language-bash"># we try to get the file
+$ curl https://my-bucket-e8cd2b.s3.eu-west-3.amazonaws.com/jellyfish.jpg
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;Error&gt;
+&lt;Code&gt;AccessDenied&lt;/Code&gt;
+&lt;Message&gt;Access Denied&lt;/Message&gt;
+&lt;RequestId&gt;3650F958..&lt;/RequestId&gt;
+&lt;HostId&gt;tQgPxokB+oxkSrQRyy29t+DTtt/z1tHrzOcQDN...&lt;/HostId&gt;
+&lt;/Error&gt;
+</code></pre>
+<p>This test is over, we can <a href="https://www.terraform.io/docs/commands/destroy.html" target="_blank" rel="noopener">destroy</a> our resources :</p>
+<pre><code class="language-bash"># destroy the resources
+$ terraform destroy -auto-approve
+Destroy complete! Resources: 2 destroyed.
+</code></pre>
+<h3 id="install-and-explore-the-project">Install and explore the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>We have a simple <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/config.tf" target="_blank" rel="noopener">config.tf</a> file :</p>
+<pre><code class="language-hcl">provider &quot;aws&quot; {
+  region = &quot;eu-west-3&quot;
+}
+resource &quot;random_id&quot; &quot;random&quot; {
+  byte_length = 3
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/s3.tf" target="_blank" rel="noopener">s3.tf</a> file is now more complex :</p>
+<ul>
+<li>We use the <a href="https://www.terraform.io/docs/providers/aws/r/s3_bucket_notification.html" target="_blank" rel="noopener">aws_s3_bucket_notification</a> to configure the <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html" target="_blank" rel="noopener">S3 event notification</a>. This target a Lambda function declared in another file.</li>
+<li>We must declare the <a href="https://www.terraform.io/docs/providers/aws/r/lambda_permission.html" target="_blank" rel="noopener">aws_lambda_permission</a> to <strong>allow the Lambda function to access this bucket</strong>.</li>
+</ul>
+<pre><code class="language-hcl">resource &quot;aws_s3_bucket&quot; &quot;bucket&quot; {
+  bucket = &quot;my-bucket-${random_id.random.hex}&quot;
+  acl    = &quot;private&quot;
+
+  force_destroy = true
+}
+
+resource &quot;aws_s3_bucket_notification&quot; &quot;bucket_notification&quot; {
+  bucket = aws_s3_bucket.bucket.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.lambda_function.arn
+    events              = [&quot;s3:ObjectCreated:*&quot;]
+  }
+}
+
+resource &quot;aws_lambda_permission&quot; &quot;lambda_permission&quot; {
+  statement_id  = &quot;AllowExecutionFromS3Bucket&quot;
+  action        = &quot;lambda:InvokeFunction&quot;
+  function_name = aws_lambda_function.lambda_function.arn
+  principal     = &quot;s3.amazonaws.com&quot;
+  source_arn    = aws_s3_bucket.bucket.arn
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/lambda.tf" target="_blank" rel="noopener">lambda.tf</a> file :</p>
+<ul>
+<li>We use the <a href="https://www.terraform.io/docs/providers/archive/d/archive_file.html" target="_blank" rel="noopener">archive_file</a> provider to <strong>generate a zip file</strong> from the <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/index.js" target="_blank" rel="noopener">index.js</a>.</li>
+<li>We create the Lambda function with <a href="https://www.terraform.io/docs/providers/aws/r/lambda_function.html" target="_blank" rel="noopener">aws_lambda_function</a>.</li>
+</ul>
+<pre><code class="language-hcl">data &quot;archive_file&quot; &quot;zip&quot; {
+  type        = &quot;zip&quot;
+  source_file = &quot;./index.js&quot;
+  output_path = &quot;index.zip&quot;
+}
+
+resource &quot;aws_lambda_function&quot; &quot;lambda_function&quot; {
+  filename         = data.archive_file.zip.output_path
+  source_code_hash = filebase64sha256(data.archive_file.zip.output_path)
+
+  function_name = &quot;lambda-${random_id.random.hex}&quot;
+  role          = aws_iam_role.lambda_role.arn
+  handler       = &quot;index.handler&quot;
+  runtime       = &quot;nodejs12.x&quot;
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/index.js" target="_blank" rel="noopener">Lambda function</a> is used to <strong>modify the object <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html" target="_blank" rel="noopener">Access Control List (ACL)</a></strong> :</p>
+<pre><code class="language-js">exports.handler = (event) =&gt; {
+  let data = event.Records[0].s3
+
+  let param = {
+    Bucket: data.bucket.name,
+    Key: data.object.key,
+    ACL: 'public-read',
+  }
+
+  s3.putObjectAcl(param, (err, data) =&gt; {
+    if (err) console.log('err:', err)
+    else console.log('data:', data)
+  })
+}
+</code></pre>
+<p>And the <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/iam.tf" target="_blank" rel="noopener">iam.tf</a> file :</p>
+<ul>
+<li>We use the <a href="https://www.terraform.io/docs/providers/aws/r/iam_role.html" target="_blank" rel="noopener">aws_iam_role</a> resource the create le Lambda function <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/lambda-assume-role-policy.json" target="_blank" rel="noopener">trusted policy</a> role.</li>
+<li>We use the <a href="https://www.terraform.io/docs/providers/aws/d/iam_policy.html" target="_blank" rel="noopener">aws_iam_policy</a> to declare the <a href="https://github.com/jeromedecoster/aws-terraform-s3-notification-lambda/blob/master/lambda-policy.json" target="_blank" rel="noopener">authorized actions</a> of the lambda function.</li>
+<li>Don&rsquo;t forget to <strong>attach the policy to the role</strong> with <a href="https://www.terraform.io/docs/providers/aws/r/iam_role_policy_attachment.html" target="_blank" rel="noopener">aws_iam_role_policy_attachment</a>.</li>
+</ul>
+<pre><code class="language-hcl">resource &quot;aws_iam_role&quot; &quot;lambda_role&quot; {
+  name               = &quot;lambda-role-${random_id.random.hex}&quot;
+  assume_role_policy = file(&quot;./lambda-assume-role-policy.json&quot;)
+}
+
+resource &quot;aws_iam_policy&quot; &quot;lambda_policy&quot; {
+  name   = &quot;lambda-policy-${random_id.random.hex}&quot;
+  policy = file(&quot;./lambda-policy.json&quot;)
+}
+
+resource &quot;aws_iam_role_policy_attachment&quot; &quot;lambda_role_attached_policy&quot; {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_policy.arn
+}
+</code></pre>
+<p>Now we can deploy the project :</p>
+<pre><code class="language-bash"># download the plugins
+$ terraform init
+
+# validate the config
+$ terraform validate
+Success! The configuration is valid.
+
+# generate modification plan
+$ terraform plan -out=tfplan
+
+# deploy the plan
+$ terraform apply -auto-approve tfplan
+Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+bucket = my-bucket-3623ca
+lambda = lambda-3623ca
+lambda_policy = lambda-policy-3623ca
+lambda_role = lambda-role-3623ca
+</code></pre>
+<p>Let&rsquo;s upload a test file :</p>
+<pre><code class="language-bash"># upload a file
+$ aws s3 cp jellyfish.jpg s3://my-bucket-3623ca
+upload: ./jellyfish.jpg to s3://my-bucket-3623ca/jellyfish.jpg
+</code></pre>
+<p>Let&rsquo;s play with this file :</p>
+<ul>
+<li>The file is <strong>public</strong> : we receive an <code>HTTP 200</code> response.</li>
+<li>So we can download it.</li>
+</ul>
+<pre><code class="language-bash"># just get the headers
+$ curl --head https://my-bucket-3623ca.s3.eu-west-3.amazonaws.com/jellyfish.jpg
+HTTP/1.1 200 OK
+x-amz-id-2: TEOcoZpMCkucNT84JcLMGMn1dOOXCY0lu...bdyBpso=
+x-amz-request-id: F9E2E2760
+Date: Tue, 01 Jan 2000 10:00:00 GMT
+Last-Modified: Tue, 01 Jan 2000 10:00:00 GMT
+ETag: &quot;9a6624c456c6ea1&quot;
+Accept-Ranges: bytes
+Content-Type: image/jpeg
+Content-Length: 26436
+Server: AmazonS3 
+
+# download the file
+$ curl https://my-bucket-3623ca.s3.eu-west-3.amazonaws.com/jellyfish.jpg \
+  --silent \
+  --output downloaded.jpg
+</code></pre>
+<p>We can see our beautiful photo of jellyfish :</p>
+<p><img loading="lazy" src="img/jellyfish.jpg" alt="jellyfish.jpg"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3/">s3</a>
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3-event-notification/">s3-event-notification</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

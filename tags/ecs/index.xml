@@ -11,10 +11,10 @@
     
     <item>
       <title>Gitlab &#43; ECS &#43; Terraform</title>
-      <link>/aws/gitlab-ecs-terraform/</link>
+      <link>/aws/gitlab--ecs--terraform/</link>
       <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/gitlab-ecs-terraform/</guid>
+      <guid>/aws/gitlab--ecs--terraform/</guid>
       <description>
       
       Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Github Actions &#43; ECR &#43; ECS</title>
-      <link>/aws/github-actions-ecr-ecs/</link>
+      <link>/aws/github-actions--ecr--ecs/</link>
       <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-actions-ecr-ecs/</guid>
+      <guid>/aws/github-actions--ecr--ecs/</guid>
       <description>
       
       Using **Github actions** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
-      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <link>/aws/ecs--service-discovery--node--redis/</link>
       <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <guid>/aws/ecs--service-discovery--node--redis/</guid>
       <description>
       
       Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>ECS &#43; Load Balancer &#43; Node &#43; Terraform</title>
-      <link>/aws/ecs-load-balancer-node-terraform/</link>
+      <link>/aws/ecs--load-balancer--node--terraform/</link>
       <pubDate>Mon, 15 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ecs-load-balancer-node-terraform/</guid>
+      <guid>/aws/ecs--load-balancer--node--terraform/</guid>
       <description>
       
       Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>Docker &#43; ECS &#43; Fargate</title>
-      <link>/aws/docker-ecs-fargate/</link>
+      <link>/aws/docker--ecs--fargate/</link>
       <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/docker-ecs-fargate/</guid>
+      <guid>/aws/docker--ecs--fargate/</guid>
       <description>
       
       Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**.

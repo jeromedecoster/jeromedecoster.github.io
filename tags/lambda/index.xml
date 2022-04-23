@@ -11,10 +11,10 @@
     
     <item>
       <title>AWS Grafana &#43; Lambda &#43; Terraform</title>
-      <link>/aws/aws-grafana-lambda-terraform/</link>
+      <link>/aws/aws-grafana--lambda--terraform/</link>
       <pubDate>Thu, 02 Dec 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/aws-grafana-lambda-terraform/</guid>
+      <guid>/aws/aws-grafana--lambda--terraform/</guid>
       <description>
       
       Monitoring **Lambda** function with **Managed Grafana**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>CDK &#43; CDKTF &#43; Lambda &#43; DynamoDB</title>
-      <link>/aws/cdk-cdktf-lambda-dynamodb/</link>
+      <link>/aws/cdk--cdktf--lambda--dynamodb/</link>
       <pubDate>Mon, 22 Nov 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/cdk-cdktf-lambda-dynamodb/</guid>
+      <guid>/aws/cdk--cdktf--lambda--dynamodb/</guid>
       <description>
       
       Creating **API Gateway**, **Lambda** and **DynamoDB** with **CDK** and **CDKTF**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Lambda &#43; Terraform &#43; Github Actions</title>
-      <link>/aws/lambda-terraform-github-actions/</link>
+      <link>/aws/lambda--terraform--github-actions/</link>
       <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/lambda-terraform-github-actions/</guid>
+      <guid>/aws/lambda--terraform--github-actions/</guid>
       <description>
       
       Building a **continuous deployment** for **Lambda** functions in a **multi-stage environment**.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>Step Functions &#43; Rekognition</title>
-      <link>/aws/step-functions-rekognition/</link>
+      <link>/aws/step-functions--rekognition/</link>
       <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/step-functions-rekognition/</guid>
+      <guid>/aws/step-functions--rekognition/</guid>
       <description>
       
       Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
-      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <link>/aws/s3-event-notification--rekognition--imagemagick/</link>
       <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <guid>/aws/s3-event-notification--rekognition--imagemagick/</guid>
       <description>
       
       Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
@@ -71,10 +71,10 @@
     </item>
     <item>
       <title>Terraform &#43; ImageMagick &#43; Lambda &#43; invoke</title>
-      <link>/black-white/terraform-imagemagick-lambda-invoke/</link>
+      <link>/black-white/terraform--imagemagick--lambda--invoke/</link>
       <pubDate>Tue, 04 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/terraform-imagemagick-lambda-invoke/</guid>
+      <guid>/black-white/terraform--imagemagick--lambda--invoke/</guid>
       <description>
       
       Playing with **Terraform**, **Lambda** and **ImageMagick** to convert an color image from to black and white version.
@@ -83,10 +83,10 @@
     </item>
     <item>
       <title>Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda</title>
-      <link>/aws/terraform-s3-s3-event-notification-lambda/</link>
+      <link>/aws/terraform--s3--s3-event-notification--lambda/</link>
       <pubDate>Mon, 27 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/terraform-s3-s3-event-notification-lambda/</guid>
+      <guid>/aws/terraform--s3--s3-event-notification--lambda/</guid>
       <description>
       
       Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**.
@@ -95,10 +95,10 @@
     </item>
     <item>
       <title>Troposphere &#43; Lambda &#43; Sharp</title>
-      <link>/black-white/troposphere-lambda-sharp/</link>
+      <link>/black-white/troposphere--lambda--sharp/</link>
       <pubDate>Thu, 09 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/troposphere-lambda-sharp/</guid>
+      <guid>/black-white/troposphere--lambda--sharp/</guid>
       <description>
       
       Playing with **Trophosphere**, **Lambda** and **Sharp** to convert an color image from to black and white version.
@@ -107,10 +107,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; AWS CLI</title>
-      <link>/aws/api-gateway-lambda-aws-cli/</link>
+      <link>/aws/api-gateway--lambda--aws-cli/</link>
       <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-aws-cli/</guid>
+      <guid>/aws/api-gateway--lambda--aws-cli/</guid>
       <description>
       
       Create an **API Gateway** and a **Lambda** from CLI.
@@ -119,10 +119,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; curl</title>
-      <link>/aws/api-gateway-lambda-curl/</link>
+      <link>/aws/api-gateway--lambda--curl/</link>
       <pubDate>Wed, 18 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-curl/</guid>
+      <guid>/aws/api-gateway--lambda--curl/</guid>
       <description>
       
       Testing **API Gateway** and **Lambda** with different type of **Integration Request**.

@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,Node,Express,form,curl'><meta name="description" content='Playing with multipart/form-data and application/x-www-form-urlencoded forms.'><meta property="og:title" content="Node &#43; Express &#43; form" />
+<meta property="og:description" content="Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/node--express--form/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2019-12-16T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-12-16T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Node &#43; Express &#43; form"/>
+<meta name="twitter:description" content="Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Node &#43; Express &#43; form | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-start-the-application">Install and start the application</a></li>
+        <li><a href="#multipart-with-one-file">Multipart with one file</a></li>
+        <li><a href="#multipart-with-any-files">Multipart with any files</a></li>
+        <li><a href="#urlencoded-without-file">Urlencoded without file</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">16</span>
+<span class="rest">Dec 2019</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Node &#43; Express &#43; form</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Create <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attr-enctype" target="_blank" rel="noopener">multipart/form-data</a> and <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/Forms/Sending_forms_through_JavaScript" target="_blank" rel="noopener">application/x-www-form-urlencoded</a> forms. Manage the server side with <a href="https://expressjs.com/en/4x/api.html" target="_blank" rel="noopener">express</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<h3 id="install-and-start-the-application">Install and start the application</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-node-express-form" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the project
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-node-express-form.git \
+    /tmp/note
+
+# cd + install
+$ cd /tmp/note &amp;&amp; npm install
+</code></pre>
+<p>If you look at <a href="https://github.com/jeromedecoster/note-node-express-form/blob/master/index.js" target="_blank" rel="noopener">index.js</a>, the code is really simple :</p>
+<ul>
+<li>We use <a href="https://github.com/expressjs/multer" target="_blank" rel="noopener">multer</a> with the <a href="https://github.com/expressjs/multer#memorystorage" target="_blank" rel="noopener">MemoryStorage</a>.</li>
+<li>We use <a href="https://github.com/expressjs/body-parser" target="_blank" rel="noopener">body-parser</a> with the <a href="https://github.com/expressjs/body-parser#bodyparserurlencodedoptions" target="_blank" rel="noopener">urlencoded</a> method.</li>
+</ul>
+<pre><code class="language-js">const app = express()
+app.use(express.static('public'))
+
+// memory storage
+const upload = multer({ storage: multer.memoryStorage() })
+
+// we receive `req.body` and `req.file` 
+app.post('/data-one', upload.single('a_file'), (req, res) =&gt; {
+    res.json({
+        status: 200,
+        message: 'ok'
+    })
+})
+
+// we receive `req.body` and `req.files` 
+app.post('/data-two', upload.any(), (req, res) =&gt; {
+    console.log('req.body:', req.body)
+    console.log('req.files:', req.files)
+
+    var f1 = req.files.find(e =&gt; e.fieldname == 'a_json_file')
+    if (f1 != null) {
+        console.log('json:', JSON.parse(f1.buffer))
+    }
+    var f2 = req.files.find(e =&gt; e.fieldname == 'a_txt_file')
+    if (f2 != null) {
+        console.log('txt:', f2.buffer.toString())
+    }
+
+    res.send('ok')
+})
+
+// we receive `req.body`
+app.post('/data-three', bodyParser.urlencoded({ extended: true }), (req, res) =&gt; {
+    console.log('req.body:', req.body)
+
+    res.send('&lt;h1&gt;ok&lt;/h1&gt;')
+})
+</code></pre>
+<p>Let&rsquo;s start the server :</p>
+<pre><code class="language-bash"># start the server
+$ node .
+</code></pre>
+<h3 id="multipart-with-one-file">Multipart with one file</h3>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see the <strong>first form</strong> :</p>
+<p><img loading="lazy" src="img/form-1.png" alt="form-1.png"  /></p>
+<p>The associated code in <a href="https://github.com/jeromedecoster/note-node-express-form/blob/master/index.js" target="_blank" rel="noopener">index.js</a> :</p>
+<ul>
+<li>The <code>req.body</code> object contains the values of the text fields of the form.</li>
+<li>The <code>req.file</code> object contains the file uploaded via the form.</li>
+<li>The file is declared with the <a href="https://github.com/expressjs/multer#singlefieldname" target="_blank" rel="noopener">single method</a>. So we only accept <strong>one file named « a_file »</strong>.</li>
+</ul>
+<pre><code class="language-js">// memory storage
+const upload = multer({ storage: multer.memoryStorage() })
+
+// we receive `req.body` and `req.file` 
+app.post('/data-one', upload.single('a_file'), (req, res) =&gt; {
+    res.json({
+        status: 200,
+        message: 'ok'
+    })
+})
+</code></pre>
+<p>Pick the file <strong>/tmp/note/data.json</strong> then click the send button. The server log this :</p>
+<pre><code class="language-js">req.file: { fieldname: 'a_file',
+  originalname: 'data.json',
+  encoding: '7bit',
+  mimetype: 'application/json',
+  buffer: &lt;Buffer 7b 0a 20 20 20 20 22 61 62 63 22 3a 20 31 32 33 0a 7d&gt;,
+  size: 18 }
+json: { abc: 123 }
+</code></pre>
+<p>We can use <a href="https://curl.haxx.se/docs/manpage.html" target="_blank" rel="noopener">curl</a> to send the same datas :</p>
+<ul>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-X" target="_blank" rel="noopener">-X, &ndash;request <command></a> option send a <strong>POST request</strong>.</li>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-F%22" target="_blank" rel="noopener">-F, &ndash;form &lt;name=content&gt;</a> option to send <strong>the file and value</strong>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --request POST \
+    --form &quot;a_file=@/tmp/note/data.json&quot; \
+    --form &quot;a_value=abc&quot; \
+    http://localhost:3000/data-one
+{&quot;status&quot;:200,&quot;message&quot;:&quot;ok&quot;}
+</code></pre>
+<h3 id="multipart-with-any-files">Multipart with any files</h3>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see the <strong>second form</strong> :</p>
+<p><img loading="lazy" src="img/form-2.png" alt="form-2.png"  /></p>
+<p>The associated code in <a href="https://github.com/jeromedecoster/note-node-express-form/blob/master/index.js" target="_blank" rel="noopener">index.js</a> :</p>
+<ul>
+<li>The <code>req.body</code> object contains the values of the text fields of the form.</li>
+<li>The <code>req.files</code> <strong>array</strong> contains the files uploaded via the form.</li>
+<li>The files are declared with the <a href="https://github.com/expressjs/multer#any" target="_blank" rel="noopener">any method</a>. So we accept <strong>all files</strong>.</li>
+</ul>
+<pre><code class="language-js">// memory storage
+const upload = multer({ storage: multer.memoryStorage() })
+
+// we receive `req.body` and `req.files` 
+app.post('/data-two', upload.any(), (req, res) =&gt; {
+    console.log('req.body:', req.body)
+    console.log('req.files:', req.files)
+
+    var f1 = req.files.find(e =&gt; e.fieldname == 'a_json_file')
+    if (f1 != null) {
+        console.log('json:', JSON.parse(f1.buffer))
+    }
+    var f2 = req.files.find(e =&gt; e.fieldname == 'a_txt_file')
+    if (f2 != null) {
+        console.log('txt:', f2.buffer.toString())
+    }
+
+    res.send('ok')
+})
+</code></pre>
+<p>Pick the files <strong>/tmp/note/data.json</strong> and <strong>/tmp/note/data.txt</strong> then click the send button. The server log this :</p>
+<pre><code class="language-js">req.body: { a_checkbox: 'ok', a_radio: 'abc', a_thing: [ '123', '456' ] }
+req.files: [ { fieldname: 'a_json_file',
+    originalname: 'data.json',
+    encoding: '7bit',
+    mimetype: 'application/json',
+    buffer: &lt;Buffer 7b 0a 20 20 20 20 22 61 62 63 22 3a 20 31 32 33 0a 7d&gt;,
+    size: 18 },
+  { fieldname: 'a_txt_file',
+    originalname: 'data.txt',
+    encoding: '7bit',
+    mimetype: 'text/plain',
+    buffer: &lt;Buffer 64 65 66 3d 34 35 36&gt;,
+    size: 7 } ]
+json: { abc: 123 }
+txt: def=456
+</code></pre>
+<p>We can use <a href="https://curl.haxx.se/docs/manpage.html" target="_blank" rel="noopener">curl</a> to send the same datas :</p>
+<ul>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-X" target="_blank" rel="noopener">-X, &ndash;request <command></a> option send a <strong>POST request</strong>.</li>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-F" target="_blank" rel="noopener">-F, &ndash;form &lt;name=content&gt;</a> option to send <strong>the files and values</strong>.</li>
+<li><strong>Note</strong> : the suffix <code>;type=application/json</code> is used so the JSON file is not associated with de <strong>mimetype</strong> <code>application/octet-stream</code>.</li>
+<li><strong>Note</strong> : we send multiple <code>a_thing</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --request POST \
+    --form &quot;a_json_file=@data.json;type=application/json&quot; \
+    --form &quot;a_txt_file=@data.txt&quot; \
+    --form &quot;a_checkbox=ok&quot; \
+    --form &quot;a_radio=abc&quot; \
+    --form &quot;a_thing=123&quot; \
+    --form &quot;a_thing=456&quot; \
+    http://localhost:3000/data-two
+ok
+</code></pre>
+<h3 id="urlencoded-without-file">Urlencoded without file</h3>
+<p>To send a list of <strong>key/value data string</strong> we can use the <code>application/x-www-form-urlencoded</code> form.</p>
+<p>If you open <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> you should see the <strong>third form</strong> :</p>
+<p><img loading="lazy" src="img/form-3.png" alt="form-3.png"  /></p>
+<p>The associated code in <a href="https://github.com/jeromedecoster/note-node-express-form/blob/master/index.js" target="_blank" rel="noopener">index.js</a> :</p>
+<ul>
+<li>The <code>req.body</code> object contains the values of the text fields of the form.</li>
+<li>We use <a href="https://github.com/expressjs/body-parser#bodyparserurlencodedoptions" target="_blank" rel="noopener">bodyParser.urlencoded</a> to <strong>parse the urlencoded datas</strong>.</li>
+</ul>
+<pre><code class="language-js">// we receive `req.body`
+app.post('/data-three', bodyParser.urlencoded({ extended: true }), (req, res) =&gt; {
+    console.log('req.body:', req.body)
+
+    res.send('&lt;h1&gt;ok&lt;/h1&gt;')
+})
+</code></pre>
+<p>Click the send button. The server log this :</p>
+<pre><code class="language-js">req.body: { a_checkbox: 'good',
+  a_radio: '123',
+  a_value: '789',
+  other_thing: [ 'ghi', 'jkl' ] }
+</code></pre>
+<p>We can use <a href="https://curl.haxx.se/docs/manpage.html" target="_blank" rel="noopener">curl</a> to send the same datas :</p>
+<ul>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-X" target="_blank" rel="noopener">-X, &ndash;request <command></a> option send a <strong>POST request</strong>.</li>
+<li>We use the <a href="https://curl.haxx.se/docs/manpage.html#-d%22" target="_blank" rel="noopener">-d, &ndash;data <data></a> option to send <strong>the values</strong>.</li>
+<li><strong>Note</strong> : we send multiple <code>other_thing</code>.</li>
+</ul>
+<pre><code class="language-bash">$ curl --request POST \
+    --data &quot;a_checkbox=good&amp;a_radio=123&amp;a_value=789&amp;other_thing=ghi&amp;other_thing=jkl&quot; \
+    http://localhost:3000/data-three
+&lt;h1&gt;ok&lt;/h1&gt;
+</code></pre>
+<p>You can also send data <strong>from a file</strong>. Pick the file <strong>/tmp/note/urlencoded.txt</strong> :</p>
+<pre><code class="language-bash">$ curl --request POST \
+    --data &quot;@/tmp/note/urlencoded.txt&quot; \
+    http://localhost:3000/data-three
+&lt;h1&gt;ok&lt;/h1&gt;
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/curl/">curl</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/express/">express</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/form/">form</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

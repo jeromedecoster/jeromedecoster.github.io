@@ -11,10 +11,10 @@
     
     <item>
       <title>Codesuite pipeline &#43; Terraform</title>
-      <link>/aws/codesuite-pipeline-terraform/</link>
+      <link>/aws/codesuite-pipeline--terraform/</link>
       <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/codesuite-pipeline-terraform/</guid>
+      <guid>/aws/codesuite-pipeline--terraform/</guid>
       <description>
       
       Building a C&#43;&#43; program after each commit using **CodeCommit**, **CodeBuild** and **CodePipeline**.

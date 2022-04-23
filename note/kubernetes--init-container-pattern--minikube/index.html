@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,Kubernetes,Pattern,Minikube,Redis'><meta name="description" content='Testing the Init Container Kubernetes Pattern  with Minikube.'><meta property="og:title" content="Kubernetes &#43; Init Container Pattern &#43; Minikube" />
+<meta property="og:description" content="Testing the **Init Container Kubernetes Pattern**  with **Minikube**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/kubernetes--init-container-pattern--minikube/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2022-04-11T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-04-11T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes &#43; Init Container Pattern &#43; Minikube"/>
+<meta name="twitter:description" content="Testing the **Init Container Kubernetes Pattern**  with **Minikube**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Kubernetes &#43; Init Container Pattern &#43; Minikube | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#setup-the-project">Setup the project</a></li>
+        <li><a href="#the-init-container-pattern">The Init Container pattern</a></li>
+        <li><a href="#run-the-projet-locally">Run the projet locally</a></li>
+        <li><a href="#test-the-website-in-development-mode-without-redis">Test the website in development mode (without redis)</a></li>
+        <li><a href="#test-the-website-in-development-mode-with-redis">Test the website in development mode (with redis)</a></li>
+        <li><a href="#local-test-with-docker-compose">Local test with docker-compose</a></li>
+        <li><a href="#using-mikinube">Using mikinube</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">11</span>
+<span class="rest">Apr 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Kubernetes &#43; Init Container Pattern &#43; Minikube</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Run a <strong>voting application</strong> using an <strong>express website</strong> and <strong>redis</strong></li>
+<li>Run locally using <strong>docker images</strong> and <strong>docker-compose</strong></li>
+<li>Run locally using <strong>minikube</strong></li>
+<li>Explore the <strong>Init Container pattern</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="setup-the-project">Setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/k8s-init-container-pattern" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/k8s-init-container-pattern.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+</code></pre>
+<h3 id="the-init-container-pattern">The Init Container pattern</h3>
+<p>The <strong>Init Container pattern</strong> is the first of the structural models described in the <a href="https://www.oreilly.com/library/view/kubernetes-patterns/9781492050278/" target="_blank" rel="noopener">Bilgin Ibryam and Roland Huß book</a></p>
+<p><img loading="lazy" src="img/book.jpg" alt="book.jpg"  /></p>
+<p>Kubernetes manages pods instead of containers and pods encapsulate containers. <strong>A pod may contain one or more containers</strong>.</p>
+<p>A pod that contains one container refers to a <strong>single container pod</strong> and it is the <strong>most common kubernetes use case</strong>.</p>
+<p>A pod that contains Multiple co-related containers refers to a <strong>multi-container pod</strong>.</p>
+<p><a href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/" target="_blank" rel="noopener">Init Containers</a> are the containers that should <strong>run and complete before the startup of the main container</strong> in the pod. It provides a separate lifecycle for the initialization.</p>
+<ul>
+<li><code>Init containers</code> always run to completion.</li>
+<li>It is possible to have <strong>1 or more</strong> <code>init containers</code>.</li>
+<li>Each init container must complete successfully before the next one starts.</li>
+<li>So, <code>init containers</code> are <strong>executed sequentially, one after another</strong>.</li>
+</ul>
+<p>In the field of container orchestration, the <strong>ability to wait for an initialization phase is essential</strong>.</p>
+<p>The <a href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/#init-containers-in-use" target="_blank" rel="noopener">initContainers property</a> is therefore <strong>part of the syntax of kubernetes manifests</strong> :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: # ...
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: # ...
+</code></pre>
+<p><code>Init containers</code> are used to :</p>
+<ul>
+<li><strong>Wait</strong> for a service to be available before launching a container that depends on it</li>
+<li><strong>Installing</strong> software</li>
+<li><strong>Setup</strong> a database</li>
+<li>Setting permissions on the file system</li>
+</ul>
+<h3 id="run-the-projet-locally">Run the projet locally</h3>
+<p>The project is a simple voting application. A website that uses a Redis database.</p>
+<p><img loading="lazy" src="img/project.png" alt="project.png"  /></p>
+<p>To test our application we <strong>launch redis</strong> via a docker image :</p>
+<pre><code class="language-bash"># run redis alpine docker image
+$ make redis
+
+1:C # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+    # ...
+1:M # * Ready to accept connections
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash">$ docker run \
+    --rm \
+    --name redis \
+    --publish 6379:6379 \
+    redis:alpine
+</code></pre>
+<p>We will interact with redis in a new terminal window :</p>
+<pre><code class="language-bash"># connect to redis container
+$ CONTAINER_ID=$(docker ps --filter name=redis --format {{.ID}} | head -n 1)
+$ docker exec -ti $CONTAINER_ID /bin/sh
+
+/data # redis-cli KEYS '*'
+(empty array)
+/data # redis-cli incr up
+(integer) 1
+/data # redis-cli KEYS '*'
+1) &quot;up&quot;
+/data # redis-cli --raw get up
+1
+/data # exit
+
+# close redis container
+docker rm --force $CONTAINER_ID
+</code></pre>
+<h3 id="test-the-website-in-development-mode-without-redis">Test the website in development mode (without redis)</h3>
+<p>Make sure Redis isn&rsquo;t already running by <strong>closing all previous instances</strong>.</p>
+<p>We will test the website <strong>without Redis being active</strong>.</p>
+<pre><code class="language-bash"># run local website using npm - dev mode (livereload + nodemon)
+$ make npm
+</code></pre>
+<p>The site launches with a <strong>connection error</strong> :</p>
+<pre><code class="language-bash">env.NODE_ENV: development
+env.WEBSITE_PORT: 3000
+env.REDIS_HOST: 127.0.0.1
+listening on port 3000
+[ioredis] Unhandled error event: Error: connect ECONNREFUSED 127.0.0.1:6379
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1158:16)
+</code></pre>
+<p>This error is generated by <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/vote/index.js" target="_blank" rel="noopener">trying to connect</a> to the Redis instance :</p>
+<pre><code class="language-js">const REDIS_HOST = process.env.REDIS_HOST || 'redis'
+
+// ...
+
+const redis = new Redis({
+    port: 6379,
+    host: REDIS_HOST
+})
+</code></pre>
+<p>You can end the process with <code>Ctrl+C</code></p>
+<h3 id="test-the-website-in-development-mode-with-redis">Test the website in development mode (with redis)</h3>
+<p>We will now launch the applications <strong>in the correct order</strong>, via different terminal windows :</p>
+<pre><code class="language-bash"># run redis alpine docker image
+$ make redis
+
+# run local website using npm - dev mode (livereload + nodemon)
+$ make npm
+</code></pre>
+<p>The output is :</p>
+<pre><code class="language-bash">env.NODE_ENV: development
+env.WEBSITE_PORT: 3000
+env.REDIS_HOST: 127.0.0.1
+listening on port 3000
+</code></pre>
+<p>We open <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a></p>
+<p><img loading="lazy" src="img/localhost.png" alt="localhost.png"  /></p>
+<p>The test is conclusive. Both processes can be terminated.</p>
+<h3 id="local-test-with-docker-compose">Local test with docker-compose</h3>
+<p>Before testing in minikube, it&rsquo;s a good idea to use <code>docker-compose</code> to <strong>orchestrate the containers that make up the application locally</strong>. It&rsquo;s a good step.</p>
+<p>The <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/docker-compose.dev.yml" target="_blank" rel="noopener">docker-compose.yml</a> file is quite simple :</p>
+<pre><code class="language-yaml">services:
+  vote:
+    build:
+      context: ./vote
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+        - WEBSITE_PORT=4000
+    volumes:
+      - &quot;./vote:/app&quot;
+    ports:
+      - &quot;4000:4000&quot;
+      - &quot;35729:35729&quot;
+    networks:
+      - backend
+    depends_on:
+      - redis
+    
+  redis:
+    image: redis:alpine
+    ports:
+      - &quot;6379:6379&quot;
+    networks:
+      - backend
+
+networks:
+  backend: {}
+</code></pre>
+<p>We execute the following command :</p>
+<pre><code class="language-bash"># run the project using docker-compose (same as redis + npm)
+$ make compose-dev
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ export COMPOSE_PROJECT_NAME=k8s_init_container
+$ docker-compose \
+    --file docker-compose.dev.yml \
+    up \
+    --remove-orphans \
+    --force-recreate \
+    --build \
+    --no-deps
+</code></pre>
+<p>The output is :</p>
+<pre><code class="language-bash">redis_1  | 1:C 31 Mar 2022 08:25:22.753 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+redis_1  | 1:C 31 Mar 2022 08:25:22.753 # Redis version=6.2.6, bits=64, commit=00000000, modified=0, pid=1, just started
+# ...
+vote_1   | env.NODE_ENV: development
+vote_1   | env.WEBSITE_PORT: 4000
+vote_1   | env.REDIS_HOST: undefined
+vote_1   | listening on port 4000
+</code></pre>
+<p>We open <a href="http://localhost:4000" target="_blank" rel="noopener">http://localhost:4000</a></p>
+<p><img loading="lazy" src="img/project.png" alt="project.png"  /></p>
+<p>The test is conclusive. We can complete the process.</p>
+<h3 id="using-mikinube">Using mikinube</h3>
+<p>We start minikube :</p>
+<pre><code class="language-bash">$ minikube start --driver=docker
+</code></pre>
+<p>If minikube won&rsquo;t start with a <code>PROVIDER_DOCKER_NOT_RUNNING</code> error or another error, try <a href="https://stackoverflow.com/a/54994074" target="_blank" rel="noopener">a hard reset</a> :</p>
+<pre><code class="language-bash">$ minikube delete -p minikube
+</code></pre>
+<p>We check the context :</p>
+<pre><code class="language-bash">$ kubectl config current-context
+minikube
+</code></pre>
+<p>We launch the <strong>Kubernetes dashboard</strong> in a new terminal window :</p>
+<pre><code class="language-bash"># new terminal window
+$ minikube dashboard
+</code></pre>
+<p><img loading="lazy" src="img/minikube-ns-1.png" alt="minikube-ns-1.png"  /></p>
+<p>To be able to <a href="https://stackoverflow.com/a/56392747" target="_blank" rel="noopener">use our local docker images within minikube</a> it is imperative to :</p>
+<ol>
+<li>Target the <strong>local docker registry</strong></li>
+<li><strong>Rebuild the docker images</strong> in this registry</li>
+<li>use the <code>imagePullPolicy: Never</code> <strong>attribute</strong> in kubernetes manifests</li>
+</ol>
+<pre><code class="language-bash"># 1. target the local docker registry
+$ eval $(minikube -p minikube docker-env)
+
+# 2. rebuild the docker images in this registry
+# /!\ must be in the same terminal window than previous command
+$ make docker-build
+# ...
+Successfully tagged site:latest
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/k8s/vote.yaml" target="_blank" rel="noopener">attribute is visible</a> below :</p>
+<pre><code class="language-yaml">spec:
+    containers:
+    - name: vote
+    image: site:latest
+    env:
+    - name: REDIS_HOST
+        value: &quot;redis-svc&quot;
+    ports:
+    - containerPort: 3000
+        name: vote 
+    # 3. use the attribute
+    imagePullPolicy: Never
+</code></pre>
+<p>We <strong>create the kubernetes namespace</strong> with the <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/k8s/ns.yaml" target="_blank" rel="noopener">ns.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/ns.yaml
+namespace/k8s-init-container created
+</code></pre>
+<p><img loading="lazy" src="img/minikube-ns-2.png" alt="minikube-ns-2.png"  /></p>
+<p>We launch the <strong>vote application</strong> with the <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/k8s/vote.yaml" target="_blank" rel="noopener">vote.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/vote.yaml
+deployment.apps/vote created
+service/vote-svc created
+</code></pre>
+<p>Note that the <strong>Redis instance has not been started</strong>.</p>
+<p>We can query the <code>init-vote</code> <strong>container logs</strong> :</p>
+<pre><code class="language-bash">$ kubectl logs -l app=vote -c init-vote -n k8s-init-container
+nc: bad address 'redis-svc'
+Waiting for redis-svc
+</code></pre>
+<p>The <code>init-vote</code> container is a <strong>busybox that runs a shell script that loops until the redis service is available</strong> :</p>
+<pre><code class="language-yaml">initContainers:
+    - name: init-vote
+    image: busybox:latest
+    command: ['sh', '-c', 'until nc -vz redis-svc 6379 ; do echo &quot;Waiting for redis-svc&quot;; sleep 1; done;']
+</code></pre>
+<p>The current status shown in the <strong>Replica Sets panel</strong>  :</p>
+<p><img loading="lazy" src="img/vote.png" alt="vote.png"  /></p>
+<p>In a new terminal window we connect <strong>within the cluster via another busybox</strong> :</p>
+<pre><code class="language-bash">$ kubectl run -i --tty --rm busybox \
+    --image=busybox \
+    --namespace=k8s-init-container \
+    --restart=Never \
+    -- sh
+/
+</code></pre>
+<p>The current status shown in the <strong>Pods panel</strong>  :</p>
+<p><img loading="lazy" src="img/busybox-pod.png" alt="busybox-pod.png"  /></p>
+<p>We will <strong>query the state</strong> of the <code>vote-svc</code> service from our busybox :</p>
+<p><img loading="lazy" src="img/vote-svc.png" alt="vote-svc.png"  /></p>
+<p>We can use <a href="https://linuxhandbook.com/nc-command/" target="_blank" rel="noopener">nc</a> :</p>
+<pre><code class="language-bash">/ nc -vz vote-svc 9000
+# processus completed but nothing is returned
+</code></pre>
+<p>Nothing is returned but the <strong>processus is completed</strong></p>
+<p>If we <strong>test a bad name</strong>, we received an error :</p>
+<pre><code class="language-bash">/ nc -vz vote-something 9000
+nc: bad address 'vote-something'
+</code></pre>
+<p>If we <strong>test a bad port</strong>, we received nothing :</p>
+<pre><code class="language-bash">/ nc -vz vote-svc 90
+# processus not completed ... waiting
+</code></pre>
+<p>Nothing is returned and the <strong>processus is not completed</strong></p>
+<p>We can use <a href="https://linuxhandbook.com/nslookup-command/" target="_blank" rel="noopener">nslookup</a> :</p>
+<pre><code class="language-bash">/ nslookup -type=srv vote-svc.k8s-init-container.svc.cluster.local
+Server:         10.96.0.10
+Address:        10.96.0.10:53
+
+vote-svc.k8s-init-container.svc.cluster.local   service = 0 100 9000 vote-svc.k8s-init-container.svc.cluster.local
+</code></pre>
+<p>If we <strong>test a bad name</strong>, we received :</p>
+<pre><code class="language-bash">/ nslookup -type=srv vote-something.k8s-init-container.svc.cluster.local
+Server:         10.96.0.10
+Address:        10.96.0.10:53
+
+** server cant find vote-something.k8s-init-container.svc.cluster.local: NXDOMAIN
+</code></pre>
+<p>In a new terminal window we now <strong>launch the redis instance</strong> with the <a href="https://github.com/jeromedecoster/k8s-init-container-pattern/blob/master/k8s/redis.yaml" target="_blank" rel="noopener">redis.yaml</a> template :</p>
+<pre><code class="language-bash">$ kubectl apply -f k8s/redis.yaml
+</code></pre>
+<p>We test the service with <a href="https://linuxhandbook.com/nc-command/" target="_blank" rel="noopener">nc</a> :</p>
+<pre><code class="language-bash">/ nc -vz redis-svc 6379
+redis-svc (10.107.142.90:6379) open
+</code></pre>
+<p>Or with <a href="https://linuxhandbook.com/nslookup-command/" target="_blank" rel="noopener">nslookup</a> :</p>
+<pre><code class="language-bash">/ # nslookup -type=srv redis-svc.k8s-init-container.svc.cluster.local
+Server:         10.96.0.10
+Address:        10.96.0.10:53
+
+redis-svc.k8s-init-container.svc.cluster.local  service = 0 100 6379 redis-svc.k8s-init-container.svc.cluster.local
+</code></pre>
+<p>To test our site we <strong>search the access URL</strong> via the following command :</p>
+<pre><code class="language-bash">$ minikube service list
+|----------------------|---------------------------|--------------|---------------------------|
+|      NAMESPACE       |           NAME            | TARGET PORT  |            URL            |
+|----------------------|---------------------------|--------------|---------------------------|
+| default              | kubernetes                | No node port |                           |
+| k8s-init-container   | redis-svc                 | No node port |                           |
+| k8s-init-container   | vote-svc                  |         9000 | http://192.168.49.2:31000 |
+| kube-system          | kube-dns                  | No node port |                           |
+| kubernetes-dashboard | dashboard-metrics-scraper | No node port |                           |
+| kubernetes-dashboard | kubernetes-dashboard      | No node port |                           |
+|----------------------|---------------------------|--------------|---------------------------|
+</code></pre>
+<p>It is possible to use <strong>get it directly</strong> like this :</p>
+<pre><code class="language-bash">$ minikube service --url vote-svc --namespace k8s-init-container
+http://192.168.49.2:31000
+</code></pre>
+<p>By opening the URL we see that the website is working correctly :</p>
+<p><img loading="lazy" src="img/minikube-website.png" alt="minikube-website.png"  /></p>
+<p>The demonstration is over, we can <strong>destroy our resources</strong>.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/minikube/">minikube</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/pattern/">pattern</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/redis/">redis</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

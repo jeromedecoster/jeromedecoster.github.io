@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Kubernetes,EKS,Prometheus,Grafana,Autoscaling'><meta name="description" content='Install Prometheus and Grafana on Kubernetes. Perform a CPU stress test to see the evolution of Prometheus metrics and Kubernetes autoscaling.'><meta property="og:title" content="EKS &#43; Prometheus &#43; Grafana" />
+<meta property="og:description" content="Install **Prometheus** and **Grafana** on **Kubernetes**. Perform a **CPU stress test** to see the evolution of **Prometheus metrics** and **Kubernetes autoscaling**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/eks--prometheus--grafana/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-10-05T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-10-05T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="EKS &#43; Prometheus &#43; Grafana"/>
+<meta name="twitter:description" content="Install **Prometheus** and **Grafana** on **Kubernetes**. Perform a **CPU stress test** to see the evolution of **Prometheus metrics** and **Kubernetes autoscaling**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>EKS &#43; Prometheus &#43; Grafana | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-setup-and-explore-the-project">Install, setup and explore the project</a></li>
+        <li><a href="#creating-the-cluster">Creating the cluster</a></li>
+        <li><a href="#installation-of-prometheus-and-grafana">Installation of Prometheus and Grafana</a></li>
+        <li><a href="#installation-of-our-website">Installation of our website</a></li>
+        <li><a href="#connection-to-prometheus">Connection to Prometheus</a></li>
+        <li><a href="#connection-to-grafana-and-add-a-dashboard">Connection to Grafana and add a dashboard</a></li>
+        <li><a href="#stress-test-and-autoscaling">Stress test and autoscaling</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">05</span>
+<span class="rest">Oct 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">EKS &#43; Prometheus &#43; Grafana</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Install <strong>Prometheus</strong> and <strong>Grafana</strong> on <strong>Kubernetes</strong></li>
+<li>Set up a website to perform a <strong>CPU stress test</strong></li>
+<li>See the evolution of <strong>Prometheus metrics</strong> and <strong>Kubernetes autoscaling</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-setup-and-explore-the-project">Install, setup and explore the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-eks-prometheus-grafana" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-eks-prometheus-grafana.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># install eksctl + kubectl, download kube-prometheus
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Install <a href="https://github.com/weaveworks/eksctl/releases" target="_blank" rel="noopener">eksctl</a> if it is not already installed.</li>
+<li>Install <a href="https://github.com/kubernetes/kubectl/releases" target="_blank" rel="noopener">kubectl</a> if it is not already installed.</li>
+<li>Download a <a href="https://github.com/prometheus-operator/kube-prometheus" target="_blank" rel="noopener">kube-prometheus</a> release.</li>
+</ul>
+<p>Let&rsquo;s test the website :</p>
+<pre><code class="language-bash"># run the website locally
+$ make dev
+</code></pre>
+<p>By opening the address <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> you can see the website :</p>
+<p><img loading="lazy" src="img/stress-01-test-local.png" alt="stress-01-test-local"  /></p>
+<p>It&rsquo;s a website <a href="https://github.com/jeromedecoster/aws-eks-prometheus-grafana/blob/master/stress/server.js" target="_blank" rel="noopener">built with a node</a> that allows you to play with the <a href="ttps://linux.die.net/man/1/stress">stress</a> executable :</p>
+<pre><code class="language-js">const { execFile } = require('child_process')
+const bodyParser = require('body-parser')
+const nunjucks = require('nunjucks')
+const express = require('express')
+
+const app = express()
+
+// ...
+
+app.post('/stress', (req, res) =&gt; {
+    console.log(req.body)
+    const cpu = req.body.cpu
+    const timeout = req.body.timeout
+    execFile('/usr/bin/stress', ['--cpu', cpu, '--timeout', timeout])
+    return res.render('stress', {cpu, timeout})
+})
+</code></pre>
+<p>We execute the stress by clicking on the <strong>send button</strong> :</p>
+<p><img loading="lazy" src="img/stress-02-test-local.png" alt="stress-02-test-local"  /></p>
+<p>I am using <a href="https://linux.die.net/man/1/htop" target="_blank" rel="noopener">htop</a> to see that <strong>2 processor cores</strong> are at <strong>full capacity for 20 seconds</strong> :</p>
+<p><img loading="lazy" src="img/stress-03-htop.png" alt="stress-03-htop"  /></p>
+<p>We can stop the website with <code>Ctrl + C</code>.</p>
+<p>This site has been transformed into a <strong>docker image</strong> via this <a href="https://github.com/jeromedecoster/aws-eks-prometheus-grafana/blob/master/stress/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> :</p>
+<pre><code class="language-Dockerfile">FROM softonic/node-prune AS prune
+
+FROM polinux/stress AS stress
+
+FROM node:14.11-alpine AS build
+# With `NODE_ENV=production` npm install will skip devDependencies packages
+ENV NODE_ENV production
+WORKDIR /app
+COPY --from=prune /go/bin/node-prune /usr/local/bin/
+ADD . .
+RUN npm install --quiet
+RUN node-prune
+
+FROM node:14.11-alpine
+ENV NODE_ENV production
+WORKDIR /app
+COPY --from=build /app .
+COPY --from=stress /usr/local/bin/stress /usr/bin
+CMD [&quot;node&quot;, &quot;server.js&quot;]
+</code></pre>
+<p>And published on <a href="https://hub.docker.com/repository/docker/jeromedecoster/stress" target="_blank" rel="noopener">docker hub</a> :</p>
+<p><img loading="lazy" src="img/dockerhub.png" alt="dockerhub"  /></p>
+<h3 id="creating-the-cluster">Creating the cluster</h3>
+<p>We launch the <strong>creation of the EKS cluster</strong>. You have to be patient because it takes <strong>about 15 minutes</strong> !</p>
+<pre><code class="language-bash"># create the EKS cluster
+$ make cluster-create
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash"># create the EKS cluster
+$ eksctl create cluster \
+    --name stress \
+    --region eu-west-3 \
+    --managed \
+    --node-type t2.large \
+    --nodes 1 \
+    --profile default
+</code></pre>
+<p>The cluster is creation is <strong>in progress</strong> :</p>
+<p><img loading="lazy" src="img/eks-01-cloudformation.png" alt="eks-01-cloudformation"  /></p>
+<p><img loading="lazy" src="img/eks-01-cluster.png" alt="eks-01-cluster"  /></p>
+<p>Once the cluster is ready, we can query it :</p>
+<pre><code class="language-bash">$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   5m
+kube-node-lease   Active   5m
+kube-public       Active   5m
+kube-system       Active   5m
+</code></pre>
+<p>The cluster was created with EC2 instances of type <code>t2.large</code>.</p>
+<p>The size of these instances allows us to be able to create <strong>up to 35 pods</strong> :</p>
+<p>We get this information with this command :</p>
+<pre><code class="language-bash">$ kubectl get nodes -o yaml
+</code></pre>
+<p>We get the information here :</p>
+<pre><code class="language-yaml">apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Node
+  metadata:
+    annotations:
+    # ...
+    capacity:
+      attachable-volumes-aws-ebs: &quot;39&quot;
+      cpu: &quot;2&quot;
+      ephemeral-storage: 83873772Ki
+      hugepages-2Mi: &quot;0&quot;
+      memory: 8166336Ki
+      pods: &quot;35&quot; #  &lt;-- max pods
+</code></pre>
+<p>If we had used <code>t2.small</code>, we would have had <strong>too few pods available for our project</strong> :</p>
+<pre><code class="language-bash">$ kubectl get nodes -o yaml | grep pods
+pods: &quot;11&quot;
+</code></pre>
+<p>Here is the <strong>number of pods currently in use</strong> :</p>
+<pre><code class="language-bash"># current pods
+$ kubectl get pods --all-namespaces | grep Running | wc -l
+4
+</code></pre>
+<h3 id="installation-of-prometheus-and-grafana">Installation of Prometheus and Grafana</h3>
+<p>Manually and correctly installing Prometheus and Grafana in a <strong>growing and shrinking Kubernetes cluster</strong> is a <strong>complex task</strong>.</p>
+<p>The <strong>excellent</strong> <a href="https://github.com/prometheus-operator/kube-prometheus" target="_blank" rel="noopener">kube-prometheus</a> project takes care of everything.</p>
+<p>Our <strong>EKS cluster</strong> runs <code>Kubernetes 1.17</code>.</p>
+<p>As indicated by the <a href="https://github.com/prometheus-operator/kube-prometheus#kubernetes-compatibility-matrix" target="_blank" rel="noopener">compatibility matrix table</a>, we will therefore use <a href="https://github.com/prometheus-operator/kube-prometheus/releases/tag/v0.4.0" target="_blank" rel="noopener">version 0.4</a> of the project :</p>
+<p><img loading="lazy" src="img/compatibility-matrix.png" alt="compatibility-matrix"  /></p>
+<p><a href="https://github.com/prometheus-operator/kube-prometheus/releases/tag/v0.4.0" target="_blank" rel="noopener">Version 0.4</a> was already downloaded when we ran the <code>make setup</code> command.</p>
+<p>In a terminal window, we run the following command to see, every 2 seconds, the evolution of <strong>the content of the <code>monitoring</code> namespace</strong> :</p>
+<pre><code class="language-bash">$ watch kubectl -n monitoring get all
+
+No resources found in monitoring namespace.
+</code></pre>
+<p>We install Prometheus and Grafana with this command :</p>
+<pre><code class="language-bash"># deploy prometheus + grafana service to EKS
+$ make cluster-deploy-prometheus-grafana
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash">$ kubectl create -f kube-prometheus-0.4.0/manifests/setup
+$ kubectl create -f kube-prometheus-0.4.0/manifests
+</code></pre>
+<p>Our terminal quickly displays <strong>many changes</strong> :</p>
+<pre><code class="language-bash">$ watch kubectl -n monitoring get all
+
+NAME                                      READY   STATUS    RESTARTS   AGE
+pod/alertmanager-main-0                   2/2     Running   0          40s
+pod/alertmanager-main-1                   2/2     Running   0          40s
+pod/alertmanager-main-2                   2/2     Running   0          40s
+pod/grafana-58dc7468d7-rslg8              1/1     Running   0          25s
+pod/kube-state-metrics-765c7c7f95-mc2sx   3/3     Running   0          25s
+pod/node-exporter-8s5xx                   2/2     Running   0          25s
+pod/prometheus-adapter-5cd5798d96-8d6fc   1/1     Running   0          25s
+pod/prometheus-k8s-0                      3/3     Running   1          25s
+pod/prometheus-k8s-1                      3/3     Running   1          25s
+pod/prometheus-operator-99dccdc56-zj8bp   1/1     Running   0          50s
+
+NAME                            TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/alertmanager-main       ClusterIP   10.100.9.140     &lt;none&gt;        9093/TCP                     40s
+service/alertmanager-operated   ClusterIP   None             &lt;none&gt;        9093/TCP,9094/TCP,9094/UDP   40s
+service/grafana                 ClusterIP   10.100.204.74    &lt;none&gt;        3000/TCP                     25s
+service/kube-state-metrics      ClusterIP   None             &lt;none&gt;        8443/TCP,9443/TCP            25s
+service/node-exporter           ClusterIP   None             &lt;none&gt;        9100/TCP                     25s
+service/prometheus-adapter      ClusterIP   10.100.214.16    &lt;none&gt;        443/TCP                      25s
+service/prometheus-k8s          ClusterIP   10.100.203.191   &lt;none&gt;        9090/TCP                     25s
+service/prometheus-operated     ClusterIP   None             &lt;none&gt;        9090/TCP                     25s
+service/prometheus-operator     ClusterIP   None             &lt;none&gt;        8080/TCP                     50s
+
+NAME                           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+daemonset.apps/node-exporter   1         1         1       1            1           kubernetes.io/os=linux   25s
+
+NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/grafana               1/1     1            1           25s
+deployment.apps/kube-state-metrics    1/1     1            1           25s
+deployment.apps/prometheus-adapter    1/1     1            1           25s
+deployment.apps/prometheus-operator   1/1     1            1           50s
+
+NAME                                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/grafana-58dc7468d7              1         1         1       25s
+replicaset.apps/kube-state-metrics-765c7c7f95   1         1         1       25s
+replicaset.apps/prometheus-adapter-5cd5798d96   1         1         1       25s
+replicaset.apps/prometheus-operator-99dccdc56   1         1         1       50s
+
+NAME                                 READY   AGE
+statefulset.apps/alertmanager-main   3/3     40s
+statefulset.apps/prometheus-k8s      2/2     25s
+</code></pre>
+<h3 id="installation-of-our-website">Installation of our website</h3>
+<p>We are now going to set up our stress testing website :</p>
+<pre><code class="language-bash"># deploy stress service to EKS
+$ make cluster-deploy-stress
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash">$ kubectl create -f k8s/namespace.yaml
+$ kubectl create -f k8s/deployment.yaml
+$ kubectl create -f k8s/service.yaml
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-eks-prometheus-grafana/blob/master/k8s/deployment.yaml" target="_blank" rel="noopener">deployment.yaml</a> file is essential because it <strong>defines the autoscaling and its constraints</strong> :</p>
+<pre><code class="language-yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website
+  namespace: website
+  labels:
+    app: website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: website
+  template:
+    metadata:
+      labels:
+        app: website
+    spec:
+      containers:
+      - name: website
+        image: jeromedecoster/stress:1.0.0
+        ports:
+        - containerPort: 3000
+          name: website
+        resources:
+          limits:
+            cpu: 0.1
+          requests:
+            cpu: 0.1
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: website-hpa
+  namespace: website
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: website
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 10
+</code></pre>
+<p>Pod <strong>resource usage limits</strong> are defined by :</p>
+<pre><code class="language-yaml">resources:
+  limits:
+    cpu: 0.1
+  requests:
+    cpu: 0.1
+</code></pre>
+<p>The number of <strong>replicas variations</strong> is defined by :</p>
+<pre><code class="language-yaml">minReplicas: 1
+maxReplicas: 5
+targetCPUUtilizationPercentage: 10
+</code></pre>
+<p>In a terminal window, we run the following command to see, every 2 seconds, the evolution of <strong>the content of the <code>website</code> namespace</strong> :</p>
+<pre><code class="language-bash">$ watch kubectl -n website get all
+
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/website-647bcb8859-gjbr2   1/1     Running   0          80s
+
+NAME              TYPE           CLUSTER-IP       EXTERNAL-IP                          PORT(S)        AGE
+service/website   LoadBalancer   10.100.211.221   abcdef.eu-west-3.elb.amazonaws.com   80:30507/TCP   80s
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/website   1/1     1            1           80s
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/website-647bcb8859   1         1         1       80s
+
+NAME                                              REFERENCE            TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/website-hpa   Deployment/website   &lt;unknown&gt;/10%   1         5         1          80s
+</code></pre>
+<p>We currently have <strong>15 pods</strong> in operation :</p>
+<pre><code class="language-bash">$ kubectl get pods --all-namespaces | grep Running | wc -l
+15
+</code></pre>
+<h3 id="connection-to-prometheus">Connection to Prometheus</h3>
+<p>We now use the <a href="https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#forward-a-local-port-to-a-port-on-the-pod" target="_blank" rel="noopener">port-forward command</a> to connect to Prometehus in <a href="http://localhost:9090" target="_blank" rel="noopener">localhost:9090</a> :</p>
+<pre><code class="language-bash">$ kubectl -n monitoring port-forward service/prometheus-k8s 9090:9090
+Forwarding from 127.0.0.1:9090 -&gt; 9090
+Forwarding from [::1]:9090 -&gt; 9090
+</code></pre>
+<p>I can see the <strong>impressive number</strong> of <a href="http://localhost:9090/targets" target="_blank" rel="noopener">targets</a> already set by <a href="https://github.com/prometheus-operator/kube-prometheus" target="_blank" rel="noopener">kube-prometheus</a> :</p>
+<p><img loading="lazy" src="img/prometheus-01-targets.png" alt="prometheus-01-targets"  /></p>
+<p>Here is also a part of the <strong>very many</strong> <a href="http://localhost:9090/rules" target="_blank" rel="noopener">rules</a> :</p>
+<p><img loading="lazy" src="img/prometheus-02-rules.png" alt="prometheus-02-rules"  /></p>
+<h3 id="connection-to-grafana-and-add-a-dashboard">Connection to Grafana and add a dashboard</h3>
+<p>In another terminal window, we use the <a href="https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#forward-a-local-port-to-a-port-on-the-pod" target="_blank" rel="noopener">port-forward command</a> to connect to Grafana in <a href="http://localhost:3000" target="_blank" rel="noopener">localhost:3000</a> :</p>
+<pre><code class="language-bash">$ kubectl -n monitoring port-forward service/grafana 3000:3000
+Forwarding from 127.0.0.1:3000 -&gt; 3000
+Forwarding from [::1]:3000 -&gt; 3000
+</code></pre>
+<p>We log in with :</p>
+<ul>
+<li><strong>User</strong> : <code>admin</code></li>
+<li><strong>Password</strong> : <code>admin</code></li>
+</ul>
+<p><img loading="lazy" src="img/grafana-01-login.png" alt="grafana-01-login"  /></p>
+<p>Once logged in you can see some of the <strong>impressive list of dashboards</strong> defined by <a href="https://github.com/prometheus-operator/kube-prometheus" target="_blank" rel="noopener">kube-prometheus</a> :</p>
+<p><img loading="lazy" src="img/grafana-02-logged.png" alt="grafana-02-logged"  /></p>
+<p>These dashboards are intended <strong>for kubernetes only</strong>. We will <strong>import a dashboard</strong> dedicated to the metrics returned by <a href="https://github.com/prometheus/node_exporter" target="_blank" rel="noopener">Node Exporter</a> :</p>
+<p><img loading="lazy" src="img/grafana-03-import.png" alt="grafana-03-import"  /></p>
+<p>We will import the <a href="https://grafana.com/grafana/dashboards/6126" target="_blank" rel="noopener">dashboard #6126</a> :</p>
+<p><img loading="lazy" src="img/grafana-04-dashboard.png" alt="grafana-04-dashboard"  /></p>
+<p>We choose :</p>
+<ul>
+<li><strong>ID</strong> : <code>6126</code></li>
+<li><strong>DataSource</strong> : <code>promotheus</code></li>
+</ul>
+<p><img loading="lazy" src="img/grafana-05-import-next.png" alt="grafana-05-import-next"  /></p>
+<p>The dashboard is imported and works correctly :</p>
+<p><img loading="lazy" src="img/grafana-06-imported.png" alt="grafana-06-imported"  /></p>
+<p>In another tab of my browser I display the <strong>resources used in the <code>webite</code> namespace</strong> :</p>
+<p><img loading="lazy" src="img/grafana-07-resources-pods.png" alt="grafana-07-resources-pods"  /></p>
+<h3 id="stress-test-and-autoscaling">Stress test and autoscaling</h3>
+<p>We get the public address of the <strong>Load Balancer</strong> with the command :</p>
+<pre><code class="language-bash">$ make cluster-elb
+abcdef.eu-west-3.elb.amazonaws.com
+</code></pre>
+<p>This command executes this script :</p>
+<pre><code class="language-bash">$ kubectl get svc \
+    --namespace website \
+    --output jsonpath=&quot;{.items[?(@.metadata.name=='website')].status.loadBalancer.ingress[].hostname}&quot;
+</code></pre>
+<p>By pasting this URL in my browser, I see my website :</p>
+<p><img loading="lazy" src="img/stress-04-start.png" alt="stress-04-start"  /></p>
+<p>We start a <strong>powerful and long CPU stress</strong> :</p>
+<p><img loading="lazy" src="img/stress-05-started.png" alt="stress-05-started"  /></p>
+<p>The data returned by Node Exporter <strong>grows rapidly</strong> :</p>
+<p><img loading="lazy" src="img/grafana-08-stress.png" alt="grafana-08-stress"  /></p>
+<p><strong>A pod has been added</strong>, the autoscaling is working correctly :</p>
+<p><img loading="lazy" src="img/stress-06-hpa-1.png" alt="stress-06-hpa-1"  /></p>
+<p>We see the same evolution in our terminal window :</p>
+<pre><code class="language-bash">$ watch kubectl -n website get all
+
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/website-647bcb8859-gjbr2   1/1     Running   0          30m
+pod/website-647bcb8859-qlb7z   1/1     Running   0          100s
+
+NAME              TYPE           CLUSTER-IP       EXTERNAL-IP                          PORT(S)        AGE
+service/website   LoadBalancer   10.100.211.221   abcdef.eu-west-3.elb.amazonaws.com   80:30507/TCP   30m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/website   2/2     2            2           30m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/website-647bcb8859   2         2         2       30m
+
+NAME                                              REFERENCE            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/website-hpa   Deployment/website   14%/10%   1         5         2          30m
+</code></pre>
+<p>The stress continues. <strong>The CPU increases, so does the number of pods</strong> :</p>
+<p><img loading="lazy" src="img/stress-07-hpa-2.png" alt="stress-07-hpa-2"  /></p>
+<p>We see the same evolution in our terminal window :</p>
+<pre><code class="language-bash">$ watch kubectl -n website get all
+
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/website-647bcb8859-gjbr2   1/1     Running   0          35m
+pod/website-647bcb8859-jxj65   1/1     Running   0          45s
+pod/website-647bcb8859-nkbgw   1/1     Running   0          75s
+pod/website-647bcb8859-qlb7z   1/1     Running   0          5m
+
+NAME              TYPE           CLUSTER-IP       EXTERNAL-IP                          PORT(S)        AGE
+service/website   LoadBalancer   10.100.211.221   abcdef.eu-west-3.elb.amazonaws.com   80:30507/TCP   35m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/website   4/4     4            4           35m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/website-647bcb8859   4         4         4       35m
+
+NAME                                              REFERENCE            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/website-hpa   Deployment/website   28%/10%   1         5         4          35m
+</code></pre>
+<p><strong>After several minutes</strong> of waiting, the metrics fell back.</p>
+<p>La mise à l&rsquo;échelle automatique de kubernetes a fini par supprimer tous les pods qui avaient été créés :</p>
+<p><img loading="lazy" src="img/stress-08-hpa-3.png" alt="stress-08-hpa-3"  /></p>
+<p>The demonstration is over. We can <strong>delete our cluster</strong> with this command :</p>
+<pre><code class="language-bash">$ make cluster-delete
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/autoscaling/">autoscaling</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/grafana/">grafana</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/prometheus/">prometheus</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

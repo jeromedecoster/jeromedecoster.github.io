@@ -11,10 +11,10 @@
     
     <item>
       <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
-      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <link>/aws/s3-event-notification--rekognition--imagemagick/</link>
       <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <guid>/aws/s3-event-notification--rekognition--imagemagick/</guid>
       <description>
       
       Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda</title>
-      <link>/aws/terraform-s3-s3-event-notification-lambda/</link>
+      <link>/aws/terraform--s3--s3-event-notification--lambda/</link>
       <pubDate>Mon, 27 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/terraform-s3-s3-event-notification-lambda/</guid>
+      <guid>/aws/terraform--s3--s3-event-notification--lambda/</guid>
       <description>
       
       Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**.

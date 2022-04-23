@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Prometheus &#43; Grafana &#43; Node</title>
-      <link>/note/prometheus-grafana-node/</link>
+      <link>/note/prometheus--grafana--node/</link>
       <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/prometheus-grafana-node/</guid>
+      <guid>/note/prometheus--grafana--node/</guid>
       <description>
       
       Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Github Actions</title>
-      <link>/aws/kubernetes-eks-github-actions/</link>
+      <link>/aws/kubernetes--eks--github-actions/</link>
       <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-github-actions/</guid>
+      <guid>/aws/kubernetes--eks--github-actions/</guid>
       <description>
       
       Creation of a **website**, hosted on a **Kubernetes cluster**. Use **Kubectl**, **Kustomize** and **Github actions** to deploy it in a **GitOps** way.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
-      <link>/aws/kubernetes-eks-docker-node/</link>
+      <link>/aws/kubernetes--eks--docker--node/</link>
       <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <guid>/aws/kubernetes--eks--docker--node/</guid>
       <description>
       
       Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
-      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <link>/note/jenkins-pipeline--slack--github-release/</link>
       <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <guid>/note/jenkins-pipeline--slack--github-release/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.
@@ -71,10 +71,10 @@
     </item>
     <item>
       <title>Jenkins &#43; github</title>
-      <link>/note/jenkins-github/</link>
+      <link>/note/jenkins--github/</link>
       <pubDate>Tue, 03 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-github/</guid>
+      <guid>/note/jenkins--github/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins**.
@@ -83,10 +83,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; session</title>
-      <link>/note/node-express-session/</link>
+      <link>/note/node--express--session/</link>
       <pubDate>Thu, 16 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-session/</guid>
+      <guid>/note/node--express--session/</guid>
       <description>
       
       Testing the **cookie-session** and **express-session** middlewares.
@@ -95,10 +95,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; form</title>
-      <link>/note/node-express-form/</link>
+      <link>/note/node--express--form/</link>
       <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-form/</guid>
+      <guid>/note/node--express--form/</guid>
       <description>
       
       Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms.
@@ -107,10 +107,10 @@
     </item>
     <item>
       <title>Node &#43; Express &#43; Sharp</title>
-      <link>/black-white/node-express-sharp/</link>
+      <link>/black-white/node--express--sharp/</link>
       <pubDate>Thu, 12 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/node-express-sharp/</guid>
+      <guid>/black-white/node--express--sharp/</guid>
       <description>
       
       Playing with **Node**, **Express** and **Sharp** to convert an color image from to black and white version.

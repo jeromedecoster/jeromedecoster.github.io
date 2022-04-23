@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,Prometheus,Grafana,Node,Monitoring,Docker,Slack'><meta name="description" content='Playing with Prometheus and Grafana. Testing Node Exporter, Alertmanager and Slack notifications.'><meta property="og:title" content="Prometheus &#43; Grafana &#43; Node" />
+<meta property="og:description" content="Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/prometheus--grafana--node/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2020-09-24T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-09-24T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Prometheus &#43; Grafana &#43; Node"/>
+<meta name="twitter:description" content="Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Prometheus &#43; Grafana &#43; Node | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-setup-and-explore-the-project">Install, setup and explore the project</a></li>
+        <li><a href="#configuring-slack-notifications">Configuring slack notifications</a></li>
+        <li><a href="#exploring-the-website">Exploring the website</a></li>
+        <li><a href="#prometheus">Prometheus</a></li>
+        <li><a href="#node-exporter">node-exporter</a></li>
+        <li><a href="#installing-alertmanager">Installing Alertmanager</a></li>
+        <li><a href="#stress-test">Stress test</a></li>
+        <li><a href="#installing-grafana">Installing Grafana</a></li>
+        <li><a href="#a-new-stress-test">A new stress test</a></li>
+        <li><a href="#using-docker-compose">Using Docker-compose</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">24</span>
+<span class="rest">Sep 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Prometheus &#43; Grafana &#43; Node</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>website</strong> with node</li>
+<li>Export <strong>personal metrics</strong> from the site to <a href="https://prometheus.io/docs/introduction/overview/" target="_blank" rel="noopener">Prometheus</a></li>
+<li>Export also <strong>system metrics</strong> with <a href="https://prometheus.io/docs/guides/node-exporter/#monitoring-linux-host-metrics-with-the-node-exporter" target="_blank" rel="noopener">Node Exporter</a></li>
+<li>Display metrics in <a href="https://grafana.com/grafana/" target="_blank" rel="noopener">Grafana</a></li>
+<li>Create <a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/" target="_blank" rel="noopener">alerts rules</a> on specific metric</li>
+<li>Receive <strong>Slack notification</strong> when an alert is fired</li>
+<li>Redo everything with <strong>docker-compose</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-setup-and-explore-the-project">Install, setup and explore the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/note-prometheus-grafana-node.git \
+    /tmp/note
+
+# cd
+$ cd /tmp/note
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># install stress + docker pull prometheus + node-exporter + alertmanager + grafana ...
+$ make setup
+</code></pre>
+<h3 id="configuring-slack-notifications">Configuring slack notifications</h3>
+<p>The project uses Slack notifications.</p>
+<p>In my Slack account, I have <strong>two channels</strong> <code>#my-channel</code> and <code>#another-channel</code>.</p>
+<p>They are <strong>configured to receive notifications</strong> with <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">Incoming Webhooks</a> :</p>
+<p><img loading="lazy" src="img/slack-01-incoming-webhook.png" alt="slack-01-incoming-webhook.png"  /></p>
+<p>I search for the <strong>Webhook URLs</strong> of each channel :</p>
+<p><img loading="lazy" src="img/slack-02-webhook-url.png" alt="slack-02-webhook-url.png"  /></p>
+<p>I modify my two files <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/local-alert.yaml" target="_blank" rel="noopener">local-alert.yaml</a> and <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/compose-alert.yaml" target="_blank" rel="noopener">compose-alert.yaml</a>.</p>
+<p>To replace <code>api_url</code> values with my <strong>Webhook URLs</strong> :</p>
+<pre><code class="language-yaml">receivers:
+  - name: slack_default
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/&lt;CHANGE_URL_HERE&gt;'
+        text: &quot;{{ .CommonAnnotations.description }}&quot;
+        icon_url: 'https://avatars3.githubusercontent.com/u/3380462'
+</code></pre>
+<p>The configuration is complete.</p>
+<h3 id="exploring-the-website">Exploring the website</h3>
+<p>The website uses the <strong>npm module</strong> <a href="https://www.npmjs.com/package/prom-client" target="_blank" rel="noopener">prom-client</a>.</p>
+<p>The <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/site/src/server.js" target="_blank" rel="noopener">server</a> uses <strong>3 metrics</strong> :</p>
+<ul>
+<li><strong>Counter</strong> : a <a href="https://prometheus.io/docs/concepts/metric_types/#counter" target="_blank" rel="noopener">counter</a> is a cumulative metric that represents a single monotonically increasing counter whose value can only increase or be reset to zero on restart.</li>
+<li><strong>Gauge</strong> : a <a href="https://prometheus.io/docs/concepts/metric_types/#gauge" target="_blank" rel="noopener">gauge</a> is a metric that represents a single numerical value that can arbitrarily go up and down.</li>
+<li><strong>Histogram</strong> : a <a href="https://prometheus.io/docs/concepts/metric_types/#histogram" target="_blank" rel="noopener">histogram</a> samples observations (usually things like request durations or response sizes) and counts them in configurable buckets. It also provides a sum of all observed values.</li>
+</ul>
+<pre><code class="language-js">const client = require('prom-client')
+
+// ...
+
+// 
+// Counter
+// 
+
+const _counter = new client.Counter({
+  name: 'request_count',
+  help: 'Number of requests.'
+})
+
+app.get('/counter', (req, res) =&gt; {
+  _counter.inc()
+  res.send(`&lt;b&gt;${_counter.name}&lt;/b&gt; increased`)
+})
+
+// 
+// Gauge
+// 
+
+const _queue = new client.Gauge({
+  name: 'queue_size',
+  help: 'The size of the queue.'
+})
+
+app.get('/push', (req, res) =&gt; {
+  _queue.inc()
+  res.send(`&lt;b&gt;${_queue.name}&lt;/b&gt; increased`)
+})
+
+app.get('/pop', (req, res) =&gt; {
+  _queue.dec()
+  res.send(`&lt;b&gt;${_queue.name}&lt;/b&gt; decreased`)
+})
+
+// 
+// Histogram
+// 
+
+const _histogram = new client.Histogram({
+  name: 'request_duration',
+  help: 'Time for HTTP request.',
+  // buckets: [1, 2, 5, 6, 10]
+})
+
+app.get('/wait', (req, res) =&gt; {
+  var max
+  var rnd = Math.random()
+  if (rnd &lt; .4) { max = 1 } 
+  else if (rnd &lt; .8) { max = 3 } 
+  else max = 10
+
+  const ms = Math.floor(Math.random() * max * 1000)
+  setTimeout(function () {
+    // convert to seconds
+    _histogram.observe(ms / 1000)
+    res.send(`&lt;b&gt;${_histogram.name}_bucket&lt;/b&gt; filled.&lt;br/&gt;
+              &lt;b&gt;${_histogram.name}_sum&lt;/b&gt; computed.&lt;br/&gt;
+              &lt;b&gt;${_histogram.name}_count&lt;/b&gt; increased.&lt;br/&gt;
+              I kept you waiting for ${ms} ms!`)
+  }, ms)
+})
+
+
+// metrics endpoint
+app.get('/metrics', (req, res) =&gt; {
+  res.set('Content-Type', client.register.contentType)
+  res.end(client.register.metrics())
+})
+</code></pre>
+<p>Let&rsquo;s start the website :</p>
+<pre><code class="language-bash"># local development (by calling npm script directly)
+$ make dev
+</code></pre>
+<p>By opening the address <a href="http://localhost:5000" target="_blank" rel="noopener">http://localhost:5000</a> you can see this <strong>tiny website</strong> :</p>
+<p><img loading="lazy" src="img/website-01-homepage.png" alt="website-01-homepage.png"  /></p>
+<p>By displaying page <a href="http://localhost:5000/counter" target="_blank" rel="noopener">counter</a> we <strong>increase</strong> the <code>request_count</code> metric :</p>
+<p><img loading="lazy" src="img/website-02-counter.png" alt="website-02-counter.png"  /></p>
+<p>By displaying page <a href="http://localhost:5000/push" target="_blank" rel="noopener">push</a> we <strong>increase</strong> the <code>queue_size</code> metric :</p>
+<p><img loading="lazy" src="img/website-03-push.png" alt="website-03-push.png"  /></p>
+<p>By displaying page <a href="http://localhost:5000/pop" target="_blank" rel="noopener">pop</a> we <strong>decrease</strong> the <code>queue_size</code> metric :</p>
+<p><img loading="lazy" src="img/website-04-pop.png" alt="website-04-pop.png"  /></p>
+<p>By displaying page <a href="http://localhost:5000/wait" target="_blank" rel="noopener">wait</a> we vary the <code>request_duration_bucket</code>, <code>request_duration_sum</code> and <code>request_duration_count</code> metrics :</p>
+<p><img loading="lazy" src="img/website-05-wait.png" alt="website-05-wait.png"  /></p>
+<p>The page  <a href="http://localhost:5000/metrics" target="_blank" rel="noopener">metrics</a> display <strong>all the metrics</strong> :</p>
+<p><img loading="lazy" src="img/website-06-metrics.png" alt="website-06-metrics.png"  /></p>
+<h3 id="prometheus">Prometheus</h3>
+<p>Let&rsquo;s start Prometheus :</p>
+<pre><code class="language-bash"># run local prometheus
+$ make local-prometheus
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ docker run --detach \
+    --name=prometheus \
+    --network host \
+    --volume $(pwd)/local-prometheus.yaml:/etc/prometheus/prometheus.yaml \
+    --volume $(pwd)/local-rules.yaml:/etc/prometheus/rules.yaml \
+    prom/prometheus \
+    --config.file=/etc/prometheus/prometheus.yaml
+</code></pre>
+<p>Prometheus is configured with the <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/local-prometheus.yaml" target="_blank" rel="noopener">local-prometheus.yaml</a> file :</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: 'local'
+    scrape_interval: 10s
+    static_configs:
+    - targets:
+      - '0.0.0.0:5000'
+      - '0.0.0.0:9100'
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - '0.0.0.0:9093'
+
+rule_files:
+  - '/etc/prometheus/rules.yaml'
+</code></pre>
+<p>Let&rsquo;s detail this configuration :</p>
+<ul>
+<li>Prometheus will <strong>retrieve metrics</strong> from <code>0.0.0.0:5000</code>, those <strong>emitted by our website</strong> in localhost.</li>
+<li>Also <strong>retrieve metrics</strong> from <code>0.0.0.0:9100</code>. These are the metrics <strong>emitted by</strong> <a href="https://github.com/prometheus/node_exporter" target="_blank" rel="noopener">Node Exporter</a> that we will install later.</li>
+<li>Use <a href="https://github.com/prometheus/alertmanager" target="_blank" rel="noopener">Alertmanager</a> which listens on <code>port 9093</code> and which we will install later.</li>
+<li><strong>Declare rules</strong> via the <code>rules.yaml</code> file.</li>
+</ul>
+<p>Here is the content of the <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/local-rules.yaml" target="_blank" rel="noopener">rules</a> file :</p>
+<pre><code class="language-yaml">groups:
+  - name: memory-rule
+    rules:
+      - record: node_cpu_seconds_total:avg
+        expr: (((count(count(node_cpu_seconds_total{job=&quot;local&quot;}) by (cpu))) - avg(sum by (mode)(irate(node_cpu_seconds_total{mode='idle',job=&quot;local&quot;}[1m])))) * 100) / count(count(node_cpu_seconds_total{job=&quot;local&quot;}) by (cpu))
+      
+      - alert: memory-warning
+        expr: node_cpu_seconds_total:avg &gt; 45
+        labels:
+          severity: warning
+        annotations:
+          description: Memory warning {{ $value }} !
+
+      - alert: memory-critical
+        expr: node_cpu_seconds_total:avg &gt; 80
+        labels:
+          severity: critical
+        annotations:
+          description: Memory critical {{ $value }} !
+</code></pre>
+<p>Let&rsquo;s detail this configuration :</p>
+<ul>
+<li>We define the <a href="https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules" target="_blank" rel="noopener">recording rules</a> <code>node_cpu_seconds_total:avg</code></li>
+<li><strong>Recording rules</strong> allow you to precompute frequently needed or computationally expensive expressions and save their result as a new set of time series.</li>
+<li>The associated expression <code>expr</code> calculates the <strong>CPU usage</strong></li>
+<li>We define 2 <a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/" target="_blank" rel="noopener">alerting rules</a> which will be triggered if <code>node_cpu_seconds_total:avg &gt; 45</code> or if <code>node_cpu_seconds_total:avg &gt; 80</code></li>
+</ul>
+<p>Prometheus is launched. We can <strong>see the rules</strong> by opening <a href="http://localhost:9090/rules" target="_blank" rel="noopener">http://localhost:9090/rules</a> :</p>
+<p><img loading="lazy" src="img/prometheus-01-rules.png" alt="prometheus-01-rules.png"  /></p>
+<p>We can see <strong>the alerts</strong> by opening <a href="http://localhost:9090/alerts" target="_blank" rel="noopener">http://localhost:9090/alerts</a> :</p>
+<p><img loading="lazy" src="img/prometheus-02-alerts.png" alt="prometheus-02-alerts.png"  /></p>
+<p>We can now use Prometheus to display our metrics.</p>
+<p>The URL <a href="http://localhost:9090/graph?g0.range_input=5m&amp;g0.expr=queue_size&amp;g0.tab=0" target="_blank" rel="noopener">http://localhost:9090/graph?g0.range_input=5m&amp;g0.expr=queue_size&amp;g0.tab=0</a> displays the evolution of the <code>queue_size</code> metric that we have varied via our website by visiting <a href="http://localhost:5000/push" target="_blank" rel="noopener">push</a> and <a href="http://localhost:5000/pop" target="_blank" rel="noopener">pop</a> pages :</p>
+<p><img loading="lazy" src="img/prometheus-03-queue-size.png" alt="prometheus-03-queue-size.png"  /></p>
+<h3 id="node-exporter">node-exporter</h3>
+<p>We install <a href="https://github.com/prometheus/node_exporter" target="_blank" rel="noopener">Node Exporter</a> :</p>
+<pre><code class="language-bash"># run local node-exporter
+$ make local-node-exporter
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ docker run --detach \
+    --name node-exporter \
+    --restart=always \
+    --network host \
+    prom/node-exporter
+</code></pre>
+<p>Once installed, the <strong>metrics are available</strong> at the address <a href="http://localhost:9100/metrics" target="_blank" rel="noopener">http://localhost:9100/metrics</a> :</p>
+<p><img loading="lazy" src="img/node-exporter-01-metrics.png" alt="node-exporter-01-metrics.png"  /></p>
+<p>Now all these new metrics are available in Prometheus :</p>
+<p>The URL <a href="http://localhost:9090/graph?g0.range_input=5m&amp;g0.expr=node_cpu_seconds_total&amp;g0.tab=1" target="_blank" rel="noopener">http://localhost:9090/graph?g0.range_input=5m&amp;g0.expr=node_cpu_seconds_total&amp;g0.tab=1</a> displays the evolution of the <code>node_cpu_seconds_total</code> metric :</p>
+<p><img loading="lazy" src="img/node-exporter-02-node-cpu-seconds.png" alt="node-exporter-02-node-cpu-seconds.png"  /></p>
+<h3 id="installing-alertmanager">Installing Alertmanager</h3>
+<p>Let&rsquo;s install <a href="https://github.com/prometheus/alertmanager" target="_blank" rel="noopener">Alertmanager</a></p>
+<pre><code class="language-bash"># run local alertmanager
+$ make local-alertmanager
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ docker run --detach \
+    --name=alertmanager \
+    --network host \
+    --volume $(pwd)/local-alert.yaml:/etc/alertmanager/local-alert.yaml \
+    prom/alertmanager \
+    --config.file=/etc/alertmanager/local-alert.yaml
+</code></pre>
+<p>Once installed, the <strong>Alertmanager is available</strong> at the address <a href="http://localhost:9093" target="_blank" rel="noopener">http://localhost:9093</a> :</p>
+<p><img loading="lazy" src="img/alertmanager-01-ui.png" alt="alertmanager-01-ui.png"  /></p>
+<h3 id="stress-test">Stress test</h3>
+<p>We will <strong>trigger an alert by stressing our CPU</strong> with the <a href="https://linux.die.net/man/1/stress" target="_blank" rel="noopener">stress</a> executable :</p>
+<pre><code class="language-bash"># hot !
+$ stress --cpu 2
+</code></pre>
+<p>The URL <a href="http://localhost:9090/graph?g0.range_input=1h&amp;g0.expr=node_cpu_seconds_total%3Aavg&amp;g0.tab=0" target="_blank" rel="noopener">http://localhost:9090/graph?g0.range_input=1h&amp;g0.expr=node_cpu_seconds_total%3Aavg&amp;g0.tab=0</a> displays the <strong>evolution of our custom metric</strong> <code>node_cpu_seconds_total:avg</code> :</p>
+<p><img loading="lazy" src="img/prometheus-05-graph-node-cpu-seconds.png" alt="prometheus-05-graph-node-cpu-seconds.png"  /></p>
+<p>We see that <strong>45% of CPU usage is exceeded</strong>, an alert is triggered and displayed <strong>in Alertmanager</strong> :</p>
+<p><img loading="lazy" src="img/alertmanager-02-warning-fired.png" alt="alertmanager-02-warning-fired.png"  /></p>
+<p>You can see this alert triggered also <strong>in the Prometheus interface</strong> :</p>
+<p><img loading="lazy" src="img/prometheus-04-warning-fired.png" alt="prometheus-04-warning-fired.png"  /></p>
+<p>And our <strong>Slack channel has been notified</strong> :</p>
+<p><img loading="lazy" src="img/slack-03-warning-fired.png" alt="slack-03-warning-fired.png"  /></p>
+<h3 id="installing-grafana">Installing Grafana</h3>
+<p>Grafana allows us to display this data in the form of a <strong>pretty dashboard</strong>.</p>
+<p>Let&rsquo;s start Grafana :</p>
+<pre><code class="language-bash">$ make local-grafana
+</code></pre>
+<p>This command does this :</p>
+<pre><code class="language-bash">$ docker run --detach \
+    --env GF_AUTH_BASIC_ENABLED=false \
+    --env GF_AUTH_ANONYMOUS_ENABLED=true \
+    --env GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
+    --name=grafana \
+    --network host \
+    grafana/grafana
+</code></pre>
+<p>After a few seconds of initialization, Grafana is visible at the address  :</p>
+<p><img loading="lazy" src="img/grafana-01-ui.png" alt="grafana-01-ui.png"  /></p>
+<p>Grafana however still <strong>needs to be configured</strong> :</p>
+<ol>
+<li>First, add a <a href="https://grafana.com/docs/grafana/latest/features/datasources/add-a-data-source/" target="_blank" rel="noopener">datasource</a></li>
+<li>Then add a  <a href="https://grafana.com/docs/grafana/latest/reference/export_import/#importing-a-dashboard" target="_blank" rel="noopener">dashboard</a></li>
+</ol>
+<p>We can configure it with this command:</p>
+<pre><code class="language-bash">$ make local-grafana-configure
+</code></pre>
+<p>This command <strong>adds Promotheus as a datasource</strong> like this :</p>
+<pre><code class="language-bash">$ curl http://localhost:3000/api/datasources \
+    --header 'Content-Type: application/json' \
+    --data @local-datasource.json
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/local-datasource.json" target="_blank" rel="noopener">local-datasource.json</a> file is simple :</p>
+<pre><code class="language-yaml">{
+    &quot;name&quot;: &quot;Prometheus&quot;,
+    &quot;type&quot;: &quot;prometheus&quot;,
+    &quot;access&quot;: &quot;proxy&quot;,
+    &quot;url&quot;: &quot;http://localhost:9090&quot;,
+    &quot;basicAuth&quot;: false,
+    &quot;isDefault&quot;: true
+}
+</code></pre>
+<p>This command then installs a <a href="https://grafana.com/grafana/dashboards/1860" target="_blank" rel="noopener">dashboard</a> specially designed to retrieve data from <a href="https://github.com/prometheus/node_exporter" target="_blank" rel="noopener">Node Exporter</a>.</p>
+<p>The command retrieves the dashboard from this <strong>JSON data</strong> : <a href="https://grafana.com/api/dashboards/1860" target="_blank" rel="noopener">https://grafana.com/api/dashboards/1860</a>.</p>
+<pre><code class="language-bash"># create dashboard-1860.json
+$ curl https://grafana.com/api/dashboards/1860 | jq '.json' &gt; dashboard-1860.json
+</code></pre>
+<p>To be able <strong>to be imported</strong> into Grafana, we need to modify our JSON by <strong>wrapping</strong> it like this :</p>
+<pre><code class="language-bash"># wrap some JSON data
+$ ( echo '{ &quot;overwrite&quot;: true, &quot;dashboard&quot; :'; \
+    cat dashboard-1860.json; \
+    echo '}' ) \
+    | jq \
+    &gt; dashboard-1860-modified.json
+</code></pre>
+<p>We now add it to Grafana :</p>
+<pre><code class="language-bash"># add dashboard-1860-modified
+$ curl http://localhost:3000/api/dashboards/db \
+    --header 'Content-Type: application/json' \
+    --data @dashboard-1860-modified.json
+</code></pre>
+<p><a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/local-my-dashboard.json" target="_blank" rel="noopener">Another dashboard</a> specific to the <strong>metrics of our website</strong> is added.</p>
+<p>We <strong>reload</strong> our browser, we see that the dashboards have been added :</p>
+<p><img loading="lazy" src="img/grafana-02-configured.png" alt="grafana-02-configured.png"  /></p>
+<p>We display the <strong>Node Exporter Full</strong> dashboard :</p>
+<p><img loading="lazy" src="img/grafana-03-node-exporter-dashboard.png" alt="grafana-03-node-exporter-dashboard.png"  /></p>
+<p>We display the <strong>My dashboard</strong> dashboard :</p>
+<p><img loading="lazy" src="img/grafana-04-my-dashboard.png" alt="grafana-04-my-dashboard.png"  /></p>
+<h3 id="a-new-stress-test">A new stress test</h3>
+<p>We are going to stress our CPU again. This time a little <strong>stronger</strong> :</p>
+<pre><code class="language-bash">$ stress --cpu 3
+</code></pre>
+<p>We see that <strong>80% of the CPU usage is exceeded</strong> :</p>
+<p><img loading="lazy" src="img/grafana-05-stress.png" alt="grafana-05-stress.png"  /></p>
+<p>Our <strong>2 alerts are triggered</strong> and displayed in <strong>Alertmanager</strong> :</p>
+<p><img loading="lazy" src="img/alertmanager-03-stress-fired.png" alt="alertmanager-03-stress-fired.png"  /></p>
+<p>We can also see our alerts triggered in the <strong>Prometheus</strong> interface :</p>
+<p><img loading="lazy" src="img/prometheus-06-stress-alerts.png" alt="prometheus-06-stress-alerts.png"  /></p>
+<p>The <strong>#my-channel</strong> slack channel has received the <strong>warning notification</strong> :</p>
+<p><img loading="lazy" src="img/slack-04-stress-warning-fired.png" alt="slack-04-stress-warning-fired.png"  /></p>
+<p>The <strong>#another-channel</strong> slack channel has received the <strong>critical notification</strong> :</p>
+<p><img loading="lazy" src="img/slack-05-stress-critical-fired.png" alt="slack-05-stress-critical-fired.png"  /></p>
+<p>Our tests are now complete, we can <strong>remove the running containers</strong> :</p>
+<pre><code class="language-bash"># remove all running containers
+$ make rm
+</code></pre>
+<h3 id="using-docker-compose">Using Docker-compose</h3>
+<p>The goal is to set up a <strong>similar environment using docker-compose</strong>.</p>
+<p>One command is enough :</p>
+<pre><code class="language-bash"># docker-compose up
+$ make compose-up
+</code></pre>
+<p>It is interesting to go and see the <strong>configuration files</strong>.</p>
+<p>The <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/docker-compose.yaml" target="_blank" rel="noopener">docker-compose.yaml</a>  file :</p>
+<pre><code class="language-yaml">version: &quot;3&quot;
+services:
+  site:
+    build:
+      context: ./site
+    container_name: site
+    ports:
+      - &quot;5000:5000&quot;
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter
+    ports: 
+      - &quot;9100:9100&quot;
+
+  alertmanager:
+    container_name: alertmanager
+    image: prom/alertmanager
+    ports: 
+      - &quot;9093:9093&quot;
+    command: --config.file=/etc/alertmanager/compose-alert.yaml
+    volumes:
+      - ./compose-alert.yaml:/etc/alertmanager/compose-alert.yaml
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    ports: 
+      - &quot;9090:9090&quot;
+    command: --config.file=/etc/prometheus/prometheus.yaml
+    volumes:
+      - ./compose-prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - ./compose-rules.yaml:/etc/prometheus/rules.yaml
+      
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - &quot;3000:3000&quot;
+    environment:
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+
+  grafana-setup:
+    container_name: grafana-setup
+    image: alpine:3.10
+    depends_on:
+      - grafana
+    volumes:
+      - ./compose-datasource.json:/etc/grafana/compose-datasource.json
+      - ./compose-dashboard.json:/etc/grafana/compose-dashboard.json
+      - ./compose-my-dashboard.json:/etc/grafana/compose-my-dashboard.json
+    command: &gt;
+      /bin/sh -c &quot;
+        apk add --no-cache curl
+        echo 'waiting for grafana'
+        sleep 7s
+        cd /etc/grafana/
+        curl http://grafana:3000/api/datasources \
+          --header 'Content-Type: application/json' \
+          --data @compose-datasource.json
+        curl http://grafana:3000/api/dashboards/db \
+          --header 'Content-Type: application/json' \
+          --data @compose-dashboard.json
+        curl http://grafana:3000/api/dashboards/db \
+          --header 'Content-Type: application/json' \
+          --data @compose-my-dashboard.json&quot;
+</code></pre>
+<p>Note how the <a href="https://github.com/jeromedecoster/note-prometheus-grafana-node/blob/master/compose-prometheus.yaml" target="_blank" rel="noopener">Promotheus configuration</a> has been <strong>modified</strong> :</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: 'compose'
+    scrape_interval: 5s
+    static_configs:
+    - targets:
+      - 'site:5000'
+      - 'node-exporter:9100'
+
+rule_files:
+  - '/etc/prometheus/rules.yaml'
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - 'alertmanager:9093'
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker/">docker</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/grafana/">grafana</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/monitoring/">monitoring</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/node/">node</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/note/">note</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/prometheus/">prometheus</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/slack/">slack</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Step Functions,Rekognition,Lambda,S3,DynamoDB,Terraform'><meta name="description" content='Detect faces in images with Rekognition. Create a face collection to find similar faces.'><meta property="og:title" content="Step Functions &#43; Rekognition" />
+<meta property="og:description" content="Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/step-functions--rekognition/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2020-02-24T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-24T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Step Functions &#43; Rekognition"/>
+<meta name="twitter:description" content="Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Step Functions &#43; Rekognition | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#exploring-the-project">Exploring the project</a></li>
+        <li><a href="#run-the-project">Run the project</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">24</span>
+<span class="rest">Feb 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Step Functions &#43; Rekognition</h1>
+</div>
+</div>
+
+<div class="markdown">
+<p>The <strong>goal</strong> : this project uses <a href="https://docs.aws.amazon.com/rekognition/latest/dg/collections.html" target="_blank" rel="noopener">Rekognition</a> to create a face collection and look for similar faces. It also uses <a href="https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html" target="_blank" rel="noopener">Step Functions</a> to orchestrate all the lambdas functions.</p>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<p><img loading="lazy" src="img/architecture-detectfaces.svg" alt="architecture-detectfaces.svg"  /></p>
+<p><img loading="lazy" src="img/architecture-addtocollection.svg" alt="architecture-addtocollection.svg"  /></p>
+<p><img loading="lazy" src="img/architecture-thumbnail.svg" alt="architecture-thumbnail.svg"  /></p>
+<p><img loading="lazy" src="img/architecture-errordetected.svg" alt="architecture-errordetected.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/step-functions-rekognition" target="_blank" rel="noopener">github repository</a> :</p>
+<ul>
+<li><a href="/aws/terraform--s3--s3-event-notification--lambda/#install-terraform">Terraform</a> and <a href="https://stedolan.github.io/jq/" target="_blank" rel="noopener">jq</a> must be installed.</li>
+</ul>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/step-functions-rekognition.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<h3 id="exploring-the-project">Exploring the project</h3>
+<p>Let&rsquo;s look at some parts of the source code.</p>
+<p>If we look the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/Makefile" target="_blank" rel="noopener">Makefile</a>, we need 3 actions to deploy and test the project :</p>
+<pre><code class="language-Makefile">init: # terraform init + download sharp lambda layer
+	terraform init
+	if [ ! -f &quot;./layers/$(ZIP)&quot; ] ; then \
+		mkdir --parents layers ; \
+		cd layers ; \
+		curl --location \
+        	&quot;https://github.com/jeromedecoster/sharp-lambda-layer/releases/download/v0.24.1/sharp-0.24.1-for-node-12.zip&quot; \
+			--output $(ZIP) ; \
+	fi
+
+apply: # terraform plan then apply with auto approve + create rekognition collection
+	terraform plan -out=terraform.plan
+	terraform apply -auto-approve terraform.plan
+	./create-collection.sh 
+
+alice: # upload all alice images
+	./upload.sh alice1.jpg alice2.jpg alice3.jpg # ...
+</code></pre>
+<p>So :</p>
+<pre><code class="language-bash"># terraform init + download sharp lambda layer
+$ make init
+
+# terraform plan then apply with auto approve + create rekognition collection
+$ make apply
+
+# upload all alice images
+$ make alice
+</code></pre>
+<p>In the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/terraform/state-machine/state-machine.tf" target="_blank" rel="noopener">state-machine.tf</a> and <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/terraform/state-machine/state-machine.json" target="_blank" rel="noopener">state-machine.json</a> files we :</p>
+<ul>
+<li>Use the Terraform <a href="https://www.terraform.io/docs/providers/template/d/file.html" target="_blank" rel="noopener">template_file</a> to inject data in the JSON workflow.</li>
+</ul>
+<pre><code class="language-hcl">data template_file state_machine {
+  template = file(&quot;${path.module}/state-machine.json&quot;)
+
+  vars = {
+    detect_faces_function_arn      = var.detect_faces_function_arn
+    no_face_detected_function_arn  = var.no_face_detected_function_arn
+    add_to_collection_function_arn = var.add_to_collection_function_arn
+    thumbnail_function_arn = var.thumbnail_function_arn
+  }
+}
+</code></pre>
+<ul>
+<li>The JSON workflow :</li>
+</ul>
+<pre><code class="language-JSON">{
+    &quot;Comment&quot;: &quot;Step Functions Rekognition processing workflow&quot;,
+    &quot;StartAt&quot;: &quot;DetectFaces&quot;,
+    &quot;States&quot;: {
+        &quot;DetectFaces&quot;: {
+            &quot;Type&quot;: &quot;Task&quot;,
+            &quot;Resource&quot;: &quot;${detect_faces_function_arn}&quot;,
+            &quot;ResultPath&quot;: &quot;$.ResultDetectFaces&quot;,
+            &quot;Next&quot;: &quot;AddToCollection&quot;,
+            &quot;Catch&quot;: [
+                {
+                    &quot;ErrorEquals&quot;: [
+                        &quot;States.ALL&quot;
+                    ],
+                    &quot;ResultPath&quot;: &quot;$.Throw&quot;,
+                    &quot;Next&quot;: &quot;ErrorDetected&quot;
+                }
+            ]
+        },
+        &quot;ErrorDetected&quot;: {
+            &quot;Type&quot;: &quot;Task&quot;,
+            &quot;Resource&quot;: &quot;${no_face_detected_function_arn}&quot;,
+            &quot;End&quot;: true
+        },
+        &quot;AddToCollection&quot;: {
+            &quot;Type&quot;: &quot;Task&quot;,
+            &quot;Resource&quot;: &quot;${add_to_collection_function_arn}&quot;,
+            &quot;ResultPath&quot;: &quot;$.ResultAddToCollection&quot;,
+            &quot;Next&quot;: &quot;Thumbnail&quot;
+        },
+        &quot;Thumbnail&quot;: {
+            &quot;Type&quot;: &quot;Task&quot;,
+            &quot;Resource&quot;: &quot;${thumbnail_function_arn}&quot;,
+            &quot;ResultPath&quot;: &quot;$.ResultThumbnail&quot;,
+            &quot;End&quot;: true
+        }
+    }
+}
+</code></pre>
+<p>In the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/lambdas/detect-faces.js" target="_blank" rel="noopener">detect-faces.js</a> Lambda file we :</p>
+<ul>
+<li>We detect the presence of faces with <strong>Rekognition</strong>.</li>
+<li>We save the returned datas into <strong>DynamoDB</strong> and <strong>S3</strong> because each use of Rekognition <strong>is chargeable</strong>.</li>
+<li>We <strong>filter the results</strong> and we possibly raise errors.</li>
+</ul>
+<pre><code class="language-js">let result = await detectFaces(event.Bucket, event.Key)
+await saveToDynamoDB(event.Etag, event.Basename, result)
+await saveToS3(event.Bucket, event.Noextname, result)
+
+if (result.FaceDetails.length == 0) {
+    throw new NoFaceError(`No face detected in the image ${event.Key}`)
+}
+
+// ignore babies, little children and low quality faces
+let filtered = result.FaceDetails.filter(face =&gt; {
+    return face.AgeRange.Low &gt;= 10
+        &amp;&amp; face.Quality.Brightness &gt;= 40
+        &amp;&amp; face.Quality.Sharpness &gt;= 40
+})
+if (filtered.length == 0) {
+    if (result.FaceDetails.length == 1) {
+        throw new FaceRequirementError('The face detected does not meet the requirements')
+    } else {
+        throw new FaceRequirementError(`None of the ${result.FaceDetails.length} faces detected meet the requirements`)
+    }
+}
+
+async function detectFaces(bucket, key) {
+
+    return rekognition
+        .detectFaces({
+            Image: {
+                S3Object: {
+                    Bucket: bucket,
+                    Name: key
+                }
+            },
+            Attributes: ['ALL']
+        }).promise()
+}
+// ...
+</code></pre>
+<p>In the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/lambdas/add-to-collection.js" target="_blank" rel="noopener">add-to-collection.js</a> Lambda file we :</p>
+<ul>
+<li>Use the <a href="https://docs.aws.amazon.com/rekognition/latest/dg/API_IndexFaces.html" target="_blank" rel="noopener">IndexFaces</a> action to add the faces to our collection.</li>
+<li>We need to call the <a href="https://docs.aws.amazon.com/rekognition/latest/dg/API_DeleteFaces.html" target="_blank" rel="noopener">DeleteFaces</a> action to remove the excluded faces.</li>
+</ul>
+<pre><code class="language-js">for (let face of result.FaceRecords) {
+
+    if (face.FaceDetail.AgeRange.Low &gt;= 10
+        &amp;&amp; face.FaceDetail.Quality.Brightness &gt;= 40
+        &amp;&amp; face.FaceDetail.Quality.Sharpness &gt;= 40) {
+
+        keep.push(face.Face)
+    } else {
+        excluded.push(face.Face.FaceId)
+    }
+}
+
+if (excluded.length &gt; 0) {
+    let deleted = await deleteFaces(excluded)
+}
+
+// ...
+
+async function deleteFaces(faceIds) {
+    return rekognition
+        .deleteFaces({
+            CollectionId: process.env.REKOGNITION_COLLECTION_ID,
+            FaceIds: faceIds
+        })
+        .promise()
+}
+</code></pre>
+<p>In the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/lambdas/thumbnail.js" target="_blank" rel="noopener">thumbnail.js</a> Lambda file we :</p>
+<ul>
+<li>We use  to create a thumbnail of the face.</li>
+<li>We use <strong>Sharp</strong> instead of <strong>ImageMagick</strong> because Sharp is <a href="https://sharp.pixelplumbing.com/performance#results" target="_blank" rel="noopener">really fast</a>.</li>
+<li>Infortunately Sharp is <strong>very heavy</strong> (more than <code>30 MB</code>). So we use it via a <a href="https://github.com/jeromedecoster/sharp-lambda-layer/releases" target="_blank" rel="noopener">Lambda layer</a></li>
+</ul>
+<pre><code class="language-js">return Promise.all(faces.map(async face =&gt; {
+  return {
+    Buffer: await extractImage(raw, face.BoundingBox),
+    FaceId: face.FaceId
+  }
+}))
+
+// ...
+
+function extractImage(buffer, boundingBox) {
+  let image = sharp(buffer)
+
+  return image
+    .metadata()
+    .then(metadata =&gt; {
+      return image
+        .extract({
+          left: Math.round(boundingBox.Left * metadata.width),
+          top: Math.round(boundingBox.Top * metadata.height),
+          width: Math.round(boundingBox.Width * metadata.width),
+          height: Math.round(boundingBox.Height * metadata.height)
+        })
+        .jpeg({
+          quality: 90
+        })
+        .toBuffer()
+    })
+}
+</code></pre>
+<h3 id="run-the-project">Run the project</h3>
+<p>When <a href="https://github.com/jeromedecoster/step-functions-rekognition/tree/master/images" target="_blank" rel="noopener">all the images</a> have been uploaded, we can recover the generated data via the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/get-datas.sh" target="_blank" rel="noopener">get-datas.sh</a> script :</p>
+<ul>
+<li>Please note that the git project <strong>already contains all the generated data</strong> to <a href="https://github.com/jeromedecoster/step-functions-rekognition/tree/master/datas" target="_blank" rel="noopener">explore and analyze</a> the rekognition results <strong>for free</strong>.</li>
+</ul>
+<pre><code class="language-bash">log 'download' &quot;files from $BUCKET/detect-faces&quot;
+aws s3 cp --recursive s3://$BUCKET/detect-faces/ ./datas/detect-faces
+
+log 'download' &quot;files from $BUCKET/index-faces&quot;
+aws s3 cp --recursive s3://$BUCKET/index-faces/ ./datas/index-faces
+
+log 'download' &quot;files from $BUCKET/keep-faces&quot;
+aws s3 cp --recursive s3://$BUCKET/keep-faces/ ./datas/keep-faces
+
+log 'download' &quot;files from $BUCKET/thumbnails&quot;
+aws s3 cp --recursive s3://$BUCKET/thumbnails/ ./datas/thumbnails
+</code></pre>
+<p>Then we can call the <a href="https://github.com/jeromedecoster/step-functions-rekognition/blob/master/search.sh" target="_blank" rel="noopener">search.sh</a> script <strong>to find similar faces</strong> :</p>
+<ul>
+<li>All search are saved in a <a href="https://github.com/jeromedecoster/step-functions-rekognition/tree/master/searchs/alice1/b2fd4d25-0cbb-4164-9a9d-e264d7712b43" target="_blank" rel="noopener">searchs</a> directory.</li>
+<li>All similar faces found are saved with the <a href="https://github.com/jeromedecoster/step-functions-rekognition/tree/master/searchs/alice1/b2fd4d25-0cbb-4164-9a9d-e264d7712b43" target="_blank" rel="noopener">similarity percentage as name</a>.</li>
+</ul>
+<pre><code class="language-bash">jq '.[].FaceId' --raw-output &quot;datas/keep-faces/$NOEXTNAME.json&quot; | while read id; do
+    # skip search-faces if already done (save money)
+    if [[ ! -f &quot;searchs/$NOEXTNAME/$id.json&quot; ]]; then
+        aws rekognition search-faces \
+            --region $REGION \
+            --collection-id $PROJECT_NAME \
+            --face-id $id \
+            &gt; searchs/$NOEXTNAME/$id.json
+    fi
+
+    # ...
+done
+</code></pre>
+<p>So :</p>
+<pre><code class="language-bash"># download all generated data
+$ ./get-datas.sh
+
+# search all faces similar to `alice1`
+$ ./search.sh alice1.jpg
+</code></pre>
+<p>Note that if you run this script on a Linux OS, you will see a preview of the images directly in the terminal :</p>
+<p><img loading="lazy" src="img/search.png" alt="search.png"  /></p>
+<p>And we get these results for the image <strong>alice1.jpg</strong> :</p>
+<p><img loading="lazy" src="img/alice1.jpg" alt="alice1.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>99.66595458984375 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/99.66595458984375.jpg" alt="99.66595458984375.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>99.60346221923828 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/99.60346221923828.jpg" alt="99.60346221923828.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>99.33497619628906 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/99.33497619628906.jpg" alt="99.33497619628906.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>98.80915832519531 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/98.80915832519531.jpg" alt="98.80915832519531.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>98.9106674194336 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/98.9106674194336.jpg" alt="98.9106674194336.jpg"  /></p>
+<ul>
+<li>The face in <strong>alice1.jpg</strong> is <code>96.93378448486328 %</code> <strong>similar</strong> with this face :</li>
+</ul>
+<p><img loading="lazy" src="img/96.93378448486328.jpg" alt="96.93378448486328.jpg"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/dynamodb/">dynamodb</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/rekognition/">rekognition</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/s3/">s3</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/step-functions/">step-functions</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

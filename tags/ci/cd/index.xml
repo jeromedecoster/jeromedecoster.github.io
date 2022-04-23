@@ -10,10 +10,10 @@
     
     <item>
       <title>Kubernetes &#43; EKS &#43; Canary Deployment</title>
-      <link>/aws/kubernetes-eks-canary-deployment/</link>
+      <link>/aws/kubernetes--eks--canary-deployment/</link>
       <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-canary-deployment/</guid>
+      <guid>/aws/kubernetes--eks--canary-deployment/</guid>
       <description>
       
       Testing **Kubernetes Canary Deployment** on **EKS**.
@@ -22,10 +22,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Blue/Green Deployment</title>
-      <link>/aws/kubernetes-eks-blue/green-deployment/</link>
+      <link>/aws/kubernetes--eks--blue/green-deployment/</link>
       <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-blue/green-deployment/</guid>
+      <guid>/aws/kubernetes--eks--blue/green-deployment/</guid>
       <description>
       
       Testing **Kubernetes Blue/Green Deployment** on **EKS**.
@@ -34,10 +34,10 @@
     </item>
     <item>
       <title>Gitlab &#43; ECS &#43; Terraform</title>
-      <link>/aws/gitlab-ecs-terraform/</link>
+      <link>/aws/gitlab--ecs--terraform/</link>
       <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/gitlab-ecs-terraform/</guid>
+      <guid>/aws/gitlab--ecs--terraform/</guid>
       <description>
       
       Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
@@ -46,10 +46,10 @@
     </item>
     <item>
       <title>Lambda &#43; Terraform &#43; Github Actions</title>
-      <link>/aws/lambda-terraform-github-actions/</link>
+      <link>/aws/lambda--terraform--github-actions/</link>
       <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/lambda-terraform-github-actions/</guid>
+      <guid>/aws/lambda--terraform--github-actions/</guid>
       <description>
       
       Building a **continuous deployment** for **Lambda** functions in a **multi-stage environment**.
@@ -58,10 +58,10 @@
     </item>
     <item>
       <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
-      <link>/aws/github-actions-hugo-terraform-s3/</link>
+      <link>/aws/github-actions--hugo--terraform--s3/</link>
       <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-actions-hugo-terraform-s3/</guid>
+      <guid>/aws/github-actions--hugo--terraform--s3/</guid>
       <description>
       
       Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way.
@@ -70,10 +70,10 @@
     </item>
     <item>
       <title>GitOps &#43; Terraform</title>
-      <link>/aws/gitops-terraform/</link>
+      <link>/aws/gitops--terraform/</link>
       <pubDate>Wed, 22 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/gitops-terraform/</guid>
+      <guid>/aws/gitops--terraform/</guid>
       <description>
       
       Manage the **content and infrastructure** of a website in a git monorepo. **Deploy automatically** with each push.
@@ -82,10 +82,10 @@
     </item>
     <item>
       <title>Github Flow &#43; Codesuite pipeline &#43; Slack</title>
-      <link>/aws/github-flow-codesuite-pipeline-slack/</link>
+      <link>/aws/github-flow--codesuite-pipeline--slack/</link>
       <pubDate>Mon, 06 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-flow-codesuite-pipeline-slack/</guid>
+      <guid>/aws/github-flow--codesuite-pipeline--slack/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **CodeBuild** and **CodePipeline**. Also sending **Slack message**.
@@ -94,10 +94,10 @@
     </item>
     <item>
       <title>Codesuite pipeline &#43; Terraform</title>
-      <link>/aws/codesuite-pipeline-terraform/</link>
+      <link>/aws/codesuite-pipeline--terraform/</link>
       <pubDate>Tue, 24 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/codesuite-pipeline-terraform/</guid>
+      <guid>/aws/codesuite-pipeline--terraform/</guid>
       <description>
       
       Building a C&#43;&#43; program after each commit using **CodeCommit**, **CodeBuild** and **CodePipeline**.
@@ -106,10 +106,10 @@
     </item>
     <item>
       <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
-      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <link>/note/jenkins-pipeline--slack--github-release/</link>
       <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <guid>/note/jenkins-pipeline--slack--github-release/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.
@@ -118,10 +118,10 @@
     </item>
     <item>
       <title>Jenkins &#43; github</title>
-      <link>/note/jenkins-github/</link>
+      <link>/note/jenkins--github/</link>
       <pubDate>Tue, 03 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-github/</guid>
+      <guid>/note/jenkins--github/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins**.

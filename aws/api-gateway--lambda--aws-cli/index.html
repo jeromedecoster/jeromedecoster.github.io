@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,API Gateway,Lambda,AWS CLI'><meta name="description" content='Create an API Gateway and a Lambda from CLI.'><meta property="og:title" content="API Gateway &#43; Lambda &#43; AWS CLI" />
+<meta property="og:description" content="Create an **API Gateway** and a **Lambda** from CLI." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/api-gateway--lambda--aws-cli/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2019-12-22T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-12-22T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="API Gateway &#43; Lambda &#43; AWS CLI"/>
+<meta name="twitter:description" content="Create an **API Gateway** and a **Lambda** from CLI."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>API Gateway &#43; Lambda &#43; AWS CLI | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-code">Install and setup the code</a></li>
+        <li><a href="#create-the-lambda">Create the Lambda</a></li>
+        <li><a href="#create-the-api-gateway">Create the API Gateway</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">22</span>
+<span class="rest">Dec 2019</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">API Gateway &#43; Lambda &#43; AWS CLI</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>
+<p>Create an <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/" target="_blank" rel="noopener">API Gateway</a> and <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/index.html" target="_blank" rel="noopener">Lambda</a> from the CLI.</p>
+</li>
+<li>
+<p>Create an API Gateway from the CLI is <strong>much more complex</strong> than going through the web interface. But if you want to create a script and automate some tasks, you will have to deal with it.</p>
+</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<h3 id="install-and-setup-the-code">Install and setup the code</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/aws-apigateway-lambda-cli.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, you must edit the <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli/blob/master/settings.sample.sh" target="_blank" rel="noopener">settings file</a> first :</p>
+<pre><code class="language-bash">$ cat settings.sample.sh 
+# Project
+AWS_ID=
+AWS_REGION=eu-west-3
+# Lambda
+LAMBDA_FUNCTION_NAME=aws-apigateway-lamdba-cli
+LAMBDA_FUNCTION_ARN=
+# ...
+</code></pre>
+<p>You can change some values, but the most important thing is to <strong>choose your region</strong>. The default value is :</p>
+<ul>
+<li><strong>AWS_REGION</strong> : <code>eu-west-3</code></li>
+</ul>
+<p>After that you can execute the <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli/blob/master/1-setup.sh" target="_blank" rel="noopener">1-setup.sh</a> script. This will create the <code>settings.sh</code> file :</p>
+<pre><code class="language-bash"># execute the setup
+$ ./1-setup.sh
+</code></pre>
+<h3 id="create-the-lambda">Create the Lambda</h3>
+<p>To create a Lambda we need to :</p>
+<ol>
+<li><a href="#create-a-role">Create a role</a></li>
+<li><a href="#attach-the-execution-policy-to-it">Attach the execution policy to it</a></li>
+<li><a href="#package-a-zip-from-the-source-code">Package a zip from the source code</a></li>
+<li><a href="#create-the-lambda-function">Create the Lambda function</a></li>
+</ol>
+<p>All the following steps, and other little tricks, are in the  <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli/blob/master/2-create-lambda.sh" target="_blank" rel="noopener">2-create-lambda.sh</a> script.</p>
+<p>You can <strong>avoid all of the following copy and paste</strong> by running this script :</p>
+<pre><code class="language-bash"># execute all the steps below
+$ ./2-create-lambda.sh
+</code></pre>
+<h4 id="create-a-role">Create a role</h4>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/create-role.html" target="_blank" rel="noopener">create-role</a> command :</p>
+<pre><code class="language-bash"># get the values
+$ source ./settings.sh
+
+# create the lambda role
+$ aws iam create-role \
+    --role-name $LAMBDA_ROLE_NAME \
+    --assume-role-policy-document fileb://lambda-role-policy.json \
+    --query 'Role.Arn' \
+    --output text
+</code></pre>
+<p>This is the <strong>trust policy</strong> :</p>
+<pre><code class="language-bash"># the policy
+$ cat lambda-role-policy.json
+{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+        {
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Principal&quot;: {
+                &quot;Service&quot;: &quot;lambda.amazonaws.com&quot;
+            },
+            &quot;Action&quot;: &quot;sts:AssumeRole&quot;
+        }
+    ]
+}
+</code></pre>
+<h4 id="attach-the-execution-policy-to-it">Attach the execution policy to it</h4>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/attach-role-policy.html" target="_blank" rel="noopener">attach-role-policy</a> command :</p>
+<pre><code class="language-bash"># attach the `AWSLambdaBasicExecutionRole` policy to the lambda role
+$ aws iam attach-role-policy \
+    --role-name $LAMBDA_ROLE_NAME \
+    --policy-arn $LAMBDA_POLICY_ARN
+</code></pre>
+<h4 id="package-a-zip-from-the-source-code">Package a zip from the source code</h4>
+<p>We use <a href="https://linux.die.net/man/1/zip" target="_blank" rel="noopener">zip</a> :</p>
+<pre><code class="language-bash"># zip the code of the lambda function
+$ zip -9 lambda.zip index.js
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli/blob/master/index.js" target="_blank" rel="noopener">code</a> is very simple :</p>
+<pre><code class="language-bash"># the code
+$ cat index.js
+exports.handler = async (event) =&gt; {
+    return {
+        statusCode: 200,
+        body: JSON.stringify('hello')
+    }
+}
+</code></pre>
+<h4 id="create-the-lambda-function">Create the Lambda function</h4>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/create-function.html" target="_blank" rel="noopener">create-function</a> command :</p>
+<pre><code class="language-bash"># get the lambda role Arn
+LAMBDA_ROLE_ARN=$(aws iam get-role \
+    --role-name $LAMBDA_ROLE_NAME \
+    --query 'Role.Arn' \
+    --output text)
+
+# create the Lambda
+$ aws lambda create-function \
+    --region $AWS_REGION \
+    --function-name $LAMBDA_FUNCTION_NAME \
+    --runtime nodejs12.x \
+    --role $LAMBDA_ROLE_ARN \
+    --handler index.handler \
+    --zip-file fileb://lambda.zip
+</code></pre>
+<h3 id="create-the-api-gateway">Create the API Gateway</h3>
+<p>To create an API Gateway and connect it whith the Lambda we need to :</p>
+<ol>
+<li><a href="#create-the-rest-api-gateway">Create the REST API Gateway</a></li>
+<li><a href="#create-the-resource">Create the resource</a></li>
+<li><a href="#create-the-post-method">Create the POST method</a></li>
+<li><a href="#deploy-the-api">Deploy the API</a></li>
+</ol>
+<p>All the following steps, and other little tricks, are in the  <a href="https://github.com/jeromedecoster/aws-apigateway-lambda-cli/blob/master/3-create-apigateway.sh" target="_blank" rel="noopener">3-create-apigateway.sh</a> script.</p>
+<p>You can <strong>avoid all of the following copy and paste</strong> by running this script :</p>
+<pre><code class="language-bash"># execute all the steps below
+$ ./3-create-apigateway.sh
+</code></pre>
+<h4 id="create-the-rest-api-gateway">Create the REST API Gateway</h4>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/create-rest-api.html" target="_blank" rel="noopener">create-rest-api</a> command :</p>
+<pre><code class="language-bash"># create the API Gateway
+$ aws apigateway create-rest-api \
+    --region $AWS_REGION \
+    --name $API_GATEWAY_NAME \
+    --endpoint-configuration types=REGIONAL \
+    --description 'A test API'
+</code></pre>
+<p>Now we need to define <strong>some variables</strong> :</p>
+<pre><code class="language-bash"># get the API Gateway id
+API_GATEWAY_ID=$(aws apigateway get-rest-apis \
+    --region $AWS_REGION \
+    --query &quot;items[?name=='$API_GATEWAY_NAME'].[id]&quot; \
+    --output text)
+
+# get the API Gateway arn 
+API_GATEWAY_ARN=&quot;arn:aws:execute-api:${AWS_REGION}:${AWS_ID}:${API_GATEWAY_ID}&quot;
+
+# get the root path id
+API_GATEWAY_ROOT_RESOURCE_ID=$(aws apigateway get-resources \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --query &quot;items[?path=='/'].[id]&quot; \
+    --output text)
+</code></pre>
+<h4 id="create-the-resource">Create the resource</h4>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/create-resource.html" target="_blank" rel="noopener">create-resource</a> command :</p>
+<pre><code class="language-bash"># create the `API_GATEWAY_RESOURCE_NAME` resource path
+$ aws apigateway create-resource \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --parent-id $API_GATEWAY_ROOT_RESOURCE_ID \
+    --path-part $API_GATEWAY_RESOURCE_NAME
+
+# get the `API_GATEWAY_RESOURCE_NAME` path id
+$ API_GATEWAY_RESOURCE_ID=$(aws apigateway get-resources \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --query &quot;items[?path=='/$API_GATEWAY_RESOURCE_NAME'].[id]&quot; \
+    --output text)
+</code></pre>
+<h4 id="create-the-post-method">Create the POST method</h4>
+<p>We will associate the <code>POST</code> method with our resource. And we&rsquo;re going to <strong>attach the Lambda</strong> function to it.</p>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/put-method.html" target="_blank" rel="noopener">put-method</a> command :</p>
+<pre><code class="language-bash"># create the POST method
+$ aws apigateway put-method \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --resource-id $API_GATEWAY_RESOURCE_ID \
+    --http-method POST \
+    --authorization-type NONE
+
+# setup the POST method integration request
+$ aws apigateway put-integration \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --resource-id $API_GATEWAY_RESOURCE_ID \
+    --http-method POST \
+    --integration-http-method POST \
+    --type AWS_PROXY \
+    --uri &quot;arn:aws:apigateway:$AWS_REGION:lambda:path/2015-03-31/functions/$LAMBDA_FUNCTION_ARN/invocations&quot;
+
+# add lambda permission
+$ STATEMENT_ID=api-lambda-permission-$(cat /dev/urandom | tr -dc 'a-z' | fold -w 10 | head -n 1)
+$ aws lambda add-permission \
+    --region $AWS_REGION \
+    --function-name $LAMBDA_FUNCTION_NAME \
+    --source-arn &quot;$API_GATEWAY_ARN/*/POST/$API_GATEWAY_RESOURCE_NAME&quot; \
+    --principal apigateway.amazonaws.com \
+    --statement-id $STATEMENT_ID \
+    --action lambda:InvokeFunction
+</code></pre>
+<p>To complete the process, we need to setup the <strong>method response</strong>.</p>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/put-method-response.html" target="_blank" rel="noopener">put-method-response</a> command :</p>
+<pre><code class="language-bash"># setup the POST method responses (method + integration response)
+$ aws apigateway put-method-response \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --resource-id $API_GATEWAY_RESOURCE_ID \
+    --http-method POST \
+    --status-code 200 \
+    --response-models '{&quot;application/json&quot;: &quot;Empty&quot;}'
+
+$ aws apigateway put-integration-response \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --resource-id $API_GATEWAY_RESOURCE_ID \
+    --http-method POST \
+    --status-code 200 --selection-pattern ''
+</code></pre>
+<h4 id="deploy-the-api">Deploy the API</h4>
+<p>We can now deploy the API Gateaway and test it with curl.</p>
+<p>We use the <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/create-deployment.html" target="_blank" rel="noopener">create-deployment</a> command :</p>
+<pre><code class="language-bash"># publish the API, create the `dev` stage
+$ aws apigateway create-deployment \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID \
+    --stage-name dev
+
+# it works !
+$ curl --request POST \
+    https://$API_GATEWAY_ID.execute-api.$AWS_REGION.amazonaws.com/dev/$API_GATEWAY_RESOURCE_NAME
+&quot;hello&quot;
+</code></pre>
+<p>If we want to <strong>clear everything</strong> we have created, we have to use these commands :</p>
+<ul>
+<li><a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/delete-rest-api.html" target="_blank" rel="noopener">delete-rest-api</a></li>
+<li><a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/delete-function.html" target="_blank" rel="noopener">delete-function</a></li>
+<li><a href="https://docs.aws.amazon.com/cli/latest/reference/iam/detach-role-policy.html" target="_blank" rel="noopener">detach-role-policy</a></li>
+<li><a href="https://docs.aws.amazon.com/cli/latest/reference/iam/delete-role.html" target="_blank" rel="noopener">delete-role</a></li>
+</ul>
+<pre><code class="language-bash"># delete the API Gateway 
+$ aws apigateway delete-rest-api \
+    --region $AWS_REGION \
+    --rest-api-id $API_GATEWAY_ID
+
+# delete the Lambda
+$ aws lambda delete-function \
+    --region $AWS_REGION \
+    --function-name $LAMBDA_FUNCTION_NAME
+
+# to delete the role, you must detach policy first
+$ aws iam detach-role-policy \
+    --role-name $LAMBDA_ROLE_NAME \
+    --policy-arn $LAMBDA_POLICY_ARN
+
+# delete the role
+$ aws iam delete-role \
+    --role-name $LAMBDA_ROLE_NAME
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/api-gateway/">api-gateway</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/aws-cli/">aws-cli</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

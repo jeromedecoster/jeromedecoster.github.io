@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Black & White,Troposphere,Lambda,Sharp,curl'><meta name="description" content='Playing with Trophosphere, Lambda and Sharp to convert an color image from to black and white version.'><meta property="og:title" content="Troposphere &#43; Lambda &#43; Sharp" />
+<meta property="og:description" content="Playing with **Trophosphere**, **Lambda** and **Sharp** to convert an color image from to black and white version." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/black-white/troposphere--lambda--sharp/" /><meta property="article:section" content="black-white" />
+<meta property="article:published_time" content="2020-01-09T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-01-09T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Troposphere &#43; Lambda &#43; Sharp"/>
+<meta name="twitter:description" content="Playing with **Trophosphere**, **Lambda** and **Sharp** to convert an color image from to black and white version."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Troposphere &#43; Lambda &#43; Sharp | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-code">Install and setup the code</a></li>
+        <li><a href="#create-the-lambda-layer">Create the Lambda Layer</a></li>
+        <li><a href="#create-the-cloudformation-stack-with-troposphere">Create the CloudFormation stack with Troposphere</a></li>
+        <li><a href="#test-the-api-with-curl">Test the API with curl</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">09</span>
+<span class="rest">Jan 2020</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Troposphere &#43; Lambda &#43; Sharp</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div>Create an API with <a href="https://docs.aws.amazon.com/cli/latest/reference/apigateway/" target="_blank" rel="noopener">API Gateway</a>, <a href="https://docs.aws.amazon.com/cli/latest/reference/lambda/index.html" target="_blank" rel="noopener">Lambda</a> and <a href="https://sharp.pixelplumbing.com/en/stable/" target="_blank" rel="noopener">sharp</a> to convert an color image from to black and white version. CloudFormation template will be generated with <a href="https://github.com/cloudtools/troposphere" target="_blank" rel="noopener">troposphere</a>.</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-code">Install and setup the code</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp.git \
+    /tmp/bw
+
+# cd
+$ cd /tmp/bw
+</code></pre>
+<p>To setup the project, you must edit the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/settings.sample.sh" target="_blank" rel="noopener">settings file</a> first :</p>
+<pre><code class="language-bash">$ cat settings.sample.sh 
+# Project
+AWS_REGION=eu-west-3
+# CloudFormation
+STACK_NAME=black-white-troposphere-lambda-sharp
+# Lambda
+S3_BUCKET=
+SHARED_LAYER_ZIP=sharp-v1.zip
+</code></pre>
+<p>You can change some values, but the most important thing is to :</p>
+<ul>
+<li><strong>Choose your region</strong> : the default value is <strong>AWS_REGION</strong> : <code>eu-west-3</code></li>
+<li><strong>Define your S3 bucket</strong> : by default <strong>S3_BUCKET</strong> is <code>not defined</code></li>
+</ul>
+<p>Your bucket will used to upload the <a href="https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html" target="_blank" rel="noopener">Lamdba Layer</a> zip file at :</p>
+<pre><code class="language-bash">https://&lt;S3_BUCKET&gt;.s3.&lt;AWS_REGION&gt;.amazonaws.com/layers/&lt;SHARED_LAYER_ZIP&gt;
+</code></pre>
+<p>After that you can execute the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/1-setup.sh" target="_blank" rel="noopener">1-setup.sh</a> script. This will create the <code>settings.sh</code> file and build the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/Dockerfile" target="_blank" rel="noopener">Dockerfile</a> :</p>
+<pre><code class="language-bash"># execute the setup
+$ bash 1-setup.sh
+</code></pre>
+<h3 id="create-the-lambda-layer">Create the Lambda Layer</h3>
+<p>The <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/lambda/index.js" target="_blank" rel="noopener">Lambda code</a> is very simple :</p>
+<pre><code class="language-js">const sharp = require(&quot;sharp&quot;)
+
+exports.handler = function (event, context, callback) {
+
+    sharp(Buffer.from(event.body, 'base64'))
+        .grayscale()
+        .toBuffer(function (err, data, info) {
+            var response = {
+                statusCode: 200,
+                headers: { 'Content-Type': 'image/jpeg' },
+                body: data.toString('base64'),
+                isBase64Encoded: true
+            }
+            callback(null, response);
+        })
+}
+</code></pre>
+<p>We only use 1 node module, but <a href="https://github.com/lovell/sharp" target="_blank" rel="noopener">sharp</a> is <strong>really heavy</strong> : <code>35 Mo</code></p>
+<pre><code class="language-bash">$ du --summarize --human-readable node_modules
+35M     node_modules
+</code></pre>
+<p>We will create and use a <a href="https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html" target="_blank" rel="noopener">Lambda Layer</a> to deploy Lambda functions <strong>more easily but above all faster</strong>.</p>
+<p>To create a Lambda Layer we need to execute <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/2-lambda-layer.sh" target="_blank" rel="noopener">2-lambda-layer.sh</a> script :</p>
+<pre><code class="language-bash"># create the Lambda Layer
+$ bash 2-lambda-layer.sh
+</code></pre>
+<p>Please note the script installs <a href="https://github.com/tj/node-prune" target="_blank" rel="noopener">node-prune</a> if it is missing. It&rsquo;s an important little software to solve the problem of <strong>the excessive weight of the <code>node_modules</code> directory</strong>.</p>
+<p><strong>Important</strong> : when you install locally sharp (via <code>npm install</code>), your <strong>local version of node must match the <a href="https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html" target="_blank" rel="noopener">runtime</a></strong> you will be using on Lambda.</p>
+<p>My Lambda function will use the runtime version <code>nodejs12.x</code>, so I use an equivalent locally :</p>
+<pre><code class="language-bash">$ node --version
+v12.14.1
+</code></pre>
+<h3 id="create-the-cloudformation-stack-with-troposphere">Create the CloudFormation stack with Troposphere</h3>
+<p>Writing a CloudFormation template by hand is not an enjoyable thing to do. Using <a href="https://github.com/cloudtools/troposphere" target="_blank" rel="noopener">Troposphere</a>, you can <strong>automate the generation of templates</strong>. It <strong>increases readability</strong> and <strong>saves time</strong>.</p>
+<p>Unfortunately the project is not really documented and the <a href="https://troposphere.readthedocs.io/en/latest/apis/troposphere.html#module-troposphere.apigateway" target="_blank" rel="noopener">documentation</a> is therefore poor. A good step is to look at the many <a href="https://github.com/cloudtools/troposphere/blob/master/examples/ApiGateway.py" target="_blank" rel="noopener">examples</a>.</p>
+<p>Below, an overview of the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/tropo.py" target="_blank" rel="noopener">tropo.py</a> script :</p>
+<pre><code class="language-python">t = Template()
+
+# Create a role for the lambda function
+t.add_resource(Role(
+    &quot;LambdaExecutionRole&quot;,
+    Path=&quot;/&quot;,
+    Policies=[Policy(
+        PolicyName=&quot;inline-policy&quot;,
+        PolicyDocument={
+            &quot;Version&quot;: &quot;2012-10-17&quot;,
+            &quot;Statement&quot;: [{
+                &quot;Effect&quot;: &quot;Allow&quot;,
+                &quot;Action&quot;: [
+                    &quot;logs:CreateLogGroup&quot;,
+                    &quot;logs:CreateLogStream&quot;,
+                    &quot;logs:PutLogEvents&quot;
+                ],
+                &quot;Resource&quot;: &quot;*&quot;
+            }, {
+                &quot;Effect&quot;: &quot;Allow&quot;,
+                &quot;Action&quot;: [
+                    &quot;lambda:InvokeFunction&quot;
+                ],
+                &quot;Resource&quot;: &quot;*&quot;
+            }]
+        })],
+    AssumeRolePolicyDocument={
+        &quot;Version&quot;: &quot;2012-10-17&quot;,
+        &quot;Statement&quot;: [{
+            &quot;Action&quot;: &quot;sts:AssumeRole&quot;,
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Principal&quot;: {
+                &quot;Service&quot;: [
+                    &quot;lambda.amazonaws.com&quot;,
+                    &quot;apigateway.amazonaws.com&quot;  # important !
+                ]
+            }
+        }]
+    }))
+
+# create the Lambda function
+layer = t.add_resource(LayerVersion(
+    &quot;SharedLayer&quot;,
+    Content=Content(
+        S3Bucket=args.bucket,
+        S3Key=args.key  # update the name to update layer version
+    )
+))
+
+# read Lambda code
+code = open(args.code).read().strip().split(&quot;\n&quot;)
+
+func = t.add_resource(Function(
+    &quot;Lambda&quot;,
+    Code=Code(
+        ZipFile=Join(&quot;\n&quot;, code)
+    ),
+    Handler=&quot;index.handler&quot;,
+    Role=GetAtt(&quot;LambdaExecutionRole&quot;, &quot;Arn&quot;),
+    Runtime=&quot;nodejs12.x&quot;,
+    MemorySize=128,
+    Timeout=50,
+    Layers=[Ref(layer)]
+))
+
+# ...
+</code></pre>
+<p>To generate the CloudFormation template we just need to execute something like this :</p>
+<pre><code class="language-bash"># generate the template
+$ docker run \
+    --volume $PWD:/tmp \
+    troposphere python /tmp/tropo.py \
+    --bucket $S3_BUCKET \
+    --key layers/$SHARED_LAYER_ZIP \
+    --code /tmp/lambda/index.js \
+    --region $AWS_REGION \
+    &gt; cloudformation.json
+</code></pre>
+<p>Instead, we will execute the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/3-cloudformation.sh" target="_blank" rel="noopener">3-cloudformation.sh</a> script :</p>
+<pre><code class="language-bash">$ bash 3-cloudformation.sh
+</code></pre>
+<h3 id="test-the-api-with-curl">Test the API with curl</h3>
+<p>The API Gateway is now online :</p>
+<p><img loading="lazy" src="img/api-gateway.png" alt="api-gateway.png"  /></p>
+<p><strong>Important setting</strong> : the <strong>Binary Media Types</strong> in the settings section is set to <code>*/*</code> :</p>
+<p><img loading="lazy" src="img/binary-media-types.png" alt="binary-media-types.png"  /></p>
+<p>Now we can convert this parrot image using <code>curl</code> :</p>
+<p><img loading="lazy" src="img/bird.jpg" alt="bird.jpg"  /></p>
+<p>To test it quickly, you can just execute the <a href="https://github.com/jeromedecoster/black-white-troposphere-lambda-sharp/blob/master/4-curl.sh" target="_blank" rel="noopener">4-curl.sh</a> script :</p>
+<pre><code class="language-bash">$ bash 4-curl.sh
+</code></pre>
+<p>The script performs 3 simple steps :</p>
+<pre><code class="language-bash"># get the variables
+$ source settings.sh
+
+# get the API endpoint
+$ URL=$(aws cloudformation describe-stacks \
+    --stack-name $STACK_NAME \
+    --query Stacks[0].Outputs[0].OutputValue \
+    --output text)
+
+# send `bird.jpg` and save `bird-grey.jpg`
+$ curl $URL/convert \
+    --header &quot;Content-Type: image/png&quot; \
+    --data-binary @bird.jpg \
+    --output bird-grey.jpg
+</code></pre>
+<p>It works !</p>
+<p><img loading="lazy" src="img/bird-grey.jpg" alt="bird-grey.jpg"  /></p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/black-white/">black-white</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/curl/">curl</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/lambda/">lambda</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/sharp/">sharp</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/troposphere/">troposphere</a>
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

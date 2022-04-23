@@ -11,10 +11,10 @@
     
     <item>
       <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
-      <link>/aws/kubernetes-eks-docker-node/</link>
+      <link>/aws/kubernetes--eks--docker--node/</link>
       <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <guid>/aws/kubernetes--eks--docker--node/</guid>
       <description>
       
       Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Github Actions &#43; Hugo &#43; Terraform &#43; S3</title>
-      <link>/aws/github-actions-hugo-terraform-s3/</link>
+      <link>/aws/github-actions--hugo--terraform--s3/</link>
       <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-actions-hugo-terraform-s3/</guid>
+      <guid>/aws/github-actions--hugo--terraform--s3/</guid>
       <description>
       
       Creation of a static website with **Hugo**. Host it on **S3** with **CloudFront**. Use **Terraform** and **Github actions** to deploy it in a **GitOps** way.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Step Functions &#43; Rekognition</title>
-      <link>/aws/step-functions-rekognition/</link>
+      <link>/aws/step-functions--rekognition/</link>
       <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/step-functions-rekognition/</guid>
+      <guid>/aws/step-functions--rekognition/</guid>
       <description>
       
       Detect **faces** in images with **Rekognition**. Create a face **collection** to find **similar faces**.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>S3 Event Notification &#43; Rekognition &#43; ImageMagick</title>
-      <link>/aws/s3-event-notification-rekognition-imagemagick/</link>
+      <link>/aws/s3-event-notification--rekognition--imagemagick/</link>
       <pubDate>Wed, 05 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/s3-event-notification-rekognition-imagemagick/</guid>
+      <guid>/aws/s3-event-notification--rekognition--imagemagick/</guid>
       <description>
       
       Detect **Bird**, **Cat** and **Dog** in images with **Rekognition** then draw the bounding box with **ImageMagick**.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>Terraform &#43; S3 &#43; S3 Event Notification &#43; Lambda</title>
-      <link>/aws/terraform-s3-s3-event-notification-lambda/</link>
+      <link>/aws/terraform--s3--s3-event-notification--lambda/</link>
       <pubDate>Mon, 27 Jan 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/terraform-s3-s3-event-notification-lambda/</guid>
+      <guid>/aws/terraform--s3--s3-event-notification--lambda/</guid>
       <description>
       
       Terraforming **S3** and **S3 Event Notification** to change object ACL with **Lambda**.

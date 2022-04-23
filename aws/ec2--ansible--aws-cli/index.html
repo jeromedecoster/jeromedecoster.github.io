@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,EC2,Ansible,AWS CLI'><meta name="description" content='Creating EC2 instances with AWS CLI. Uptading them with Ansible.'><meta property="og:title" content="EC2 &#43; Ansible &#43; AWS CLI" />
+<meta property="og:description" content="Creating **EC2 instances** with **AWS CLI**. Uptading them with **Ansible**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/ec2--ansible--aws-cli/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2021-10-26T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-10-26T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="EC2 &#43; Ansible &#43; AWS CLI"/>
+<meta name="twitter:description" content="Creating **EC2 instances** with **AWS CLI**. Uptading them with **Ansible**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>EC2 &#43; Ansible &#43; AWS CLI | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#ping-the-ec2-machines-using-ansible">Ping the EC2 machines using Ansible</a></li>
+        <li><a href="#update-our-site-with-ansible">Update our site with Ansible</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">26</span>
+<span class="rest">Oct 2021</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">EC2 &#43; Ansible &#43; AWS CLI</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>Load balancer</strong> and <strong>EC2 instances</strong> via <strong>Autoscaling</strong></li>
+<li>EC2 machines host an <strong>Apache</strong> site installed via a <strong>user-data script</strong></li>
+<li>Do everything using <strong>AWS CLI</strong></li>
+<li><strong>Ping</strong> the machines with <strong>Ansible</strong></li>
+<li>Update the Apache site <strong>with Ansible via a playbook</strong></li>
+<li>Machine <strong>inventory</strong> will be <strong>dynamic</strong> : a bash script using AWS CLI</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/ec2-ansible" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/ec2-ansible.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># create load balancer + instances using autoscaling
+$ make ec2-create
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Create an EC2 <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/create-key-pair.html" target="_blank" rel="noopener">Key pair</a>.</li>
+<li>Create a <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/create-security-group.html" target="_blank" rel="noopener">Security group</a>.</li>
+<li>Add <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/create-security-group.html" target="_blank" rel="noopener">Ingress</a> for port 22, 80 and 443.</li>
+<li>Create an <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/create-role.html" target="_blank" rel="noopener">IAM Role</a> for EC2.</li>
+<li>Attach EC2FullAccess <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/attach-role-policy.html" target="_blank" rel="noopener">policy</a>.</li>
+<li>Create an <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/create-instance-profile.html" target="_blank" rel="noopener">IAM instance profile</a></li>
+<li>Attach IAM <a href="https://docs.aws.amazon.com/cli/latest/reference/iam/add-role-to-instance-profile.html" target="_blank" rel="noopener">Role to the instance</a> profile.</li>
+<li>Create a <a href="https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-load-balancer.html" target="_blank" rel="noopener">Load balancer</a> with a <a href="https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-target-group.html" target="_blank" rel="noopener">Target group</a>.</li>
+<li>Create a <a href="https://docs.aws.amazon.com/cli/latest/reference/ec2/create-launch-template.html" target="_blank" rel="noopener">Launch template</a>.</li>
+<li>Create an <a href="https://docs.aws.amazon.com/cli/latest/reference/autoscaling/create-auto-scaling-group.html" target="_blank" rel="noopener">Auto Scaling Group</a> with 2 instances.</li>
+</ul>
+<p>Now we have <strong>2 instances</strong> :</p>
+<p><img loading="lazy" src="img/ec2-instances.png" alt="ec2-instances.png"  /></p>
+<p>A <strong>Load balancer</strong> :</p>
+<p><img loading="lazy" src="img/load-balancer.png" alt="load-balancer.png"  /></p>
+<p>A <strong>Launch template</strong> :</p>
+<p><img loading="lazy" src="img/launch-template.png" alt="launch-template.png"  /></p>
+<p>A <strong>very simple website</strong> :</p>
+<p><img loading="lazy" src="img/user-data-install.png" alt="user-data-install.png"  /></p>
+<p>You can get the Load Balancer URL with :</p>
+<pre><code class="language-bash"># get load balancer dns
+$ make load-balancer-dns
+</code></pre>
+<h3 id="ping-the-ec2-machines-using-ansible">Ping the EC2 machines using Ansible</h3>
+<p>To ping the machin we use :</p>
+<pre><code class="language-bash"># ping ec2 instances with ansible
+$ make ansible-ping
+</code></pre>
+<p>This command execute a simple command :</p>
+<pre><code class="language-bash">$ ansible aws -m ping
+</code></pre>
+<p>But this command is executed in a specific <a href="https://github.com/jeromedecoster/ec2-ansible/tree/master/playbooks" target="_blank" rel="noopener">playbook context</a></p>
+<p>The <a href="https://github.com/jeromedecoster/ec2-ansible/blob/master/playbooks/ansible.cfg" target="_blank" rel="noopener">ansible.cfg</a> file execute a bash inventory file</p>
+<pre><code class="language-ini">[defaults]
+inventory = ./inventory.sh
+remote_user = ec2-user
+private_key_file = ../ec2-ansible.pem
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/ec2-ansible/blob/master/playbooks/inventory.sh" target="_blank" rel="noopener">inventory.sh</a> file is an executable file :</p>
+<ul>
+<li>Some aws cli commands collect the instances ids and public address IP</li>
+<li>A bash script build and output some specific JSON data</li>
+</ul>
+<pre><code class="language-bash">#!/bin/bash
+ID=$(aws autoscaling describe-auto-scaling-instances \
+    --query &quot;AutoScalingInstances[?AutoScalingGroupName=='ec2-ansible'].InstanceId&quot; \
+    --output text)
+
+IP=$(aws ec2 describe-instances \
+    --instance-ids $ID \
+    --query &quot;Reservations[].Instances[?State.Name=='running'].[InstanceId, PublicIpAddress]&quot; \
+    --output text)
+
+# ...
+
+while read h; do
+    id=$(echo &quot;$h&quot; | cut -f 1)
+    ip=$(echo &quot;$h&quot; | cut -f 2)
+    TMP=$(echo '&quot;'$id'&quot;: { &quot;ansible_host&quot;: &quot;'$ip'&quot; },')
+    HOSTSVARS=${HOSTSVARS}${TMP}
+    TMP=$(echo '&quot;'$id'&quot;,')
+    HOSTS=${HOSTS}${TMP}
+done &lt; &lt;(echo &quot;$IP&quot;)
+
+cat &lt;&lt; EOF
+{
+    &quot;_meta&quot;: {
+        &quot;hostvars&quot;: {
+            ${HOSTSVARS}
+        }
+    },
+    &quot;aws&quot;: {
+        &quot;hosts&quot;: [
+            ${HOSTS}
+        ]
+    }
+}
+EOF
+</code></pre>
+<p>If we run this script directly in the terminal we get a JSON :</p>
+<pre><code class="language-bash">$ ./playbooks/inventory.sh
+{
+    &quot;_meta&quot;: {
+        &quot;hostvars&quot;: {
+            &quot;i-084569174edd3c352&quot;: { &quot;ansible_host&quot;: &quot;15.237.149.180&quot; },&quot;i-013b7597d9f698b39&quot;: { &quot;ansible_host&quot;: &quot;15.236.95.164&quot; },
+        }
+    },
+    &quot;aws&quot;: {
+        &quot;hosts&quot;: [
+            &quot;i-084569174edd3c352&quot;,&quot;i-013b7597d9f698b39&quot;,
+        ]
+    }
+}
+</code></pre>
+<p>By executing our command we must <strong>answer yes</strong> to the SSH question <strong>several times</strong> :</p>
+<pre><code class="language-bash">$ make ansible-ping 
+ EXECUTE  ansible-ping
+The authenticity of host '15.237.149.180 (15.237.149.180)' can't be established.
+ECDSA key fingerprint is SHA256:3Xni...
+The authenticity of host '15.236.95.164 (15.236.95.164)' can't be established.
+ECDSA key fingerprint is SHA256:Yxvv...
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes # &lt;-- answer yes
+
+i-084569174edd3c352 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+
+yes # &lt;-- answer yes
+i-013b7597d9f698b39 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+</code></pre>
+<p>It&rsquo;s rather <strong>unpleasant</strong> because it <strong>interrupts the flow</strong> of the script.</p>
+<h3 id="update-our-site-with-ansible">Update our site with Ansible</h3>
+<p>We will update all our EC2 machines with Ansible</p>
+<p>Our playbook is very simple :</p>
+<ul>
+<li>We are replacing the home page with a new <a href="https://github.com/jeromedecoster/ec2-ansible/blob/master/playbooks/templates/index.html.j2" target="_blank" rel="noopener">template</a></li>
+<li>We restart the Apache service</li>
+</ul>
+<pre><code class="language-yaml">---
+- name: Configure webservers
+  hosts: aws
+  become: True
+  tasks:
+    - name: copy index.html
+      template: src=templates/index.html.j2 dest=/var/www/html/index.html mode=0644
+    - name: restart httpd
+      service: name=httpd state=restarted
+</code></pre>
+<p>The template is very simple :</p>
+<pre><code class="language-jinja2">&lt;h3&gt;Installed with Ansible&lt;/h3&gt;
+&lt;p&gt;Running on {{ hostvars[inventory_hostname].ansible_facts.default_ipv4.address }}&lt;/p&gt;
+</code></pre>
+<p><a href="https://docs.ansible.com/ansible/latest/user_guide/playbooks_vars_facts.html" target="_blank" rel="noopener">Ansible facts</a> are a <strong>lot of data</strong> related to your remote systems, including operating systems, IP addresses, attached filesystems, and more.</p>
+<p>We update our ec2 instances with this simple command :</p>
+<pre><code class="language-bash"># update website on ec2 instances with ansible
+$ make ansible-update
+
+PLAY [Configure webservers] ********************************************************************************************************************************************
+
+TASK [Gathering Facts] *************************************************************************************************************************************************
+ok: [i-084569174edd3c352]
+ok: [i-013b7597d9f698b39]
+
+TASK [copy index.html] *************************************************************************************************************************************************
+changed: [i-084569174edd3c352]
+changed: [i-013b7597d9f698b39]
+
+TASK [restart httpd] ***************************************************************************************************************************************************
+changed: [i-084569174edd3c352]
+changed: [i-013b7597d9f698b39]
+
+PLAY RECAP *************************************************************************************************************************************************************
+i-013b7597d9f698b39        : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+i-084569174edd3c352        : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+</code></pre>
+<p>By <strong>updating</strong> our browser we see that the <strong>update</strong> has been made :</p>
+<p><img loading="lazy" src="img/ansible-update.png" alt="ansible-update.png"  /></p>
+<p>The demonstration is over. We can delete our resources with this command :</p>
+<pre><code class="language-bash"># destroy all resources
+$ make destroy
+</code></pre>
+<p><strong>Warning</strong> : deleting resources can take a <strong>long time</strong> and sometimes <strong>fail along the way</strong>.</p>
+<p>It is important to <strong>verify</strong> via the AWS website that the resources have indeed disappeared.</p>
+<p>In this case, you have to <strong>delete them manually</strong>, which is not necessarily very easy.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+<a href="/tags/ansible/">ansible</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/aws-cli/">aws-cli</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ec2/">ec2</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

@@ -11,10 +11,10 @@
     
     <item>
       <title>EC2 &#43; Ansible &#43; AWS CLI</title>
-      <link>/aws/ec2-ansible-aws-cli/</link>
+      <link>/aws/ec2--ansible--aws-cli/</link>
       <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ec2-ansible-aws-cli/</guid>
+      <guid>/aws/ec2--ansible--aws-cli/</guid>
       <description>
       
       Creating **EC2 instances** with **AWS CLI**. Uptading them with **Ansible**.
@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>API Gateway &#43; Lambda &#43; AWS CLI</title>
-      <link>/aws/api-gateway-lambda-aws-cli/</link>
+      <link>/aws/api-gateway--lambda--aws-cli/</link>
       <pubDate>Sun, 22 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/aws/api-gateway-lambda-aws-cli/</guid>
+      <guid>/aws/api-gateway--lambda--aws-cli/</guid>
       <description>
       
       Create an **API Gateway** and a **Lambda** from CLI.

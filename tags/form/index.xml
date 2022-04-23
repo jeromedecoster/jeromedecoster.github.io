@@ -11,10 +11,10 @@
     
     <item>
       <title>Node &#43; Express &#43; form</title>
-      <link>/note/node-express-form/</link>
+      <link>/note/node--express--form/</link>
       <pubDate>Mon, 16 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/node-express-form/</guid>
+      <guid>/note/node--express--form/</guid>
       <description>
       
       Playing with **multipart/form-data** and **application/x-www-form-urlencoded** forms.

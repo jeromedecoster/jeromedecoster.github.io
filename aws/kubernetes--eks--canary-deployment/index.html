@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Kubernetes,EKS,Terraform,CI/CD,Deployment Pattern'><meta name="description" content='Testing Kubernetes Canary Deployment on EKS.'><meta property="og:title" content="Kubernetes &#43; EKS &#43; Canary Deployment" />
+<meta property="og:description" content="Testing **Kubernetes Canary Deployment** on **EKS**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/kubernetes--eks--canary-deployment/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2021-07-05T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-07-05T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes &#43; EKS &#43; Canary Deployment"/>
+<meta name="twitter:description" content="Testing **Kubernetes Canary Deployment** on **EKS**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Kubernetes &#43; EKS &#43; Canary Deployment | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#install-and-setup-the-project">Install and setup the project</a></li>
+        <li><a href="#publish-the-version-100">Publish the version 1.0.0</a></li>
+        <li><a href="#subdomain-management-with-route-53">Subdomain management with Route 53</a></li>
+        <li><a href="#running-the-test-application">Running the test application</a></li>
+        <li><a href="#publish-the-version-110-as-canary">Publish the version 1.1.0 as canary</a></li>
+        <li><a href="#publish-the-version-110">Publish the version 1.1.0</a></li>
+        <li><a href="#installing-nginx-with-helm">Installing nginx with helm</a></li>
+        <li><a href="#publish-the-version-100--nginx-version">Publish the version 1.0.0 — nginx version</a></li>
+        <li><a href="#publish-the-version-110-as-canary--nginx-version">Publish the version 1.1.0 as canary — nginx version</a></li>
+        <li><a href="#publish-the-version-110--nginx-version">Publish the version 1.1.0 — nginx version</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">05</span>
+<span class="rest">Jul 2021</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Kubernetes &#43; EKS &#43; Canary Deployment</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Use <strong>Terraform</strong> to create the <strong>EKS</strong> cluster</li>
+<li>Publish <code>version 1.0.0</code> to <code>version 1.1.0</code> using the <strong>Canary Deployment pattern</strong></li>
+<li>First by simply using <strong>replica scaling</strong></li>
+<li>Then using <strong>nginx ingress</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="install-and-setup-the-project">Install and setup the project</h3>
+<p>Get the code from this <a href="https://github.com/jeromedecoster/eks-canary" target="_blank" rel="noopener">github repository</a> :</p>
+<pre><code class="language-bash"># download the code
+$ git clone \
+    --depth 1 \
+    https://github.com/jeromedecoster/eks-canary.git \
+    /tmp/aws
+
+# cd
+$ cd /tmp/aws
+</code></pre>
+<p>To setup the project, run the following command :</p>
+<pre><code class="language-bash"># npm install + terraform init
+$ make setup
+</code></pre>
+<p>This command will :</p>
+<ul>
+<li>Install the npm packages of the <a href="https://github.com/jeromedecoster/eks-canary/tree/master/test" target="_blank" rel="noopener">test</a>.</li>
+<li>Setup the Terraform <a href="https://github.com/jeromedecoster/eks-canary/tree/master/infra" target="_blank" rel="noopener">infrastructure</a>.</li>
+</ul>
+<p>Now let&rsquo;s create our EKS cluster :</p>
+<pre><code class="language-bash"># terraform validate
+$ make tf-validate
+
+# terraform plan + terraform apply
+$ make tf-apply
+</code></pre>
+<p>The cluster is now ready :</p>
+<p><img loading="lazy" src="img/eks-cluster.png" alt="eks-cluster"  /></p>
+<p>Let&rsquo;s configure kubectl :</p>
+<pre><code class="language-bash"># setup kubectl config
+$ make kube-config
+
+# test the configuration
+$ kubectl config current-context
+arn:aws:eks:eu-west-3:xxxxx:cluster/eks-canary
+</code></pre>
+<h3 id="publish-the-version-100">Publish the version 1.0.0</h3>
+<p>To upload our first version we run this command :</p>
+<pre><code class="language-bash"># publish the 1.0.0 version
+$ make k8s-simple-1.0.0
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl apply --filename namespace.yaml
+$ kubectl apply --filename deployment-1-0-0.yaml
+$ kubectl apply --filename load-balancer-1.yaml
+</code></pre>
+<ul>
+<li>Creation of the <code>canary-simple</code> <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/namespace.yaml" target="_blank" rel="noopener">namespace</a></li>
+<li><a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/deployment-1-0-0.yaml" target="_blank" rel="noopener">Deployment</a> of <strong>2 replicas</strong> of <a href="https://github.com/hashicorp/http-echo" target="_blank" rel="noopener">http-echo</a></li>
+<li>Creation of a <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/load-balancer-1.yaml" target="_blank" rel="noopener">Load balancer</a></li>
+</ul>
+<p><a href="https://hub.docker.com/r/hashicorp/http-echo" target="_blank" rel="noopener">http-echo</a> is a simple but useful tool to simply <strong>display text content through an HTTP server</strong>.</p>
+<pre><code class="language-bash"># let's do a little test ...
+$ docker pull hashicorp/http-echo
+
+$ docker run -p 5000:5678 \
+    hashicorp/http-echo \
+    -text=&quot;Hello...&quot;
+
+# in another terminal window ...
+$ curl localhost:5000
+Hello...
+</code></pre>
+<p>And <strong>the message we display</strong> will simply be <code>version 1-0-0</code> :</p>
+<pre><code class="language-yaml">spec:
+  containers:
+  - name: http-echo
+    image: hashicorp/http-echo
+    args:
+      - &quot;-text=version 1-0-0&quot;
+</code></pre>
+<p>Let&rsquo;s look at the <strong>various elements</strong> created under the <code>canary-simple</code> namespace :</p>
+<pre><code class="language-bash">$ kubectl get all -n canary-simple
+NAME                               READY   STATUS    RESTARTS   AGE
+pod/hello-1-0-0-54656f66db-7lkkb   1/1     Running   0          70s
+pod/hello-1-0-0-54656f66db-p2qcw   1/1     Running   0          70s
+
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP                             PORT(S)        AGE
+service/hello-lb   LoadBalancer   172.20.63.87   ac10xxxxx.eu-west-3.elb.amazonaws.com   80:31343/TCP   70s
+
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/hello-1-0-0   2/2     2            2           70s
+
+NAME                                     DESIRED   CURRENT   READY   AGE
+replicaset.apps/hello-1-0-0-54656f66db   2         2         2       70s
+</code></pre>
+<h3 id="subdomain-management-with-route-53">Subdomain management with Route 53</h3>
+<p>I create a <strong>new record</strong> associated with my domain name :</p>
+<p><img loading="lazy" src="img/route53-1.png" alt="route53-1"  /></p>
+<p>I add the <code>canary</code> subdomain :</p>
+<ul>
+<li>I create a <code>type A</code> record</li>
+<li>I <strong>activate</strong> <code>Alias</code></li>
+<li>I <strong>select</strong> my <strong>region</strong> then my <strong>Load Balancer</strong></li>
+</ul>
+<p><img loading="lazy" src="img/route53-2.png" alt="route53-2"  /></p>
+<p>Now if I make a query on this URL :</p>
+<pre><code class="language-bash">$ curl canary.jeromedecoster.net
+version 1-0-0
+</code></pre>
+<h3 id="running-the-test-application">Running the test application</h3>
+<p>The CLI test application is a small <a href="https://github.com/jeromedecoster/eks-canary/blob/master/test/index.js" target="_blank" rel="noopener">Nodejs script</a> that displays the distribution of versions returned by the server :</p>
+<pre><code class="language-js">// container
+const multibar = new cliProgress.MultiBar({
+    clearOnComplete: false,
+    hideCursor: true,
+    format: '{version} | {bar} {percentage}% | {value}/{total}'
+}, cliProgress.Presets.shades_grey)
+
+// bars
+const b1 = multibar.create(0, 0)
+const b2 = multibar.create(0, 0)
+
+setInterval(async () =&gt; {
+    var ret = ''
+    try {
+        ret = await axios.get('http://canary.jeromedecoster.net/')
+        ret = ret.data.trim()
+    } catch(err) {}
+    
+    if (ret.includes('1-0-0')) obj.current++
+    else if  (ret.includes('1-1-0')) obj.next++
+
+    total =  obj.current +  obj.next
+
+    b1.update(obj.current, {version: '1-0-0'})
+    b2.update(obj.next, {version: '1-1-0'})
+    b1.setTotal(total)
+    b2.setTotal(total)
+
+}, 500)
+</code></pre>
+<p>If we run our script, at this point, we only have one version that is returned.</p>
+<p><strong>100% of 25 requests</strong> returned the version <code>1-0-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | ████████████████████████████████████████ 100% | 25/25
+1-1-0 | ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% | 0/25
+</code></pre>
+<h3 id="publish-the-version-110-as-canary">Publish the version 1.1.0 as canary</h3>
+<p>We now want to release a <code>version 1.1.0</code> with a <strong>Canary Deployment</strong>.</p>
+<p>To gradually test our deployment, we want <strong>around</strong> <code>10%</code> <strong>of requests to be sent</strong> on <code>version 1.1.0</code>.</p>
+<p>The other requests will remain sent to <code>version 1-0-0</code>.</p>
+<p>We currently have <strong>2 replicas</strong> of <code>version 1-0-0</code>. To obtain this distribution, we will go to :</p>
+<ul>
+<li><strong>9 replicas</strong> of <code>version 1-0-0</code></li>
+<li><strong>1 replica</strong> of <code>version 1-1-0</code></li>
+</ul>
+<p>To upload our first version we run this command :</p>
+<pre><code class="language-bash"># publish the 1.1.0 version as canary
+$ make k8s-simple-1.1.0-canary
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl scale --replicas=9 deployment hello-1-0-0 -n canary-simple
+$ kubectl apply --filename deployment-1-1-0.yaml
+$ kubectl apply --filename load-balancer-2.yaml
+</code></pre>
+<ul>
+<li><a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/deployment-1-1-0.yaml" target="_blank" rel="noopener">Deployment</a> of the <code>version 1-1-0</code></li>
+<li>Updating the <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/load-balancer-2.yaml" target="_blank" rel="noopener">Load balancer</a></li>
+</ul>
+<p><strong>Important tip</strong> : when we <strong>update the Load Balancer</strong>, we <strong>only delete</strong> the <code>version</code> reference in the <code>selector</code> part :</p>
+<pre><code class="language-diff">spec:
+  selector:
+    app: hello
+-    version: 1-0-0
+  ports:
+  - port: 80
+</code></pre>
+<p>There will therefore be a <strong>Round-robin distribution among all the pods</strong> defined by the <code>app: hello</code> selector.</p>
+<p>This therefore concerns the pods of <code>version 1-0-0</code> and those of <code>version 1-1-0</code>.</p>
+<p>Let&rsquo;s look at the <strong>various elements</strong> created under the <code>canary-simple</code> namespace :</p>
+<pre><code class="language-bash">$ kubectl get all -n canary-simple
+NAME                               READY   STATUS    RESTARTS   AGE
+pod/hello-1-0-0-54656f66db-7lkkb   1/1     Running   0          7m
+pod/hello-1-0-0-54656f66db-fn82t   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-gdwhw   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-htp2v   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-nxx9w   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-p2qcw   1/1     Running   0          7m
+pod/hello-1-0-0-54656f66db-s4zsf   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-v58nc   1/1     Running   0          50s
+pod/hello-1-0-0-54656f66db-xk2c8   1/1     Running   0          50s
+pod/hello-1-1-0-768c4dc664-xmt8t   1/1     Running   0          50s
+
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP                             PORT(S)        AGE
+service/hello-lb   LoadBalancer   172.20.63.87   ac10xxxxx.eu-west-3.elb.amazonaws.com   80:31343/TCP   7m
+
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/hello-1-0-0   9/9     9            9           7m
+deployment.apps/hello-1-1-0   1/1     1            1           50s
+
+NAME                                     DESIRED   CURRENT   READY   AGE
+replicaset.apps/hello-1-0-0-54656f66db   9         9         9       7m
+replicaset.apps/hello-1-1-0-768c4dc664   1         1         1       50s
+</code></pre>
+<p>And now if we run our <strong>test application</strong>, we have <strong>8% of 81 requests</strong> that return the version <code>1-1-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | █████████████████████████████████████░░░ 91% | 74/81
+1-1-0 | ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 8% | 7/81
+</code></pre>
+<h3 id="publish-the-version-110">Publish the version 1.1.0</h3>
+<p>Our <code>version 1-1-0</code> is considered stable. We now want to <strong>completely switch over and remove the old version</strong> :</p>
+<pre><code class="language-bash">$ make k8s-simple-1.1.0
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl scale --replicas=2 deployment hello-1-1-0 -n canary-simple
+$ kubectl apply --filename load-balancer-3.yaml
+$ kubectl delete deployments hello-1-0-0 -n canary-simple
+</code></pre>
+<ul>
+<li>We scale our <code>version 1-1-0</code> to <strong>2 replicas</strong></li>
+<li>We update the <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-simple/load-balancer-2.yaml" target="_blank" rel="noopener">Load balancer</a> to add a selector <code>version: 1-1-0</code></li>
+<li>We <strong>delete the deployment</strong> named <code>hello-1-0-0</code></li>
+</ul>
+<pre><code class="language-diff">spec:
+  selector:
+    app: hello
++    version: 1-1-0
+  ports:
+  - port: 80
+</code></pre>
+<p>Let&rsquo;s look at the <strong>various elements</strong> created under the <code>canary-simple</code> namespace :</p>
+<pre><code class="language-bash">$ kubectl get all -n canary-simple
+NAME                               READY   STATUS    RESTARTS   AGE
+pod/hello-1-1-0-768c4dc664-9848w   1/1     Running   0          60s
+pod/hello-1-1-0-768c4dc664-xmt8t   1/1     Running   0          3m
+
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP                             PORT(S)        AGE
+service/hello-lb   LoadBalancer   172.20.63.87   ac10xxxxx.eu-west-3.elb.amazonaws.com   80:31343/TCP   9m
+
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/hello-1-1-0   2/2     2            2           3m
+
+NAME                                     DESIRED   CURRENT   READY   AGE
+replicaset.apps/hello-1-1-0-768c4dc664   2         2         2       3m
+</code></pre>
+<p>And now if we run our <strong>test application</strong>, we have <strong>100% of 40 requests</strong> that return the <code>version 1-1-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% | 0/40
+1-1-0 | ████████████████████████████████████████ 100% | 40/40
+</code></pre>
+<p>Our first test is done, we can now <strong>delete our resources</strong> :</p>
+<pre><code class="language-bash">$ kubectl delete ns canary-simple
+</code></pre>
+<h3 id="installing-nginx-with-helm">Installing nginx with helm</h3>
+<p><a href="https://helm.sh/" target="_blank" rel="noopener">HELM</a> is a package manager for Kubernetes.</p>
+<p>Let&rsquo;s <a href="https://helm.sh/docs/intro/install/#from-script" target="_blank" rel="noopener">install HELM</a> with this command :</p>
+<pre><code class="language-bash">$ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+$ chmod 700 get_helm.sh
+$ ./get_helm.sh
+</code></pre>
+<p>Now we add the <a href="https://github.com/kubernetes/ingress-nginx/tree/master/charts/ingress-nginx" target="_blank" rel="noopener">ingress-nginx</a> chart :</p>
+<pre><code class="language-bash">$ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+$ helm repo update
+</code></pre>
+<p>Let&rsquo;s test the correct installation of the repository :</p>
+<pre><code class="language-bash">$ helm repo list
+NAME                    URL                                               
+ingress-nginx           https://kubernetes.github.io/ingress-nginx
+</code></pre>
+<p><a href="https://github.com/kubernetes/ingress-nginx/tree/master/charts/ingress-nginx/templates" target="_blank" rel="noopener">Many files</a> are needed to manage the <strong>HELM template for ingress-nginx</strong>.</p>
+<p>And here is <strong>a very small part</strong> of <a href="https://github.com/kubernetes/ingress-nginx/blob/master/charts/ingress-nginx/templates/controller-deployment.yaml" target="_blank" rel="noopener">just one</a> of those files :</p>
+<pre><code class="language-yaml">{{- if or (eq .Values.controller.kind &quot;Deployment&quot;) (eq .Values.controller.kind &quot;Both&quot;) -}}
+{{- include  &quot;isControllerTagValid&quot; . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include &quot;ingress-nginx.labels&quot; . | nindent 4 }}
+    app.kubernetes.io/component: controller
+    {{- with .Values.controller.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include &quot;ingress-nginx.controller.fullname&quot; . }}
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.controller.annotations }}
+  annotations: {{ toYaml .Values.controller.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include &quot;ingress-nginx.selectorLabels&quot; . | nindent 6 }}
+      app.kubernetes.io/component: controller
+  {{- if not .Values.controller.autoscaling.enabled }}
+  replicas: {{ .Values.controller.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- if .Values.controller.updateStrategy }}
+  strategy:
+    {{ toYaml .Values.controller.updateStrategy | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.controller.minReadySeconds }}
+  template:
+    metadata:
+    {{- if .Values.controller.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.controller.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+      labels:
+        {{- include &quot;ingress-nginx.selectorLabels&quot; . | nindent 8 }}
+        app.kubernetes.io/component: controller
+      {{- if .Values.controller.podLabels }}
+        {{- toYaml .Values.controller.podLabels | nindent 8 }}
+      {{- end }}
+      # ... lot of content truncated ...
+</code></pre>
+<p>Maintaining a helm template shouldn&rsquo;t be fun !</p>
+<p>Before acting, let&rsquo;s take a look at <strong>what our cluster contains</strong> :</p>
+<pre><code class="language-bash">$ kubectl get all --all-namespaces
+NAMESPACE     NAME                           READY   STATUS    RESTARTS   AGE
+kube-system   pod/aws-node-4gz2c             1/1     Running   0          100m
+kube-system   pod/aws-node-dg59x             1/1     Running   0          100m
+kube-system   pod/aws-node-mn6lv             1/1     Running   0          100m
+kube-system   pod/coredns-5748c86bdf-gqcdk   1/1     Running   0          100m
+kube-system   pod/coredns-5748c86bdf-wrjps   1/1     Running   0          100m
+kube-system   pod/kube-proxy-k546k           1/1     Running   0          100m
+kube-system   pod/kube-proxy-mmczj           1/1     Running   0          100m
+kube-system   pod/kube-proxy-w7shd           1/1     Running   0          100m
+
+NAMESPACE     NAME                 TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
+default       service/kubernetes   ClusterIP   172.20.0.1    &lt;none&gt;        443/TCP         100m
+kube-system   service/kube-dns     ClusterIP   172.20.0.10   &lt;none&gt;        53/UDP,53/TCP   100m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+kube-system   daemonset.apps/aws-node     3         3         3       3            3           &lt;none&gt;          100m
+kube-system   daemonset.apps/kube-proxy   3         3         3       3            3           &lt;none&gt;          100m
+
+NAMESPACE     NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system   deployment.apps/coredns   2/2     2            2           100m
+
+NAMESPACE     NAME                                 DESIRED   CURRENT   READY   AGE
+kube-system   replicaset.apps/coredns-5748c86bdf   2         2         2       100m
+</code></pre>
+<p>Now let&rsquo;s <strong>install ingress-nginx</strong> on our EKS cluster :</p>
+<pre><code class="language-bash">$ make k8s-nginx-setup
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl create ns ingress-nginx
+
+$ helm install ingress-nginx ingress-nginx/ingress-nginx \
+    --namespace ingress-nginx \
+    --set controller.replicaCount=2 \
+    --set controller.nodeSelector.&quot;beta\.kubernetes\.io/os&quot;=linux \
+    --set defaultBackend.nodeSelector.&quot;beta\.kubernetes\.io/os&quot;=linux
+</code></pre>
+<p>Let&rsquo;s take a look at <strong>what our cluster contains</strong> now :</p>
+<pre><code class="language-bash">$ kubectl get all --all-namespaces
+NAMESPACE       NAME                                            READY   STATUS    RESTARTS   AGE
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-mz2jr   1/1     Running   0          2m
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-q8zgf   1/1     Running   0          2m
+kube-system     pod/aws-node-b2trk                              1/1     Running   0          102m
+kube-system     pod/aws-node-d9spk                              1/1     Running   0          102m
+kube-system     pod/aws-node-fd4bs                              1/1     Running   0          102m
+kube-system     pod/coredns-5748c86bdf-fk8jt                    1/1     Running   0          102m
+kube-system     pod/coredns-5748c86bdf-xtgcj                    1/1     Running   0          102m
+kube-system     pod/kube-proxy-gdbrc                            1/1     Running   0          102m
+kube-system     pod/kube-proxy-kgknw                            1/1     Running   0          102m
+kube-system     pod/kube-proxy-q4j69                            1/1     Running   0          102m
+
+NAMESPACE       NAME                                         TYPE           CLUSTER-IP      EXTERNAL-IP                             PORT(S)                      AGE
+default         service/kubernetes                           ClusterIP      172.20.0.1      &lt;none&gt;                                  443/TCP                      102m
+ingress-nginx   service/ingress-nginx-controller             LoadBalancer   172.20.77.125   ac0exxxxx.eu-west-3.elb.amazonaws.com   80:31623/TCP,443:30804/TCP   2m
+ingress-nginx   service/ingress-nginx-controller-admission   ClusterIP      172.20.3.148    &lt;none&gt;                                  443/TCP                      2m
+kube-system     service/kube-dns                             ClusterIP      172.20.0.10     &lt;none&gt;                                  53/UDP,53/TCP                102m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+kube-system   daemonset.apps/aws-node     3         3         3       3            3           &lt;none&gt;          102m
+kube-system   daemonset.apps/kube-proxy   3         3         3       3            3           &lt;none&gt;          102m
+
+NAMESPACE       NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+ingress-nginx   deployment.apps/ingress-nginx-controller   2/2     2            2           2m
+kube-system     deployment.apps/coredns                    2/2     2            2           102m
+
+NAMESPACE       NAME                                                  DESIRED   CURRENT   READY   AGE
+ingress-nginx   replicaset.apps/ingress-nginx-controller-864f76877c   2         2         2       2m
+kube-system     replicaset.apps/coredns-5748c86bdf                    2         2         2       102m
+</code></pre>
+<p>We see that a <strong>Load Balancer has been activated</strong> !</p>
+<p>If we make a request on its URL we get :</p>
+<pre><code class="language-bash">$ curl ac0exxxxx.eu-west-3.elb.amazonaws.com
+&lt;html&gt;
+&lt;head&gt;&lt;title&gt;404 Not Found&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+&lt;center&gt;&lt;h1&gt;404 Not Found&lt;/h1&gt;&lt;/center&gt;
+&lt;hr&gt;&lt;center&gt;nginx&lt;/center&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><img loading="lazy" src="img/nginx-404.png" alt="nginx-404"  /></p>
+<h3 id="publish-the-version-100--nginx-version">Publish the version 1.0.0 — nginx version</h3>
+<p>We will now release <code>version 1.0.0</code> with the use of nginx via this command :</p>
+<pre><code class="language-bash"># publish the 1.0.0 version
+$ make k8s-nginx-1.0.0
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl apply --filename prod-deploy.yaml
+$ kubectl apply --filename prod-ingress.yaml
+</code></pre>
+<p>The manifest <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/prod-deploy.yaml" target="_blank" rel="noopener">prod-deploy.yaml</a> does this :</p>
+<ul>
+<li>Creation of the <code>hello-prod</code> namespace</li>
+<li>Deployment of <strong>2 replicas</strong> of <a href="https://github.com/hashicorp/http-echo" target="_blank" rel="noopener">http-echo</a></li>
+<li>Creation of a <code>hello-svc</code> <a href="https://kubernetes.io/docs/concepts/services-networking/service/" target="_blank" rel="noopener">Service</a>. Without a defined type, it is therefore a <code>ClusterIP</code> service</li>
+</ul>
+<p>The manifest <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/prod-ingress.yaml" target="_blank" rel="noopener">prod-ingress.yaml</a> declares an object of type <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" rel="noopener">Ingress</a></p>
+<p>We will notice :</p>
+<ul>
+<li>The <strong>annotation</strong> used to declare the link with nginx</li>
+<li>The declaration of a <code>path</code> linked to a <code>service / port</code> pair</li>
+</ul>
+<pre><code class="language-yaml">apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: hello-ingress
+  namespace: hello-prod
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: hello-svc
+          servicePort: 80
+        path: /
+</code></pre>
+<p>Let’s take a look at <strong>what our cluster contains</strong> now :</p>
+<pre><code class="language-bash">$ kubectl get all --all-namespaces
+NAMESPACE       NAME                                            READY   STATUS    RESTARTS   AGE
+hello-prod      pod/hello-svc-d56775fc7-4lwjq                   1/1     Running   0          3m
+hello-prod      pod/hello-svc-d56775fc7-fh6n9                   1/1     Running   0          3m
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-mz2jr   1/1     Running   0          9m
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-q8zgf   1/1     Running   0          9m
+kube-system     pod/aws-node-b2trk                              1/1     Running   0          30m
+kube-system     pod/aws-node-d9spk                              1/1     Running   0          30m
+kube-system     pod/aws-node-fd4bs                              1/1     Running   0          30m
+kube-system     pod/coredns-5748c86bdf-fk8jt                    1/1     Running   0          30m
+kube-system     pod/coredns-5748c86bdf-xtgcj                    1/1     Running   0          30m
+kube-system     pod/kube-proxy-gdbrc                            1/1     Running   0          30m
+kube-system     pod/kube-proxy-kgknw                            1/1     Running   0          30m
+kube-system     pod/kube-proxy-q4j69                            1/1     Running   0          30m
+
+NAMESPACE       NAME                                         TYPE           CLUSTER-IP       EXTERNAL-IP                             PORT(S)                      AGE
+default         service/kubernetes                           ClusterIP      172.20.0.1       &lt;none&gt;                                  443/TCP                      30m
+hello-prod      service/hello-svc                            ClusterIP      172.20.156.224   &lt;none&gt;                                  80/TCP                       3m
+ingress-nginx   service/ingress-nginx-controller             LoadBalancer   172.20.77.125    ac0exxxxx.eu-west-3.elb.amazonaws.com   80:31623/TCP,443:30804/TCP   9m
+ingress-nginx   service/ingress-nginx-controller-admission   ClusterIP      172.20.3.148     &lt;none&gt;                                  443/TCP                      9m
+kube-system     service/kube-dns                             ClusterIP      172.20.0.10      &lt;none&gt;                                  53/UDP,53/TCP                30m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+kube-system   daemonset.apps/aws-node     3         3         3       3            3           &lt;none&gt;          30m
+kube-system   daemonset.apps/kube-proxy   3         3         3       3            3           &lt;none&gt;          30m
+
+NAMESPACE       NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+hello-prod      deployment.apps/hello-svc                  2/2     2            2           3m
+ingress-nginx   deployment.apps/ingress-nginx-controller   2/2     2            2           9m
+kube-system     deployment.apps/coredns                    2/2     2            2           30m
+
+NAMESPACE       NAME                                                  DESIRED   CURRENT   READY   AGE
+hello-prod      replicaset.apps/hello-svc-d56775fc7                   2         2         2       3m
+ingress-nginx   replicaset.apps/ingress-nginx-controller-864f76877c   2         2         2       9m
+kube-system     replicaset.apps/coredns-5748c86bdf                    2         2         2       30m
+</code></pre>
+<p>I <strong>update my Route 53 record</strong> to target to my new Load Balancer :</p>
+<p><img loading="lazy" src="img/route53-3.png" alt="route53-13"  /></p>
+<p>If we run our script, at this point, we only have one version that is returned.</p>
+<p><strong>100% of 25 requests</strong> returned the <code>version 1-0-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | ████████████████████████████████████████ 100% | 25/25
+1-1-0 | ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% | 0/25
+</code></pre>
+<h3 id="publish-the-version-110-as-canary--nginx-version">Publish the version 1.1.0 as canary — nginx version</h3>
+<p>We now want to release a <code>version 1.1.0</code> with a <strong>Canary Deployment</strong>.</p>
+<p>To gradually test our deployment, we want <strong>around</strong> <code>10%</code> <strong>of requests to be sent</strong> on <code>version 1.1.0</code>.</p>
+<p>The other requests will remain sent to <code>version 1-0-0</code>.</p>
+<pre><code class="language-bash">$ make k8s-nginx-1.1.0-canary
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl apply --filename canary-deploy.yaml
+$ kubectl apply --filename canary-ingress-10.yaml
+</code></pre>
+<p>The  manifest <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/canary-deploy.yaml" target="_blank" rel="noopener">canaray-deploy.yaml</a> do :</p>
+<ul>
+<li>Creation of the <code>hello-canary</code> namespace</li>
+<li>Deployment of <strong>1 replica</strong> of <a href="https://github.com/hashicorp/http-echo" target="_blank" rel="noopener">http-echo</a></li>
+<li>Creation of a <strong>Service</strong> named <code>hello-svc</code>. Without a defined type, it is therefore a <strong>ClusterIP</strong>.</li>
+</ul>
+<p>Note that the service has the same name <code>hello-svc</code>, but is contained in another namespace : <code>hello-canary</code>. These are therefore <strong>2 different services</strong>.</p>
+<p>The manifest <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/canary-ingress-10.yaml" target="_blank" rel="noopener">canary-ingress-10.yaml</a> declares a new <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" rel="noopener">Ingress</a> object.</p>
+<p>We will notice :</p>
+<ul>
+<li>The <strong>annotations</strong> to declare the <code>canary</code> <strong>mode</strong> and the <strong>weight</strong> <code>10</code></li>
+<li>The declaration of the <strong>same path</strong> <code>/</code></li>
+</ul>
+<pre><code class="language-yaml">apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: hello-ingress
+  namespace: hello-canary
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/canary: &quot;true&quot;
+    nginx.ingress.kubernetes.io/canary-weight: &quot;10&quot;
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: hello-svc
+          servicePort: 80
+</code></pre>
+<p>Let’s take a look at <strong>what our cluster contains</strong> now :</p>
+<pre><code class="language-bash">$ kubectl get all --all-namespaces
+NAMESPACE       NAME                                            READY   STATUS    RESTARTS   AGE
+hello-canary    pod/hello-svc-7bb49946bb-72f4q                  1/1     Running   0          35s
+hello-prod      pod/hello-svc-d56775fc7-4lwjq                   1/1     Running   0          5m
+hello-prod      pod/hello-svc-d56775fc7-fh6n9                   1/1     Running   0          5m
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-mz2jr   1/1     Running   0          11m
+ingress-nginx   pod/ingress-nginx-controller-864f76877c-q8zgf   1/1     Running   0          11m
+kube-system     pod/aws-node-b2trk                              1/1     Running   0          31m
+kube-system     pod/aws-node-d9spk                              1/1     Running   0          31m
+kube-system     pod/aws-node-fd4bs                              1/1     Running   0          31m
+kube-system     pod/coredns-5748c86bdf-fk8jt                    1/1     Running   0          31m
+kube-system     pod/coredns-5748c86bdf-xtgcj                    1/1     Running   0          31m
+kube-system     pod/kube-proxy-gdbrc                            1/1     Running   0          31m
+kube-system     pod/kube-proxy-kgknw                            1/1     Running   0          31m
+kube-system     pod/kube-proxy-q4j69                            1/1     Running   0          31m
+
+NAMESPACE       NAME                                         TYPE           CLUSTER-IP       EXTERNAL-IP                             PORT(S)                      AGE
+default         service/kubernetes                           ClusterIP      172.20.0.1       &lt;none&gt;                                  443/TCP                      31m
+hello-canary    service/hello-svc                            ClusterIP      172.20.217.146   &lt;none&gt;                                  80/TCP                       35s
+hello-prod      service/hello-svc                            ClusterIP      172.20.156.224   &lt;none&gt;                                  80/TCP                       5m
+ingress-nginx   service/ingress-nginx-controller             LoadBalancer   172.20.77.125    ac0exxxxx.eu-west-3.elb.amazonaws.com   80:31623/TCP,443:30804/TCP   11m
+ingress-nginx   service/ingress-nginx-controller-admission   ClusterIP      172.20.3.148     &lt;none&gt;                                  443/TCP                      11m
+kube-system     service/kube-dns                             ClusterIP      172.20.0.10      &lt;none&gt;                                  53/UDP,53/TCP                31m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+kube-system   daemonset.apps/aws-node     3         3         3       3            3           &lt;none&gt;          31m
+kube-system   daemonset.apps/kube-proxy   3         3         3       3            3           &lt;none&gt;          31m
+
+NAMESPACE       NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+hello-canary    deployment.apps/hello-svc                  1/1     1            1           35s
+hello-prod      deployment.apps/hello-svc                  2/2     2            2           5m
+ingress-nginx   deployment.apps/ingress-nginx-controller   2/2     2            2           11m
+kube-system     deployment.apps/coredns                    2/2     2            2           31m
+
+NAMESPACE       NAME                                                  DESIRED   CURRENT   READY   AGE
+hello-canary    replicaset.apps/hello-svc-7bb49946bb                  1         1         1       35s
+hello-prod      replicaset.apps/hello-svc-d56775fc7                   2         2         2       5m
+ingress-nginx   replicaset.apps/ingress-nginx-controller-864f76877c   2         2         2       11m
+kube-system     replicaset.apps/coredns-5748c86bdf                    2         2         2       31m
+</code></pre>
+<p>And now if we run our <strong>test application</strong>, we have <strong>14% of 76 requests</strong> that return the <code>version 1-1-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | ██████████████████████████████████░░░░░░ 85% | 65/76
+1-1-0 | ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 14% | 11/76
+</code></pre>
+<p>We can retrieve the <strong>list of ingress</strong> like this :</p>
+<pre><code class="language-bash">$ kubectl get ingress --all-namespaces
+NAMESPACE      NAME            CLASS    HOSTS   ADDRESS                                 PORTS   AGE
+hello-canary   hello-ingress   &lt;none&gt;   *       ac0exxxxx.eu-west-3.elb.amazonaws.com   80      1m
+hello-prod     hello-ingress   &lt;none&gt;   *       ac0exxxxx.eu-west-3.elb.amazonaws.com   80      7m
+</code></pre>
+<h3 id="publish-the-version-110--nginx-version">Publish the version 1.1.0 — nginx version</h3>
+<p>Our <code>version 1-1-0</code> is considered stable. We now want to <strong>completely switch over and remove the old version</strong> :</p>
+<pre><code class="language-bash">$ make k8s-nginx-1.1.0
+</code></pre>
+<p>This command runs this script :</p>
+<pre><code class="language-bash">$ kubectl apply --filename canary-ingress-100.yaml
+$ kubectl apply --filename prod-deploy-1-1-0.yaml
+$ kubectl delete ns hello-canary
+</code></pre>
+<p>The deployment of <code>version 1-1-0</code> is <strong>done in 3 steps</strong> :</p>
+<p>The <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/canary-ingress-100.yaml" target="_blank" rel="noopener">canary-ingress-100.yaml</a> manifest begins by sending all requests to the canary version :</p>
+<pre><code class="language-yaml">apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: hello-ingress
+  namespace: hello-canary
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/canary: &quot;true&quot;
+    nginx.ingress.kubernetes.io/canary-weight: &quot;100&quot;
+# ... truncated ...    
+</code></pre>
+<p>Then the manifest <a href="https://github.com/jeromedecoster/eks-canary/blob/master/k8s-nginx/prod-deploy-1-1-0.yaml" target="_blank" rel="noopener">prod-deploy-1-1-0.yaml</a> replaces all the <code>version 1-0-0</code> in the <code>hello-prod</code> namespace with the <code>version 1-1-0</code> :</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-svc
+  namespace: hello-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-svc
+  template:
+    metadata:
+      labels:
+        app: hello-svc
+    spec:
+      containers:
+      - name: hello-svc
+        image: hashicorp/http-echo
+        args:
+          - &quot;-text=hello 1-1-0&quot;
+</code></pre>
+<p>Then by deleting the <code>hello-canary</code> namespace, we <strong>delete all the resources</strong> it contains : <strong>pods</strong>, <strong>service</strong>, <strong>ingress</strong>.</p>
+<p>If we run our script, at this point, we only have one version that is returned.</p>
+<p><strong>100% of 50 requests</strong> returned the <code>version 1-1-0</code> :</p>
+<pre><code class="language-bash">$ make test
+1-0-0 | ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% | 0/50
+1-1-0 | ████████████████████████████████████████ 100% | 50/50
+</code></pre>
+<p>We can retrieve the updated <strong>list of ingress</strong> like this :</p>
+<pre><code class="language-bash">$ kubectl get ingress --all-namespaces
+NAMESPACE    NAME            CLASS    HOSTS   ADDRESS                                 PORTS   AGE
+hello-prod   hello-ingress   &lt;none&gt;   *       ac0exxxxx.eu-west-3.elb.amazonaws.com   80      10m
+</code></pre>
+<p>The demonstration is over. We can delete our resources with this command :</p>
+<pre><code class="language-bash"># delete eks content + terraform destroy
+$ make destroy
+</code></pre>
+<p><strong>Warning</strong> : deleting resources can take a <strong>long time</strong> and sometimes <strong>fail along the way</strong>.</p>
+<p>It is important to <strong>verify</strong> via the AWS website that the resources have indeed disappeared.</p>
+<p>In this case, you have to <strong>delete them manually</strong>, which is not necessarily very easy.</p>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ci/cd/">ci/cd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/deployment-pattern/">deployment-pattern</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

@@ -23,10 +23,10 @@
     </item>
     <item>
       <title>Prometheus &#43; Grafana &#43; Node</title>
-      <link>/note/prometheus-grafana-node/</link>
+      <link>/note/prometheus--grafana--node/</link>
       <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/prometheus-grafana-node/</guid>
+      <guid>/note/prometheus--grafana--node/</guid>
       <description>
       
       Playing with **Prometheus** and **Grafana**. Testing **Node Exporter**, **Alertmanager** and **Slack notifications**.
@@ -35,10 +35,10 @@
     </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Docker &#43; Node</title>
-      <link>/aws/kubernetes-eks-docker-node/</link>
+      <link>/aws/kubernetes--eks--docker--node/</link>
       <pubDate>Tue, 01 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/kubernetes-eks-docker-node/</guid>
+      <guid>/aws/kubernetes--eks--docker--node/</guid>
       <description>
       
       Creation of a **web application** to convert images to black and white. **3 microservices** orchestrated by **Docker-Compose locally** and by **Kubernetes on AWS**.
@@ -47,10 +47,10 @@
     </item>
     <item>
       <title>Github Actions &#43; ECR &#43; ECS</title>
-      <link>/aws/github-actions-ecr-ecs/</link>
+      <link>/aws/github-actions--ecr--ecs/</link>
       <pubDate>Thu, 25 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/github-actions-ecr-ecs/</guid>
+      <guid>/aws/github-actions--ecr--ecs/</guid>
       <description>
       
       Using **Github actions** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
@@ -59,10 +59,10 @@
     </item>
     <item>
       <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
-      <link>/aws/ecs-service-discovery-node-redis/</link>
+      <link>/aws/ecs--service-discovery--node--redis/</link>
       <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ecs-service-discovery-node-redis/</guid>
+      <guid>/aws/ecs--service-discovery--node--redis/</guid>
       <description>
       
       Create **2 services on ECS** linked by **Service Discovery** using **Terraform**.
@@ -71,10 +71,10 @@
     </item>
     <item>
       <title>ECS &#43; Load Balancer &#43; Node &#43; Terraform</title>
-      <link>/aws/ecs-load-balancer-node-terraform/</link>
+      <link>/aws/ecs--load-balancer--node--terraform/</link>
       <pubDate>Mon, 15 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/ecs-load-balancer-node-terraform/</guid>
+      <guid>/aws/ecs--load-balancer--node--terraform/</guid>
       <description>
       
       Get **metadata task**. Scale **tasks behind a Load balancer** using **ecs-cli** or **Terraform**.
@@ -83,10 +83,10 @@
     </item>
     <item>
       <title>Docker &#43; ECS &#43; Fargate</title>
-      <link>/aws/docker-ecs-fargate/</link>
+      <link>/aws/docker--ecs--fargate/</link>
       <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
       
-      <guid>/aws/docker-ecs-fargate/</guid>
+      <guid>/aws/docker--ecs--fargate/</guid>
       <description>
       
       Use Docker to **develop locally**. Host docker image on **Docker Hub** and **ECR**. Deploy manually with **ECS Fargate**. Deploy again with **ecs-cli**.
@@ -95,10 +95,10 @@
     </item>
     <item>
       <title>Jenkins pipeline &#43; Slack &#43; Github release</title>
-      <link>/note/jenkins-pipeline-slack-github-release/</link>
+      <link>/note/jenkins-pipeline--slack--github-release/</link>
       <pubDate>Tue, 10 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-pipeline-slack-github-release/</guid>
+      <guid>/note/jenkins-pipeline--slack--github-release/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins pipeline**. Also sending **Slack message** and **create github release**.
@@ -107,10 +107,10 @@
     </item>
     <item>
       <title>Jenkins &#43; github</title>
-      <link>/note/jenkins-github/</link>
+      <link>/note/jenkins--github/</link>
       <pubDate>Tue, 03 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/note/jenkins-github/</guid>
+      <guid>/note/jenkins--github/</guid>
       <description>
       
       Testing a **Node** project hosted on **github** with **Jenkins**.
@@ -119,10 +119,10 @@
     </item>
     <item>
       <title>Docker &#43; Imagemagick</title>
-      <link>/black-white/docker-imagemagick/</link>
+      <link>/black-white/docker--imagemagick/</link>
       <pubDate>Sun, 08 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/black-white/docker-imagemagick/</guid>
+      <guid>/black-white/docker--imagemagick/</guid>
       <description>
       
       Playing with **Docker** and **Imagemagick** to convert an color image from to black and white version.
@@ -131,10 +131,10 @@
     </item>
     <item>
       <title>Docker &#43; Bash</title>
-      <link>/note/docker-bash/</link>
+      <link>/note/docker--bash/</link>
       <pubDate>Tue, 03 Dec 2019 00:00:00 +0000</pubDate>
       
-      <guid>/note/docker-bash/</guid>
+      <guid>/note/docker--bash/</guid>
       <description>
       
       Some tips and helpers for **Docker**.

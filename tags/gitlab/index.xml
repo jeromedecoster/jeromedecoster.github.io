@@ -11,10 +11,10 @@
     
     <item>
       <title>Gitlab &#43; ECS &#43; Terraform</title>
-      <link>/aws/gitlab-ecs-terraform/</link>
+      <link>/aws/gitlab--ecs--terraform/</link>
       <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
       
-      <guid>/aws/gitlab-ecs-terraform/</guid>
+      <guid>/aws/gitlab--ecs--terraform/</guid>
       <description>
       
       Using **Gitlab CI/CD** to automatically build and push a new docker image on **ECR** and deploy it to **ECS**.
