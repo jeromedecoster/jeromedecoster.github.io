@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.96.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,EKS,ArgoCD,Terraform,ECR,Github'><meta name="description" content='Deploy multiple environments on multiple EKS clusters with ArgoCD.'><meta property="og:title" content="EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops" />
+<meta property="og:description" content="Deploy **multiple environments** on **multiple EKS clusters** with **ArgoCD**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-06-03T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-06-03T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops"/>
+<meta name="twitter:description" content="Deploy **multiple environments** on **multiple EKS clusters** with **ArgoCD**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-project">The project</a></li>
+        <li><a href="#the-voting-app">The voting app</a></li>
+        <li><a href="#continuous-containerization-of-the-voting-application">Continuous containerization of the voting application</a></li>
+        <li><a href="#setting-up-the-workflow">Setting up the workflow</a></li>
+        <li><a href="#workflow-testing">Workflow testing</a></li>
+        <li><a href="#the-infrastructure">The infrastructure</a></li>
+        <li><a href="#deployment-of-the-staging-environment">Deployment of the staging environment</a></li>
+        <li><a href="#installing-argocd">Installing ArgoCD</a></li>
+        <li><a href="#connect-argocd-to-github-repository">Connect ArgoCD to Github repository</a></li>
+        <li><a href="#the-argocd-staging-application">The ArgoCD staging application</a></li>
+        <li><a href="#setup-the-production-eks-cluster">Setup the production EKS cluster</a></li>
+        <li><a href="#connect-argocd-to-the-new-eks-cluster">Connect ArgoCD to the new EKS cluster</a></li>
+        <li><a href="#the-argocd-production-application">The ArgoCD production application</a></li>
+        <li><a href="#faster-synchronization-of-argocd-applications">Faster synchronization of ArgoCD applications</a></li>
+        <li><a href="#lets-deploy-a-new-feature-in-staging">Let&rsquo;s deploy a new feature in staging</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">03</span>
+<span class="rest">Jun 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a voting app</li>
+<li>Automate docker image build <strong>on ECR after each push</strong> using <strong>Github Actions</strong> workflows</li>
+<li>Automatic management of <strong>feature branches</strong> in specific <strong>dynamically created repositories</strong></li>
+<li>Infrastructure management with <strong>Terraform</strong> from a <strong>dedicated git repository</strong></li>
+<li>Creation of <strong>2 EKS clusters</strong> for a <strong>staging environment</strong> and another for <strong>production</strong></li>
+<li>Installation of <strong>ArgoCD in the staging cluster</strong>. Management of the production cluster from this instance</li>
+<li>Creation of <strong>2 ArgoCD applications</strong>. One per environment</li>
+<li>Managing <strong>GitOps deployments</strong> using <a href="https://codefresh.io/blog/how-to-model-your-gitops-environments-and-promote-releases-between-them/" target="_blank" rel="noopener">separate repositories</a></li>
+<li><strong>Quick synchronization</strong> of ArgoCD applications from a <strong>Github Action</strong> workflow</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="the-project">The project</h3>
+<p>The project is composed of <strong>2 git repositories</strong> that you can fork :</p>
+<ul>
+<li>The <a href="https://github.com/jeromedecoster/gitops-multienv-vote" target="_blank" rel="noopener">voting application</a> (a website in Node)</li>
+<li>The <a href="https://github.com/jeromedecoster/gitops-multienv-infra" target="_blank" rel="noopener">infrastructure</a> (driven by Terraform and ArgoCD)</li>
+</ul>
+<h3 id="the-voting-app">The voting app</h3>
+<p>You can launch the voting application via this command :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode (livereload + nodemon)
+$ make vote
+</code></pre>
+<p>This command executes <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/make.sh#L62-L67" target="_blank" rel="noopener">this script</a></p>
+<p>The site is available at <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a></p>
+<p><img loading="lazy" src="img/vote-static.png" alt="vote-static.png"  /></p>
+<p>The site is in static version. It is not linked to a database</p>
+<p>The returned vote <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/vote/index.js#L54-L58" target="_blank" rel="noopener">values are random</a></p>
+<pre><code class="language-js">function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// ...
+
+app.get('/vote', async (req, res) =&gt; {
+  let up = randInt(1, 9)
+  let down = randInt(1, 9)
+  return res.send({ up, down })
+})
+</code></pre>
+<h3 id="continuous-containerization-of-the-voting-application">Continuous containerization of the voting application</h3>
+<p>Containerization is managed by <a href="https://github.com/jeromedecoster/gitops-multienv-vote/tree/master/.github/workflows" target="_blank" rel="noopener">3 Github Actions workflows</a></p>
+<p><img loading="lazy" src="img/vote-workflows.png" alt="vote-workflows.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/tag.yml" target="_blank" rel="noopener">tag.yml</a> workflow is triggered only when a tag using <a href="https://semver.org/" target="_blank" rel="noopener">semver notation</a> is pushed :</p>
+<pre><code class="language-yaml">name: tag
+
+on:  
+  push:
+    tags: [ &quot;v*.*.*&quot; ]
+
+# ...
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+</code></pre>
+<p>In this specific case, the docker image is <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/tag.yml#L55-L61" target="_blank" rel="noopener">built and pushed to the ECR repository</a> named <strong>multienv-vote</strong> :</p>
+<p>The pushed image will have as <strong>tag</strong> a value similar to <code>v1.0.0</code></p>
+<pre><code class="language-yaml">env: 
+  ECR_REPOSITORY: multienv-vote
+
+# ...
+
+  run: |
+    cd vote
+    docker image build \
+      --build-arg NODE_ENV=production \
+      --build-arg VERSION=${{ github.ref_name }} \
+      --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }} \
+      --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
+      .
+    docker push --all-tags ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> workflow is <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/cd.yml#L5-L12" target="_blank" rel="noopener">triggered only when</a> a commit is <strong>pushed to a feature branch</strong> :</p>
+<pre><code class="language-yaml">on: 
+  push:
+    branches-ignore:
+      - master
+  pull_request:
+    branches-ignore:
+      - master
+</code></pre>
+<p>In this specific case, <strong>the docker image is built and pushed to a dynamically created ECR repository</strong> named <code>multienv-vote-${ feature-branch-name }</code> :</p>
+<p>The pushed image will be <strong>tagged with the first 8 characters of the commit sha</strong>. A value similar to <code>23e44fea</code></p>
+<pre><code class="language-yaml">env: 
+  ECR_REPOSITORY: multienv-vote-${{ github.event.ref }}
+  SHORT_SHA: $(echo ${{ github.sha }} | cut -c 1-8)
+
+# ...
+
+  run: |
+    cd vote
+    docker image build \
+      --build-arg NODE_ENV=${{ github.ref_name }} \
+      --build-arg VERSION=${{ env.SHORT_SHA }} \
+      --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.SHORT_SHA }} \
+      --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
+      .
+    docker push --all-tags ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/delete.yml" target="_blank" rel="noopener">delete.yml</a> workflow is triggered <strong>only when a branch is deleted on github</strong> :</p>
+<pre><code class="language-yaml">on: delete
+</code></pre>
+<p>When a <strong>feature branch is deleted</strong>, we also <strong>delete its associated ECR repository</strong> :</p>
+<pre><code class="language-yaml">env:
+  ECR_REPOSITORY: gitops-multienv-${{ github.event.ref }}
+
+# ...
+
+  run: |
+    aws ecr delete-repository \
+      --repository-name ${{ env.ECR_REPOSITORY }} \
+      --query 'repository.repositoryUri' \
+      --output text \
+      2&gt;/dev/null
+</code></pre>
+<h3 id="setting-up-the-workflow">Setting up the workflow</h3>
+<p>To be able to push an image into ECR from Github, you must <strong>create a user</strong>, <strong>associate a secret access key</strong> with it.</p>
+<p>You must then store the value pair <code>KeyId / SecretAccessKey</code> in the secret settings area of the Github project :</p>
+<p><img loading="lazy" src="img/vote-github-secrets.png" alt="vote-github-secrets.png"  /></p>
+<p>To create this user we execute the following command :</p>
+<pre><code class="language-bash"># create iam user + access key
+$ make user-create
+</code></pre>
+<p>This command executes the <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/scripts/user-create.sh" target="_blank" rel="noopener">user-create.sh</a> script :</p>
+<p>The 2 variables are output <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/scripts/user-create.sh#L21-L28" target="_blank" rel="noopener">in 2 files at the root</a> of the project</p>
+<ul>
+<li><code>.env_AWS_ACCESS_KEY_ID</code></li>
+<li><code>.env_AWS_SECRET_ACCESS_KEY</code></li>
+</ul>
+<p>Add these values to the secrets of your Github repository</p>
+<h3 id="workflow-testing">Workflow testing</h3>
+<p>I&rsquo;m going to <a href="https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt--bltnew-branchgt" target="_blank" rel="noopener">create a feature branch</a> named <code>feature-one</code> and make a <strong>CSS modification</strong> in it :</p>
+<pre><code class="language-bash"># make sure we ar on the master branch
+$ git checkout master
+
+# create + switch to the feature-one branch
+$ git checkout -b feature-one
+</code></pre>
+<p>To modify our site we <strong>uncomment</strong> the <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/vote/public/css/main.css#L58-L64" target="_blank" rel="noopener">following lines on the main.css</a> file</p>
+<pre><code class="language-css">/* uncomment below to create feature-one */
+/* 
+color: black;
+background-color: #eceff1;
+border: #37474f 1px dashed;
+padding: .7em; 
+*/
+</code></pre>
+<p>Changes can be seen at <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a> after running the following command :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode (livereload + nodemon)
+$ make vote
+</code></pre>
+<p><img loading="lazy" src="img/vote-feature-one.png" alt="vote-feature-one.png"  /></p>
+<p>We push these modifications on Github :</p>
+<pre><code class="language-bash">$ git add vote
+$ git commit -m 'css update'
+$ git push -u origin feature-one
+</code></pre>
+<p>The workflow gets started :</p>
+<p><img loading="lazy" src="img/vote-workflow-cd.png" alt="vote-workflow-cd.png"  /></p>
+<p>The workflow is <strong>quickly successful</strong> :</p>
+<p><img loading="lazy" src="img/vote-workflow-cd-success.png" alt="vote-workflow-cd-success.png"  /></p>
+<p>The <strong>repository was created automatically</strong> :</p>
+<p><img loading="lazy" src="img/vote-ecr-feature-one.png" alt="vote-ecr-feature-one.png"  /></p>
+<p>The image was <strong>successfully pushed</strong> :</p>
+<p><img loading="lazy" src="img/vote-ecr-feature-one-image.png" alt="vote-ecr-feature-one-image.png"  /></p>
+<p>To <strong>locally test the image we just pushed to the ECR repository</strong> we run this command :</p>
+<pre><code class="language-bash"># run latest image pushed to ecr
+$ make ecr-run
+</code></pre>
+<p>This command runs the <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/scripts/ecr-run.sh" target="_blank" rel="noopener">ecr-run.sh</a> script</p>
+<p>It launches the website via a <code>docker run</code> which uses the <strong>last image pushed into a feature branch</strong> :</p>
+<pre><code class="language-bash"># get the first feature repository (so, everything except master branch)
+REPOSITORY_NAME=$(aws ecr describe-repositories \
+  --query &quot;repositories[?starts_with(repositoryName, '$PROJECT_NAME-')].[repositoryName]&quot; \
+  --output text | \
+  head -n 1)
+
+REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY_NAME
+
+docker run \
+  --rm \
+  -e WEBSITE_PORT=4000 \
+  -p 4000:4000 \
+  --name vote \
+  $REPOSITORY_URI:latest
+</code></pre>
+<p>By opening <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a> we have our website :</p>
+<p><img loading="lazy" src="img/vote-ecr-run.png" alt="vote-ecr-run.png"  /></p>
+<p>Note that the footer <strong>no longer indicates the same data</strong></p>
+<p>The footer is created using <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/vote/views/index.njk#L19-L21" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-jinja2">&lt;footer&gt;
+{% if node_env == 'development' %}&lt;u&gt;development&lt;/u&gt; {% endif %}version: {{ version }}
+&lt;/footer&gt;
+</code></pre>
+<p>These <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/vote/Dockerfile#L3-L6" target="_blank" rel="noopener">instructions</a> :</p>
+<pre><code class="language-Dockerfile">FROM node:18.2-slim
+ARG NODE_ENV
+ENV NODE_ENV $NODE_ENV
+ARG VERSION
+ENV VERSION $VERSION
+# ...
+</code></pre>
+<p>And <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/.github/workflows/cd.yml#L65-L67" target="_blank" rel="noopener">these arguments</a> :</p>
+<pre><code class="language-yaml">run: |
+  docker image build \
+    --build-arg NODE_ENV=${{ github.ref_name }} \
+    --build-arg VERSION=${{ env.SHORT_SHA }} \
+    # ...
+</code></pre>
+<p>We are happy with these changes. We will <a href="https://git-scm.com/docs/git-merge" target="_blank" rel="noopener">merge</a> this feature into the master branch, push them and <a href="https://git-scm.com/docs/git-tag" target="_blank" rel="noopener">create a new tag</a> :</p>
+<pre><code class="language-bash"># switch to the master branch 
+$ git checkout master
+# merge feature
+$ git merge feature-one
+$ git push
+# create a tag
+$ git tag v1.0.0
+# push tag on github
+$ git push --tags
+</code></pre>
+<p>The <strong>tag is added</strong> to the github repository :</p>
+<p><img loading="lazy" src="img/vote-tag.png" alt="vote-tag.png"  /></p>
+<p>The <strong>tag workflow starts</strong> :</p>
+<p><img loading="lazy" src="img/vote-workflows-tag.png" alt="vote-workflows-tag.png"  /></p>
+<p>The ECR <strong>repository is created</strong> :</p>
+<p><img loading="lazy" src="img/vote-ecr-tag.png" alt="vote-ecr-tag.png"  /></p>
+<p>The <strong>image is pushed</strong> :</p>
+<p><img loading="lazy" src="img/vote-ecr-tag-image.png" alt="vote-ecr-tag-image.png"  /></p>
+<p>The tag name is <code>v1.0.0</code></p>
+<h3 id="the-infrastructure">The infrastructure</h3>
+<p>The infrastructure is managed via a <a href="https://github.com/jeromedecoster/gitops-multienv-infra" target="_blank" rel="noopener">specific repository</a></p>
+<p>Terraform is used to create the <a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/terraform" target="_blank" rel="noopener">2 EKS environments</a> :</p>
+<p><img loading="lazy" src="img/infra-terraform.png" alt="infra-terraform.png"  /></p>
+<p><strong>2 environments</strong> are available, via <strong>2 separate folders</strong> :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/terraform/staging" target="_blank" rel="noopener">staging</a></li>
+<li><a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/terraform/production" target="_blank" rel="noopener">production</a></li>
+</ul>
+<p>Managing environments <a href="https://www.youtube.com/watch?v=hkoxlJGklaM" target="_blank" rel="noopener">through directories</a> instead of <a href="https://www.youtube.com/watch?v=ZDdbizEyowo" target="_blank" rel="noopener">terraform workspaces</a> is a <strong>good solution</strong></p>
+<p>We use a <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/terraform/staging/main.tf" target="_blank" rel="noopener">backend on S3</a> :</p>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {}
+}
+</code></pre>
+<p>Which is defined via <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/scripts/terraform-init.sh#L28-L34" target="_blank" rel="noopener">terraform init</a> :</p>
+<pre><code class="language-bash">terraform -chdir=&quot;$CHDIR&quot; init \
+  -input=false \
+  -backend=true \
+  -backend-config=&quot;bucket=$S3_BUCKET&quot; \
+  -backend-config=&quot;key=$CONFIG_KEY&quot; \
+  -backend-config=&quot;region=$AWS_REGION&quot; \
+  -reconfigure
+</code></pre>
+<p>To <strong>create our S3 bucket</strong> we run the command :</p>
+<pre><code class="language-bash"># setup project + create S3 bucket
+$ make init
+</code></pre>
+<p>This command creates the bucket with <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/scripts/init.sh#L32-L38" target="_blank" rel="noopener">versioning enabled</a> :</p>
+<pre><code class="language-bash">aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
+
+# /!\ important for terraform states : enable bucket versioning
+aws s3api put-bucket-versioning \
+  --bucket $S3_BUCKET \
+  --versioning-configuration Status=Enabled \
+  --region $AWS_REGION
+</code></pre>
+<p>The bucket is created :</p>
+<p><img loading="lazy" src="img/infra-bucket.png" alt="infra-bucket.png"  /></p>
+<p>The script also <strong>creates 3 variables in 3 files at the root</strong> of the projects :</p>
+<ul>
+<li><code>.env_AWS_ID</code></li>
+<li><code>.env_S3_BUCKET</code></li>
+<li><code>.env_UUID</code></li>
+</ul>
+<h3 id="deployment-of-the-staging-environment">Deployment of the staging environment</h3>
+<p>To deploy the environment we just need to run these 2 commands :</p>
+<pre><code class="language-bash"># terraform init the staging env
+$ make staging-init
+
+# terraform plan + apply the staging env
+$ make staging-apply
+</code></pre>
+<p>The <strong>cluster is deployed</strong> :</p>
+<p><img loading="lazy" src="img/infra-cluster-staging.png" alt="infra-cluster-staging.png"  /></p>
+<p>The <code>tfstate</code> is in the <strong>S3 bucket</strong> :</p>
+<p><img loading="lazy" src="img/infra-s3-staging.png" alt="infra-s3-staging.png"  /></p>
+<p><strong>2 important steps are still missing</strong> at this precise moment :</p>
+<ul>
+<li><code>kubectl</code> has <strong>not been configured</strong> to interact with the cluster</li>
+<li>We <strong>don&rsquo;t have the possibility to see</strong> the contents of the cluster. What this <strong>unpleasant warning</strong> confirms :</li>
+</ul>
+<p><img loading="lazy" src="img/infra-eks-warning.png" alt="infra-eks-warning.png"  /></p>
+<p>To <strong>correct these 2 points</strong> we execute the following command :</p>
+<pre><code class="language-bash"># setup kubectl config + aws-auth configmap for staging env
+$ make eks-staging-config
+</code></pre>
+<p>We configure kubectl using the <a href="https://awscli.amazonaws.com/v2/documentation/api/latest/reference/eks/update-kubeconfig.html" target="_blank" rel="noopener">update-kubeconfig</a> command from <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L99-L101" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">aws eks update-kubeconfig \
+  --name $NAME \
+  --region $REGION
+</code></pre>
+<p>Making resources visible is more complex. You must edit the <a href="https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html" target="_blank" rel="noopener">aws-auth ConfigMap</a></p>
+<p>Editing it <strong>manually is easier</strong>, we just need to do :</p>
+<pre><code class="language-bash">$ EDITOR=nano kubectl edit configmap aws-auth -n kube-system
+</code></pre>
+<p>And add the <code>mapUsers</code> section defined <a href="https://stackoverflow.com/a/70980613" target="_blank" rel="noopener">like this</a> :</p>
+<pre><code class="language-yaml">mapUsers: |
+  - userarn: arn:aws:iam::[account_id]:root
+    groups:
+    - system:masters
+</code></pre>
+<p>Automating this modification by a script is more complex. The <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L113-L129" target="_blank" rel="noopener">script</a> below uses <a href="https://github.com/stedolan/jq" target="_blank" rel="noopener">jq</a> and <a href="https://github.com/mikefarah/yq" target="_blank" rel="noopener">yq</a> :</p>
+<pre><code class="language-bash">kubectl get configmap aws-auth \
+        --namespace kube-system \
+        --output yaml &gt; &quot;$PROJECT_DIR/aws-auth-configmap.yaml&quot;
+
+# convert to json
+yq aws-auth-configmap.yaml -o json &gt; &quot;$PROJECT_DIR/aws-auth-configmap.json&quot;
+
+# add mapUsers (use jq instead yq to add mapUsers because it's MUCH simpler and MORE clean)
+jq '.data += {&quot;mapUsers&quot;: &quot;- userarn: arn:aws:iam::'$AWS_ID':root\n  groups:\n  - system:masters\n&quot;}' aws-auth-configmap.json \
+| yq --prettyPrint &gt; &quot;$PROJECT_DIR/aws-auth-configmap.yaml&quot;
+
+# apply udated aws-auth-configmap.yaml
+kubectl apply --filename aws-auth-configmap.yaml --namespace kube-system
+</code></pre>
+<h3 id="installing-argocd">Installing ArgoCD</h3>
+<p>To <strong>install ArgoCD</strong> we run this script :</p>
+<pre><code class="language-bash"># install argocd in staging env
+$ make argo-install
+</code></pre>
+<p>Installing ArgoCD is done in a <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L187-L201" target="_blank" rel="noopener">few command lines</a> :</p>
+<pre><code class="language-bash">kubectl create namespace argocd
+
+kubectl apply \
+  --namespace argocd \
+  --filename https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kubectl wait deploy argocd-server \
+  --timeout=180s \
+  --namespace argocd \
+  --for=condition=Available=True
+
+kubectl patch svc argocd-server -n argocd -p '{&quot;spec&quot;: {&quot;type&quot;: &quot;LoadBalancer&quot;}}'
+</code></pre>
+<p>You can now <strong>connect to the ArgoCD web application</strong> with the data displayed in the Terminal :</p>
+<p><strong>Accept self-signed certificate</strong> :</p>
+<p><img loading="lazy" src="img/infra-argo-self-signed.png" alt="infra-argo-self-signed.png"  /></p>
+<p>Then login :</p>
+<p><img loading="lazy" src="img/infra-argo-login.png" alt="infra-argo-login.png"  /></p>
+<h3 id="connect-argocd-to-github-repository">Connect ArgoCD to Github repository</h3>
+<p>ArgoCD must have access to our github repository <code>gitops-multienv-infra</code></p>
+<p>There are chances are that this <strong>repository is private</strong></p>
+<p>It is therefore necessary to <strong>link</strong> the repository and ArgoCD <strong>using an SSH key</strong></p>
+<p>These operations are performed using the following command</p>
+<p>The following command uses <a href="https://github.com/cli/cli" target="_blank" rel="noopener">gh</a> to <strong>automate adding the ssh key to Github</strong>. However, you can easily do it manually.</p>
+<p><strong>Important</strong> : the command uses the <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L9" target="_blank" rel="noopener">GIT_REPO</a> variable which must be <strong>adjusted to your repository</strong></p>
+<pre><code class="language-bash"># add git repo connection + create ssh key + add ssh key to github
+$ make argo-add-repo
+</code></pre>
+<p>The script executes a <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L265-L281" target="_blank" rel="noopener">few lines</a> :</p>
+<pre><code class="language-bash">ssh-keygen -t ed25519 -N &quot;&quot; -f ~/.ssh/$PROJECT_NAME.pem
+
+# ...
+
+gh ssh-key add ~/.ssh/$PROJECT_NAME.pub --title $PROJECT_NAME
+
+argocd repo add $GIT_REPO \
+  --insecure-ignore-host-key \
+  --ssh-private-key-path ~/.ssh/$PROJECT_NAME.pem
+</code></pre>
+<p>The <strong>repository is added</strong> :</p>
+<p><img loading="lazy" src="img/infra-argo-git-repo.png" alt="infra-argo-git-repo.png"  /></p>
+<p>The <strong>public key is added</strong> to Github :</p>
+<p><img loading="lazy" src="img/infra-github-key.png" alt="infra-github-key.png"  /></p>
+<h3 id="the-argocd-staging-application">The ArgoCD staging application</h3>
+<p>The Kubernetes application is managed through the <a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/argocd" target="_blank" rel="noopener">argocd folder</a></p>
+<p><strong>Deploying multiple environments using GitOps principles is not an easy and obvious practice</strong></p>
+<p>We use the method explained by <a href="https://codefresh.io/author/kostiscodefresh-io/" target="_blank" rel="noopener">Kostis Kapelonis</a> in this <a href="ttps://codefresh.io/blog/how-to-model-your-gitops-environments-and-promote-releases-between-them/">excellent article</a></p>
+<p>The application is defined using k8s manifests and a kustomization manifest within a <a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/argocd/base" target="_blank" rel="noopener">base folder</a> :</p>
+<p><img loading="lazy" src="img/infra-base.png" alt="infra-base.png"  /></p>
+<p>The customization of the environments is then done via 2 specific folders within an <a href="https://github.com/jeromedecoster/gitops-multienv-infra/tree/master/argocd/overlays" target="_blank" rel="noopener">overlays folder</a> :</p>
+<p><img loading="lazy" src="img/infra-overlays.png" alt="infra-overlays.png"  /></p>
+<p>The ArgoCD application is generated from <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/argocd/argocd-app.yaml" target="_blank" rel="noopener">a template</a> :</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-${NAMESPACE}
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: ${GIT_REPO}
+    targetRevision: HEAD
+    path: argocd/overlays/${NAMESPACE}
+  destination: 
+    server: ${SERVER}
+    namespace: gitops-multienv
+</code></pre>
+<p>The creation of the application is done in a <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/make.sh#L289-L293" target="_blank" rel="noopener">few lines</a> with <a href="https://linux.die.net/man/1/envsubst" target="_blank" rel="noopener">envsubst</a> :</p>
+<pre><code class="language-bash">export NAMESPACE=staging
+export SERVER=https://kubernetes.default.svc
+kubectl config use-context $PROJECT_NAME-staging
+cat argocd/argocd-app.yaml | envsubst | kubectl apply -f -
+</code></pre>
+<p>The application deploys the image set via <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/argocd/overlays/staging/kustomization.yaml#L6-L13" target="_blank" rel="noopener">this patch</a> :</p>
+<p><strong>Important</strong>: you <strong>must configure</strong> and push the correct <strong>docker image URI</strong> before installing the ArgoCD staging application</p>
+<pre><code class="language-yaml">patches:
+- target:
+    kind: Deployment
+    name: website
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: xxxxxx.dkr.ecr.eu-west-3.amazonaws.com/multienv-vote:v1.0.0
+</code></pre>
+<p>We execute the following command :</p>
+<pre><code class="language-bash"># create argocd staging app
+$ make argo-staging-app
+</code></pre>
+<p><img loading="lazy" src="img/infra-argo-staging-app.png" alt="infra-argo-staging-app.png"  /></p>
+<p>The application is successfully deployed :</p>
+<p><img loading="lazy" src="img/infra-argo-staging-tree.png" alt="infra-argo-staging-tree.png"  /></p>
+<p>We get the load balancer URL :</p>
+<p><img loading="lazy" src="img/infra-argo-staging-load-balancer.png" alt="infra-argo-staging-load-balancer.png"  /></p>
+<h3 id="setup-the-production-eks-cluster">Setup the production EKS cluster</h3>
+<p>The deployment of the cluster is done via the commands :</p>
+<pre><code class="language-bash"># terraform init the production env
+$ make production-init
+
+# terraform plan + apply the production env
+$ make production-apply
+</code></pre>
+<p>After a long wait, the <strong>cluster is deployed</strong> :</p>
+<p><img loading="lazy" src="img/infra-cluster-production.png" alt="infra-cluster-production.png"  /></p>
+<p>We <strong>configure the access</strong> to the cluster with this command :</p>
+<pre><code class="language-bash"># setup kubectl config + aws-auth configmap for production env
+$ make eks-production-config
+</code></pre>
+<h3 id="connect-argocd-to-the-new-eks-cluster">Connect ArgoCD to the new EKS cluster</h3>
+<p>We want a <a href="https://www.youtube.com/watch?v=MeU5_k9ssrs&amp;t=1208s" target="_blank" rel="noopener">single ArgoCD application to manage our multiple clusters</a></p>
+<p>We are therefore <strong>not going to install ArgoCD within the production cluster but connect this cluster to our ArgoCD application present within the staging cluster</strong></p>
+<p>We can see the <strong>list of clusters</strong> managed by argocd via this command :</p>
+<pre><code class="language-bash">$ argocd cluster list
+SERVER                          NAME        VERSION  STATUS      MESSAGE  PROJECT
+https://kubernetes.default.svc  in-cluster  1.21+    Successful
+</code></pre>
+<p>This corresponds to this visual interface :</p>
+<p><img loading="lazy" src="img/infra-argo-cluster-list-1.png" alt="infra-argo-cluster-list-1.png"  /></p>
+<p>To add the cluster, it <strong>must be previously defined in kubectl</strong>. This has been done by the previous steps</p>
+<p>You can check the <strong>list of clusters manageable by kubectl</strong> via this command :</p>
+<pre><code class="language-bash">$ kubectl config get-contexts
+CURRENT   NAME                           CLUSTER                                                             AUTHINFO                                                               
+*         multienv-infra-production      arn:aws:eks:eu-west-3:xxxxx:cluster/multienv-infra-production       arn:aws:eks:eu-west-3:xxxxx:cluster/multienv-infra-production       
+          multienv-infra-staging         arn:aws:eks:eu-west-3:xxxxx:cluster/multienv-infra-staging          arn:aws:eks:eu-west-3:xxxxx:cluster/multienv-infra-staging
+</code></pre>
+<p>We <strong>associate a cluster</strong> with argocd with this simple command :</p>
+<pre><code class="language-bash">$ argocd cluster add --yes &lt;cluster-context-name&gt;
+</code></pre>
+<p>We execute this command :</p>
+<pre><code class="language-bash"># argocd add production cluster
+$ make argo-add-cluster
+</code></pre>
+<p>The <strong>cluster is added</strong> :</p>
+<pre><code class="language-bash">$ argocd cluster list
+SERVER                                         NAME                       VERSION  STATUS      MESSAGE
+https://xxxxx.gr7.eu-west-3.eks.amazonaws.com  multienv-infra-production           Unknown     Cluster has no applications and is not being monitored.  
+https://kubernetes.default.svc                 in-cluster                 1.21+    Successful
+</code></pre>
+<p>It can also be seen via the interface :</p>
+<p><img loading="lazy" src="img/infra-argo-cluster-list-2.png" alt="infra-argo-cluster-list-2.png"  /></p>
+<h3 id="the-argocd-production-application">The ArgoCD production application</h3>
+<p>We <strong>deploy the production application</strong> using the following command :</p>
+<pre><code class="language-bash"># create argocd production app
+$ make argo-production-app
+</code></pre>
+<p>The application deploys the image set via <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/argocd/overlays/production/kustomization.yaml#L6-L13" target="_blank" rel="noopener">this patch</a> :</p>
+<p><strong>Important</strong> : you <strong>must</strong> setup and push the correct <strong>docker image URI</strong> before install the ArgoCD production application</p>
+<pre><code class="language-yaml">patches:
+- target:
+    kind: Deployment
+    name: website
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: xxxxxx.dkr.ecr.eu-west-3.amazonaws.com/multienv-vote:v1.0.0
+</code></pre>
+<p><img loading="lazy" src="img/infra-argo-production-app.png" alt="infra-argo-production-app.png"  /></p>
+<h3 id="faster-synchronization-of-argocd-applications">Faster synchronization of ArgoCD applications</h3>
+<p>ArgoCD checkd for git repository update <strong>every 3 minutes</strong></p>
+<p>You can use the <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/webhook/" target="_blank" rel="noopener">Github webhook</a> to sync it after each push</p>
+<p>But if it doesn&rsquo;t work, we can also use the <strong>sync by the cli app</strong></p>
+<p>We need to <strong>generate an ArgoCD token</strong></p>
+<p>At the moment we don&rsquo;t have any :</p>
+<pre><code class="language-bash">$ argocd account get --account admin
+Name:               admin
+Enabled:            true
+Capabilities:       login
+
+Tokens:
+NONE
+</code></pre>
+<p>We get <strong>an error if we try to generate one</strong> :</p>
+<pre><code class="language-bash">$ argocd account generate-token
+FATA[0000] rpc error: code = Unknown desc = account 'admin' does not have apiKey capability
+</code></pre>
+<p>We need to edit the <strong>argocd-cm ConfigMap</strong> :</p>
+<pre><code class="language-bash">$ EDITOR=nano kubectl edit configmap argocd-cm -n argocd --context multienv-infra-staging
+</code></pre>
+<p>Before :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    # ...
+</code></pre>
+<p>After :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+data:
+  accounts.admin: apiKey
+metadata:
+  annotations:
+    # ...
+</code></pre>
+<p>Then <strong>generate the token</strong> again :</p>
+<pre><code class="language-bash">$ argocd account generate-token
+eyJhb...
+</code></pre>
+<p>Let&rsquo;s check the data returned for the admin account :</p>
+<pre><code class="language-bash">$ argocd account get --account admin
+Name:               admin
+Enabled:            true
+Capabilities:       login, apiKey
+
+Tokens:
+ID                                    ISSUED AT                  EXPIRING AT
+xxxxxxxx-3f07-44b7-a9d4-40972f273484  2022-02-20T00:00:00+02:00  never
+</code></pre>
+<p>We get the <strong>address of the ArgoCD server</strong> with this command :</p>
+<pre><code class="language-bash"># argocd cli login + show access data
+$ make argo-login 
+SERVER  xxxxx-xxxxx.eu-west-3.elb.amazonaws.com
+</code></pre>
+<p>We add the <strong>token</strong> and the <strong>ArgoCD server URL</strong> as Github secrets :</p>
+<p><img loading="lazy" src="img/infra-github-secrets.png" alt="infra-github-secrets.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> workflow is used to synchronize our 2 applications :</p>
+<pre><code class="language-yaml">- name: Install argocd and run `app sync`
+  run: |
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+    chmod +x /usr/local/bin/argocd
+
+    argocd app get app-staging \
+      --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+      --server ${{ secrets.ARGOCD_SERVER }} \
+      --insecure \
+      --grpc-web \
+      --refresh &gt;/dev/null
+    argocd app wait app-staging \
+      --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+      --server ${{ secrets.ARGOCD_SERVER }} \
+      --insecure \
+      --grpc-web \
+      --sync \
+      --health
+
+    # ...
+</code></pre>
+<h3 id="lets-deploy-a-new-feature-in-staging">Let&rsquo;s deploy a new feature in staging</h3>
+<p>We <strong>create a new branch</strong> in our <a href="https://github.com/jeromedecoster/gitops-multienv-vote" target="_blank" rel="noopener">multienv-vote</a> project :</p>
+<pre><code class="language-bash">$ git checkout -b feature-two
+</code></pre>
+<p>We <a href="https://github.com/jeromedecoster/gitops-multienv-vote/blob/master/vote/public/css/main.css#L51" target="_blank" rel="noopener">modify the css</a> again :</p>
+<pre><code class="language-css">footer {
+  /* ... */
+
+  color: grey;
+  background-color: #eceff1;
+  border: grey 1px solid;
+  padding: .7em;
+}
+</code></pre>
+<p>Our <strong>local server</strong> gives this at address <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a> :</p>
+<p><img loading="lazy" src="img/feature-two-local.png" alt="feature-two-local.png"  /></p>
+<p>We <strong>push this branch</strong> on github :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m 'css again'
+$ git push --set-upstream origin feature-two
+</code></pre>
+<p>The repository is added :</p>
+<p><img loading="lazy" src="img/feature-two-ecr.png" alt="feature-two-ecr.png"  /></p>
+<p>We get the <strong>URI of the docker image</strong> :</p>
+<p><img loading="lazy" src="img/feature-two-ecr-image.png" alt="feature-two-ecr-image.png"  /></p>
+<p>We modify our <a href="https://github.com/jeromedecoster/gitops-multienv-infra/blob/master/argocd/overlays/staging/kustomization.yaml" target="_blank" rel="noopener">kustomization.yaml</a> file of the <strong>staging environment</strong> :</p>
+<pre><code class="language-yaml">patches:
+- target:
+    kind: Deployment
+    name: website
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: xxxxx.dkr.ecr.eu-west-3.amazonaws.com/multienv-vote-feature-two:cf03d643
+</code></pre>
+<p>We push this modification :</p>
+<pre><code class="language-bash">$ git add .
+$ git commit -m feature-two
+$ git push
+</code></pre>
+<p>The workflow is activated :</p>
+<p><img loading="lazy" src="img/feature-two-github-actions.png" alt="feature-two-github-actions.png"  /></p>
+<p>The <strong>update of the 2 applications took 11 seconds</strong> :</p>
+<p><img loading="lazy" src="img/feature-two-github-actions-steps.png" alt="feature-two-github-actions-steps.png"  /></p>
+<p>By reloading my browser at the <strong>staging URL</strong> :</p>
+<p><img loading="lazy" src="img/feature-two-staging.png" alt="feature-two-staging.png"  /></p>
+<p>This demonstration is over, it is important to <strong>remove all resources</strong> :</p>
+<pre><code class="language-bash"># delete argocd apps then argocd
+$ make argo-destroy
+
+# terraform destroy the production env
+$ make production-destroy
+
+# terraform destroy the staging env
+$ make staging-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 27 Jun 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

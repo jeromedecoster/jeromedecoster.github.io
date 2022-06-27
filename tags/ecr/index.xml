@@ -5,10 +5,22 @@
     <link>/tags/ecr/</link>
     <description>Recent content in ECR on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 10 Jun 2021 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 03 Jun 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/ecr/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops</title>
+      <link>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</guid>
+      <description>
+      
+      Deploy **multiple environments** on **multiple EKS clusters** with **ArgoCD**.
+      
+      </description>
+    </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Blue/Green Deployment</title>
       <link>/aws/kubernetes--eks--blue/green-deployment/</link>

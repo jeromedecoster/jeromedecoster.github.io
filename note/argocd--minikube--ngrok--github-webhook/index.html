@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   
-  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,ArgoCD,Minikube,Ngrok,Github'><meta name="description" content='Testing Argo CD with Minikube. Instantaneous update with Github webhook and Ngrok.'><meta property="og:title" content="ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook" />
-<meta property="og:description" content="Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**." />
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Note,ArgoCD,Minikube,Ngrok,Github'><meta name="description" content='Testing ArgoCD with Minikube. Instantaneous update with Github webhook and Ngrok.'><meta property="og:title" content="ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook" />
+<meta property="og:description" content="Testing **ArgoCD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/note/argocd--minikube--ngrok--github-webhook/" /><meta property="article:section" content="note" />
 <meta property="article:published_time" content="2022-02-17T00:00:00+00:00" />
@@ -15,7 +15,7 @@
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="ArgoCD &#43; Minikube &#43; Ngrok &#43; Github Webhook"/>
-<meta name="twitter:description" content="Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**."/>
+<meta name="twitter:description" content="Testing **ArgoCD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**."/>
 
   <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
 
@@ -293,12 +293,10 @@ Your public key has been saved in /home/xxxxx/.ssh/argocd-test.pem.pub
 ssh-ed25519 AAAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx username@computer
 </code></pre>
 <p>I will now <strong>add this key</strong> in my <a href="https://github.com/settings/keys" target="_blank" rel="noopener">main settings</a> on Github :</p>
-<p>IMAGE main New SSH key</p>
 <p><img loading="lazy" src="img/github-add-key-01.png" alt="github-add-key-01.png"  /></p>
 <p>I add it :</p>
 <p><img loading="lazy" src="img/github-add-key-02.png" alt="github-add-key-02.png"  /></p>
 <p><img loading="lazy" src="img/github-add-key-03.png" alt="github-add-key-03.png"  /></p>
-<p>IMAGE main Add SSH key</p>
 <p>Now I display my <strong>private key</strong> so I can <strong>copy-paste</strong> it :</p>
 <pre><code class="language-bash">$ cat ~/.ssh/argocd-test.pem
 -----BEGIN OPENSSH PRIVATE KEY-----
@@ -508,7 +506,17 @@ version 1-1-0
 
 
 
+
+
 <a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
 
 
 
@@ -1130,12 +1138,14 @@ version 1-1-0
 
 
 
+
+
 </div>
 
 </div>
 
 </main><footer>
-Build on 23 Apr 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+Build on 27 Jun 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
 </footer>
 
 

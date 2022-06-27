@@ -53,7 +53,7 @@
       <guid>/note/argocd--minikube--ngrok--github-webhook/</guid>
       <description>
       
-      Testing **Argo CD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**.
+      Testing **ArgoCD** with **Minikube**. Instantaneous update with **Github webhook** and **Ngrok**.
       
       </description>
     </item>

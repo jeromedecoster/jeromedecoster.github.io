@@ -5,10 +5,82 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 20 Apr 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 03 Jun 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD</title>
+      <link>/tags/argocd/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>AWS</title>
+      <link>/tags/aws/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECR</title>
+      <link>/tags/ecr/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS</title>
+      <link>/tags/eks/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/eks/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github</title>
+      <link>/tags/github/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
     <item>
       <title>Grafana</title>
       <link>/tags/grafana/</link>
@@ -94,30 +166,6 @@
       </description>
     </item>
     <item>
-      <title>ArgoCD</title>
-      <link>/tags/argocd/</link>
-      <pubDate>Thu, 17 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/argocd/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Github</title>
-      <link>/tags/github/</link>
-      <pubDate>Thu, 17 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/github/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Ngrok</title>
       <link>/tags/ngrok/</link>
       <pubDate>Thu, 17 Feb 2022 00:00:00 +0000</pubDate>
@@ -135,18 +183,6 @@
       <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/aurora/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>AWS</title>
-      <link>/tags/aws/</link>
-      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/aws/</guid>
       <description>
       
       
@@ -183,18 +219,6 @@
       <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/rds/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -351,30 +375,6 @@
       <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/deployment-pattern/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>EKS</title>
-      <link>/tags/eks/</link>
-      <pubDate>Mon, 05 Jul 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/eks/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>ECR</title>
-      <link>/tags/ecr/</link>
-      <pubDate>Thu, 10 Jun 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/ecr/</guid>
       <description>
       
       

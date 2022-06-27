@@ -5,10 +5,22 @@
     <link>/tags/aws/</link>
     <description>Recent content in AWS on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Tue, 08 Feb 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 03 Jun 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/aws/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops</title>
+      <link>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</link>
+      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</guid>
+      <description>
+      
+      Deploy **multiple environments** on **multiple EKS clusters** with **ArgoCD**.
+      
+      </description>
+    </item>
     <item>
       <title>RDS &#43; Aurora &#43; MySQL &#43; PostgreSQL &#43; Bastion &#43; Terraform</title>
       <link>/aws/rds--aurora--mysql--postgresql--bastion--terraform/</link>
