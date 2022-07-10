@@ -2,34 +2,43 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>/tags/argocd/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
+    <loc>/aws/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/aws/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/aws/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
+    <loc>/tags/dynamodb/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/ecr/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/eks/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/aws/eks--dynamodb/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/service-account/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/terraform/</loc>
+    <lastmod>2022-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/argocd/</loc>
     <lastmod>2022-06-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</loc>
     <lastmod>2022-06-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/github/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/</loc>
-    <lastmod>2022-06-03T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/terraform/</loc>
     <lastmod>2022-06-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/grafana/</loc>
@@ -99,9 +108,6 @@
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/disaster-recovery-with-multi-region-architecture/</loc>
-    <lastmod>2022-01-20T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/dynamodb/</loc>
     <lastmod>2022-01-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/aws-grafana--lambda--terraform/</loc>

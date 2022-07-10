@@ -5,10 +5,22 @@
     <link>/tags/dynamodb/</link>
     <description>Recent content in DynamoDB on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 20 Jan 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 07 Jul 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/dynamodb/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>EKS &#43; DynamoDB</title>
+      <link>/aws/eks--dynamodb/</link>
+      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--dynamodb/</guid>
+      <description>
+      
+      Interract with **DynamoDB** from an **EKS cluster** with a **Service Account**.
+      
+      </description>
+    </item>
     <item>
       <title>Disaster recovery with multi region architecture</title>
       <link>/aws/disaster-recovery-with-multi-region-architecture/</link>

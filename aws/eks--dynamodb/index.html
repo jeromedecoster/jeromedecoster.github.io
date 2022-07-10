@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.101.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,EKS,DynamoDB,Service Account,Terraform,ECR'><meta name="description" content='Interract with DynamoDB from an EKS cluster with a Service Account.'><meta property="og:title" content="EKS &#43; DynamoDB" />
+<meta property="og:description" content="Interract with **DynamoDB** from an **EKS cluster** with a **Service Account**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/eks--dynamodb/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-07-07T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-07-07T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="EKS &#43; DynamoDB"/>
+<meta name="twitter:description" content="Interract with **DynamoDB** from an **EKS cluster** with a **Service Account**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>EKS &#43; DynamoDB | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#setup-the-table-and-the-repository">Setup the table and the repository</a></li>
+        <li><a href="#the-vote-application">The vote application</a></li>
+        <li><a href="#running-the-application-in-a-docker-image">Running the application in a docker image</a></li>
+        <li><a href="#setup-the-vpc-and-the-eks-cluster">Setup the VPC and the EKS cluster</a></li>
+        <li><a href="#about-service-account">About service account</a></li>
+        <li><a href="#setup-a-service-account--deploy-the-app">Setup a service account + deploy the app</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">07</span>
+<span class="rest">Jul 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">EKS &#43; DynamoDB</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>voting app</strong></li>
+<li>Create a <strong>DynamoDB table</strong> to store the votes</li>
+<li>Run the application from a docker image</li>
+<li>Create an <strong>ECR repository</strong> and host our docker images</li>
+<li>Create an <strong>EKS cluster</strong></li>
+<li>Use a <strong>service account to be able to interact with the DynamoDB table from the cluster</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="setup-the-table-and-the-repository">Setup the table and the repository</h3>
+<p>You can fork this <a href="https://github.com/jeromedecoster/eks-dynamodb" target="_blank" rel="noopener">project</a></p>
+<p>We create the <strong>DynamoDB table</strong>, the <strong>ECR repository</strong> and an <strong>IAM user</strong> using this command :</p>
+<pre><code class="language-bash"># terraform create dynamo table + ecr repo + iam user
+$ make dynamo-ecr-create
+</code></pre>
+<p>This command creates our resources using a <a href="https://github.com/jeromedecoster/eks-dynamodb/tree/master/terraform/dynamo-ecr" target="_blank" rel="noopener">Terraform project</a></p>
+<p>The <strong>table</strong> is created :</p>
+<p><img loading="lazy" src="img/dynamo-created.png" alt="dynamo-created.png"  /></p>
+<p>The <strong>repository</strong> is created :</p>
+<p><img loading="lazy" src="img/ecr-created.png" alt="ecr-created.png"  /></p>
+<p>The <strong>IAM user</strong> is created :</p>
+<p><img loading="lazy" src="img/iam-user.png" alt="iam-user.png"  /></p>
+<p>A <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/terraform/dynamo-ecr/iam.tf#L32-L41" target="_blank" rel="noopener">Policy</a> is <strong>attached to the user</strong>. It gives him the possibility to <strong>read and write in this dynamodb table</strong> :</p>
+<pre><code class="language-hcl">data &quot;aws_iam_policy_document&quot; &quot;user_policy&quot; {
+  statement {
+    actions = [
+      &quot;dynamodb:GetItem&quot;,
+      &quot;dynamodb:UpdateItem&quot;
+    ]
+
+    resources = [aws_dynamodb_table.vote.arn]
+  }
+}
+</code></pre>
+<p>An <strong>access key associated with this user</strong> has also been created :</p>
+<p><img loading="lazy" src="img/iam-user-key.png" alt="iam-user-key.png"  /></p>
+<p>And finally, <strong>4 files</strong> have been created at the root of our project. Each file contains an important variable :</p>
+<ul>
+<li><code>.env_AWS_ACCOUNT_ID</code></li>
+<li><code>.env_AWS_ACCESS_KEY_ID</code></li>
+<li><code>.env_AWS_SECRET_ACCESS_KEY</code></li>
+<li><code>.env_REPOSITORY_URL</code></li>
+</ul>
+<h3 id="the-vote-application">The vote application</h3>
+<p>You can launch the voting application via this command :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode
+$ make vote
+</code></pre>
+<p>We open <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a></p>
+<p><img loading="lazy" src="img/vote-local.png" alt="vote-local.png"  /></p>
+<p>The site works :</p>
+<p><img loading="lazy" src="img/vote-local-up.png" alt="vote-local-up.png"  /></p>
+<p>We see that the data is <strong>saved</strong> in the table :</p>
+<p><img loading="lazy" src="img/vote-local-dynamo.png" alt="vote-local-dynamo.png"  /></p>
+<h3 id="running-the-application-in-a-docker-image">Running the application in a docker image</h3>
+<p>We create a <strong>docker image</strong> :</p>
+<pre><code class="language-bash"># build vote image
+$ make build
+</code></pre>
+<p>This command runs this <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L88-L91" target="_blank" rel="noopener">simple script</a> :</p>
+<pre><code class="language-bash">docker image build \
+    --file Dockerfile \
+    --tag vote \
+    .
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/vote/Dockerfile#L16" target="_blank" rel="noopener">Dockerfile executes</a> the <code>index.js</code> file :</p>
+<pre><code class="language-Dockerfile">FROM node:18.4-slim
+
+# ...
+
+CMD [&quot;node&quot;, &quot;index.js&quot;]
+</code></pre>
+<p>We start the image we just built with this command :</p>
+<pre><code class="language-bash"># run vote image
+$ make run
+</code></pre>
+<p>This command runs this <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L103-L110" target="_blank" rel="noopener">simple script</a> :</p>
+<pre><code class="language-bash">docker run \
+    --rm \
+    -e WEBSITE_PORT=4000 \
+    -e DYNAMO_TABLE=$PROJECT_NAME \
+    -e DYNAMO_REGION=$AWS_REGION \
+    -p 4000:4000 \
+    --name vote \
+    vote
+</code></pre>
+<p>By opening <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a> we can see that the site <strong>no longer works</strong> :</p>
+<p><img loading="lazy" src="img/run.png" alt="run.png"  /></p>
+<p>An <strong>error is thrown</strong> in the terminal :</p>
+<pre><code class="language-bash">/app/node_modules/@aws-sdk/credential-provider-node/dist-cjs/defaultProvider.js:13
+    throw new property_provider_1.CredentialsProviderError(&quot;Could not load credentials from any providers&quot;, false);
+          ^
+
+CredentialsProviderError: Could not load credentials from any providers
+</code></pre>
+<p>Indeed, the default behavior of the <a href="https://www.npmjs.com/package/@aws-sdk/client-dynamodb" target="_blank" rel="noopener">DynamoDBClient</a> library is to <a href="https://github.com/aws/aws-sdk-js-v3/tree/main/packages/shared-ini-file-loader" target="_blank" rel="noopener">get the identifiers</a> via the <code>~/.aws/credentials</code> local file</p>
+<p>The error is thrown because <strong>this file is no longer available within the docker image</strong></p>
+<p>Here is a snippet of the <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/vote/index.js#L39-L40" target="_blank" rel="noopener">application code</a> :</p>
+<pre><code class="language-js">const { DynamoDBClient } = require(&quot;@aws-sdk/client-dynamodb&quot;)
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb')
+
+// ...
+
+const DYNAMO_TABLE = process.env.DYNAMO_TABLE || 'vote'
+const DYNAMO_REGION = process.env.DYNAMO_REGION || 'eu-west-3'
+
+const client = new DynamoDBClient({ region: DYNAMO_REGION })
+const document = DynamoDBDocumentClient.from(client)
+</code></pre>
+<p>To solve this problem we use the <a href="https://www.npmjs.com/package/@aws-sdk/credential-providers" target="_blank" rel="noopener">credential-providers package</a></p>
+<p>We use the <a href="https://github.com/aws/aws-sdk-js-v3/blob/main/packages/credential-providers/README.md#fromenv" target="_blank" rel="noopener">fromEnv</a> function</p>
+<p>Here is a snippet of the <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/vote/index-env.js#L46-L48" target="_blank" rel="noopener">updated application code</a> :</p>
+<pre><code class="language-js">const { DynamoDBClient } = require(&quot;@aws-sdk/client-dynamodb&quot;)
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb')
+const { fromEnv, fromIni } = require('@aws-sdk/credential-providers')
+
+// ...
+
+const DYNAMO_TABLE = process.env.DYNAMO_TABLE || 'vote'
+const DYNAMO_REGION = process.env.DYNAMO_REGION || 'eu-west-3'
+
+const credentials = fromEnv()
+const client = new DynamoDBClient({ region:'eu-west-3', credentials })
+const document = DynamoDBDocumentClient.from(client)
+</code></pre>
+<p>We create <strong>another docker image</strong> :</p>
+<pre><code class="language-bash"># build vote-env image
+$ make build-env
+</code></pre>
+<p>This command runs this <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L96-L99" target="_blank" rel="noopener">simple script</a> :</p>
+<pre><code class="language-bash">docker image build \
+  --file Dockerfile.env \
+  --tag vote-env \
+  .
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/vote/Dockerfile.env#L16" target="_blank" rel="noopener">Dockerfile executes</a> the <code>index-env.js</code> file :</p>
+<pre><code class="language-Dockerfile">FROM node:18.4-slim
+
+# ...
+
+CMD [&quot;node&quot;, &quot;index-env.js&quot;]
+</code></pre>
+<p>We start the image we just built with this command :</p>
+<pre><code class="language-bash"># run vote-env image
+$ make run-env
+</code></pre>
+<p>This command runs this <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L118-L127" target="_blank" rel="noopener">simple script</a> :</p>
+<pre><code class="language-bash">docker run \
+    --rm \
+    -e WEBSITE_PORT=4000 \
+    -e DYNAMO_TABLE=$PROJECT_NAME \
+    -e DYNAMO_REGION=$AWS_REGION \
+    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -p 4000:4000 \
+    --name vote-env \
+    vote-env
+</code></pre>
+<p>By opening <a href="http://localhost:4000/" target="_blank" rel="noopener">http://localhost:4000/</a> we see that everything is working now :</p>
+<p><img loading="lazy" src="img/run-env.png" alt="run-env.png"  /></p>
+<p>To <strong>kill the container</strong> you can run this command in a new terminal window :</p>
+<pre><code class="language-bash"># stop vote-env container
+$ make vote-env
+</code></pre>
+<h3 id="setup-the-vpc-and-the-eks-cluster">Setup the VPC and the EKS cluster</h3>
+<p>We <strong>push these 2 images to ECR</strong> with <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L152-L165" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># push vote + vote-env image to ecr
+$ make ecr-push
+</code></pre>
+<p>The images are now in the repository :</p>
+<p><img loading="lazy" src="img/ecr-pushed.png" alt="ecr-pushed.png"  /></p>
+<p>We <strong>create a VPC and an EKS cluster</strong> using this command :</p>
+<pre><code class="language-bash"># terraform create vpc + eks cluster
+$ make vpc-eks-create
+</code></pre>
+<p>This command creates our resources by using a <strong>new</strong> <a href="https://github.com/jeromedecoster/eks-dynamodb/tree/master/terraform/vpc-eks" target="_blank" rel="noopener">Terraform project</a></p>
+<p>Our cluster has been created :</p>
+<p><img loading="lazy" src="img/eks.png" alt="eks.png"  /></p>
+<p>We deploy a first version of our application with this command:</p>
+<pre><code class="language-bash"># kubectl deploy vote
+$ make kubectl-vote
+</code></pre>
+<p><strong>Important</strong> : this command uses the <a href="https://github.com/frigus02/kyml" target="_blank" rel="noopener">kyml application</a> which must be installed</p>
+<p>Here is <a href="https://www.youtube.com/watch?v=cpAaI8p4R60&amp;t=543s" target="_blank" rel="noopener">a video demonstration</a> of using kyml</p>
+<p>We use the <a href="https://github.com/frigus02/kyml/blob/master/README.md#kyml-tmpl---inject-dynamic-values" target="_blank" rel="noopener">kyml tmpl subcommand</a> to <strong>inject variables</strong> <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L194-L203" target="_blank" rel="noopener">into our template</a> :</p>
+<pre><code class="language-bash">kubectl apply --filename k8s/namespace.yaml
+kubectl apply --filename k8s/service.yaml
+
+kyml tmpl \
+    -v DYNAMO_TABLE=$PROJECT_NAME \
+    -v DYNAMO_REGION=$AWS_REGION \
+    -v DOCKER_IMAGE=$REPOSITORY_URL:vote \
+    &lt; k8s/deployment-vote.yaml \
+    | kubectl apply -f -
+</code></pre>
+<p><strong>Note</strong> : we are launching the <code>vote</code> image, the starting one, which <strong>does not contain the management of credentials</strong></p>
+<p>Here is our <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/k8s/deployment-vote.yaml#L19-L30" target="_blank" rel="noopener">manifest</a> :</p>
+<pre><code class="language-yaml">containers:
+  - name: vote
+    image: &quot;{{.DOCKER_IMAGE}}&quot;
+    ports: 
+      - containerPort: 3000
+    env:
+      - name : WEBSITE_PORT
+        value : &quot;3000&quot;
+      - name : DYNAMO_TABLE
+        value : &quot;{{.DYNAMO_TABLE}}&quot;
+      - name : DYNAMO_REGION
+        value : &quot;{{.DYNAMO_REGION}}&quot;
+</code></pre>
+<p>Our application is <strong>deployed after a few seconds</strong></p>
+<p>We can watch in a new terminal window the <strong>state of our resources</strong> by using this command :</p>
+<pre><code class="language-bash">$ watch kubectl get all -n vote
+</code></pre>
+<p>And in another terminal window we execute this command :</p>
+<pre><code class="language-bash"># kubectl logs vote app
+$ make kubectl-vote-log
+</code></pre>
+<p>This command displays the <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L225-L230" target="_blank" rel="noopener">logs of our pod</a> <strong>continuously</strong> :</p>
+<pre><code class="language-bash">POD_NAME=$(kubectl get pod \
+    --selector app=vote \
+    --output name \
+    --no-headers=true \
+    --namespace vote)
+
+kubectl logs $POD_NAME \
+    --follow \
+    --namespace vote
+</code></pre>
+<p>We get the <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L234-L237" target="_blank" rel="noopener">address of the Load Balancer</a> to start the application in the browser :</p>
+<pre><code class="language-bash"># get load balancer url
+$ make load-balancer
+</code></pre>
+<p>An error is thrown in our terminal :</p>
+<pre><code class="language-bash">/app/node_modules/@aws-sdk/client-dynamodb/dist-cjs/protocols/Aws_json1_0.js:1759
+            response = new DynamoDBServiceException_1.DynamoDBServiceException({
+                       ^
+
+AccessDeniedException: User: arn:aws:sts::xxxxx:assumed-role/green-eks-node-group-xxxxx/i-0abcdef1234 is not authorized 
+to perform: dynamodb:GetItem on resource: arn:aws:dynamodb:eu-west-3:xxxxx:table/eks-dynamo 
+because no identity-based policy allows the dynamodb:GetItem action
+</code></pre>
+<p>We <strong>remove</strong> the <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/k8s/deployment-vote.yaml#L3-L8" target="_blank" rel="noopener">vote deployment</a> :</p>
+<pre><code class="language-bash">$ kubectl delete deploy vote -n vote
+</code></pre>
+<p>We now deploy the <code>vote-env</code> image with this command :</p>
+<pre><code class="language-bash"># kubectl deploy vote-env
+$ make kubectl-vote-env
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L251-L262" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">kyml tmpl \
+    -v DYNAMO_TABLE=$PROJECT_NAME \
+    -v DYNAMO_REGION=$AWS_REGION \
+    -v DOCKER_IMAGE=$REPOSITORY_URL:vote-env \
+    -v AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+    -v AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    &lt; k8s/deployment-vote-env.yaml \
+    | kubectl apply -f -
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/k8s/deployment-vote-env.yaml#L19-L34" target="_blank" rel="noopener">deployment-vote-env.yaml manifest</a> has <strong>2 additional environment variables</strong> :</p>
+<pre><code class="language-yaml">containers:
+  - name: vote
+    image: &quot;{{.DOCKER_IMAGE}}&quot;
+    ports: 
+      - containerPort: 3000
+    env:
+      - name : WEBSITE_PORT
+        value : &quot;3000&quot;
+      - name : DYNAMO_TABLE
+        value : &quot;{{.DYNAMO_TABLE}}&quot;
+      - name : DYNAMO_REGION
+        value : &quot;{{.DYNAMO_REGION}}&quot;
+      - name : AWS_ACCESS_KEY_ID
+        value : &quot;{{.AWS_ACCESS_KEY_ID}}&quot;
+      - name : AWS_SECRET_ACCESS_KEY
+        value : &quot;{{.AWS_SECRET_ACCESS_KEY}}&quot;
+</code></pre>
+<p>By reloading our browser we see that our application now <strong>works</strong> :</p>
+<p><img loading="lazy" src="img/aws-vote-env.png" alt="aws-vote-env.png"  /></p>
+<p>But managing our accesses in this way is <strong>not the most elegant way</strong></p>
+<p>This is also a <strong>problem of security and flexibility</strong></p>
+<p>We <strong>remove</strong> the vote deployment again :</p>
+<pre><code class="language-bash">$ kubectl delete deploy vote -n vote
+</code></pre>
+<h3 id="about-service-account">About service account</h3>
+<ul>
+<li>When you access the cluster, <strong>as a user</strong>, the <a href="https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/" target="_blank" rel="noopener">kube-apiserver</a> is used to authenticate you and <strong>check the roles and actions you can perform</strong> : <strong>authentication + authorization</strong></li>
+<li>User accounts are for humans. <strong>Service accounts are for processes</strong>, which run in pods</li>
+<li>Service account are used to <strong>provide authentication + authorization mechanism to pods</strong></li>
+<li>A service role is attached to a pod and allows it to perform certain actions</li>
+</ul>
+<h3 id="setup-a-service-account--deploy-the-app">Setup a service account + deploy the app</h3>
+<p>We will use the <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html" target="_blank" rel="noopener">IAM roles for service accounts module</a> to <strong>improve our application</strong> :</p>
+<p><strong>Note</strong> : a good quick demonstration video, <a href="https://www.youtube.com/watch?v=bu0M2y2g1m8" target="_blank" rel="noopener">IAM Roles for Service Accounts &amp; Pods</a></p>
+<p>We remember that an <code>eks-dynamo</code> <strong>policy</strong> had been created previously :</p>
+<p><img loading="lazy" src="img/policy.png" alt="policy.png"  /></p>
+<p>To solve our problem you must <strong>uncomment the code</strong> of <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/terraform/vpc-eks/eks.tf#L97-L137" target="_blank" rel="noopener">these 3 resources</a> :</p>
+<pre><code class="language-hcl">module &quot;iam_eks_role&quot; {
+  source    = &quot;terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks&quot;
+  role_name = &quot;${var.project_name}-service-account-role&quot;
+  oidc_providers = {
+    one = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = [&quot;vote:eks-dynamo&quot;]
+    }
+  }
+}
+
+resource &quot;aws_iam_role_policy_attachment&quot; &quot;policy_attachment&quot; {
+  role       = module.iam_eks_role.iam_role_name
+  policy_arn = data.aws_iam_policy.policy.arn
+}
+
+resource &quot;kubernetes_service_account&quot; &quot;service_account&quot; {
+  metadata {
+    name      = &quot;eks-dynamo&quot;
+    namespace = &quot;vote&quot;
+    annotations = {
+      &quot;eks.amazonaws.com/role-arn&quot; = module.iam_eks_role.iam_role_arn
+    }
+  }
+}
+</code></pre>
+<ol>
+<li>The <a href="https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/modules/iam-role-for-service-accounts-eks" target="_blank" rel="noopener">iam-role-for-service-accounts-eks module</a> is used to <strong>create a role</strong></li>
+<li>Then we <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment" target="_blank" rel="noopener">attach</a> our <code>eks-dynamo</code> <strong>policy</strong> to the role created by the module</li>
+<li>We create a <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/" target="_blank" rel="noopener">service account</a> within the kubernetes cluster using the Terraform resource <a href="https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service_account" target="_blank" rel="noopener">kubernetes_service_account</a></li>
+</ol>
+<p>We apply these <strong>3 uncommented resources</strong> with this command :</p>
+<pre><code class="language-bash"># terraform create vpc + eks cluster
+$ make vpc-eks-create
+</code></pre>
+<p>An <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html" target="_blank" rel="noopener">OpenID Connect identity provider</a> has been created :</p>
+<p><img loading="lazy" src="img/oidc.png" alt="oidc.png"  /></p>
+<p>Here are its details :</p>
+<p><img loading="lazy" src="img/oidc-details.png" alt="oidc-details.png"  /></p>
+<p>The <strong>role</strong> has been created and the <strong>policy is correctly attached</strong> :</p>
+<p><img loading="lazy" src="img/oidc-role.png" alt="oidc-role.png"  /></p>
+<p>It is interesting to see the data displayed via the <strong>Trust relationships</strong> tab :</p>
+<p><img loading="lazy" src="img/oidc-role-trust-relationships.png" alt="oidc-role-trust-relationships.png"  /></p>
+<p>We can see the <strong>service account added</strong> to the cluster :</p>
+<pre><code class="language-bash">$ kubectl get serviceaccount -n vote
+NAME         SECRETS   AGE
+default      1         38m
+eks-dynamo   1         15m
+</code></pre>
+<p>We can display the <strong>YAML content of the service account</strong> :</p>
+<pre><code class="language-bash">$ kubectl get serviceaccount eks-dynamo -n vote -o yaml
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::xxxxx:role/eks-dynamo-service-account-role
+  creationTimestamp: &quot;2000-00-00T12:00:00Z&quot;
+  name: eks-dynamo
+  namespace: vote
+  resourceVersion: &quot;xxxx&quot;
+  uid: xxxxx-xxx-xxx-xxx-xxxxx
+secrets:
+- name: eks-dynamo-token-srgkn
+</code></pre>
+<p>We will now <strong>deploy a version of our application that uses this service account</strong> :</p>
+<pre><code class="language-bash"># kubectl deploy vote with service-account
+$ make kubectl-vote-sa
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/make.sh#L210-L219" target="_blank" rel="noopener">this script</a> :</p>
+<p><strong>Note</strong> : we are using the <code>vote</code> docker image <strong>again</strong></p>
+<pre><code class="language-bash">kubectl apply --filename k8s/namespace.yaml
+kubectl apply --filename k8s/service.yaml
+
+kyml tmpl \
+    -v DYNAMO_TABLE=$PROJECT_NAME \
+    -v DYNAMO_REGION=$AWS_REGION \
+    -v DOCKER_IMAGE=$REPOSITORY_URL:vote \
+    &lt; k8s/deployment-vote-with-sa.yaml \
+    | kubectl apply -f -
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/eks-dynamodb/blob/master/k8s/deployment-vote-with-sa.yaml#L19" target="_blank" rel="noopener">manifest</a> <strong>just adds an extra line</strong> <code>serviceAccountName:eks-dynamo</code> :</p>
+<pre><code class="language-yaml">serviceAccountName: eks-dynamo
+containers:
+- name: vote
+  image: &quot;{{.DOCKER_IMAGE}}&quot;
+  ports: 
+    - containerPort: 3000
+  env:
+    - name : WEBSITE_PORT
+      value : &quot;3000&quot;
+    - name : DYNAMO_TABLE
+      value : &quot;{{.DYNAMO_TABLE}}&quot;
+    - name : DYNAMO_REGION
+      value : &quot;{{.DYNAMO_REGION}}&quot;
+</code></pre>
+<p>By reloading our browser we see that the site is <strong>working correctly</strong> :</p>
+<p><img loading="lazy" src="img/aws-vote-with-sa.png" alt="aws-vote-with-sa.png"  /></p>
+<p>This demonstration is over, it is important to <strong>remove all resources</strong> :</p>
+<pre><code class="language-bash"># terraform destroy vpc + eks cluster
+$ make vpc-eks-destroy
+
+# terraform destroy dynamo table + ecr repo + iam user
+$ make dynamo-ecr-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/dynamodb/">dynamodb</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/service-account/">service-account</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 10 Jul 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>
