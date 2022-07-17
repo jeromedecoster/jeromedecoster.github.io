@@ -5,16 +5,88 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 07 Jul 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 15 Jul 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>AWS</title>
       <link>/tags/aws/</link>
-      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECR</title>
+      <link>/tags/ecr/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS</title>
+      <link>/tags/eks/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/eks/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>PostgreSQL</title>
+      <link>/tags/postgresql/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/postgresql/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>RDS</title>
+      <link>/tags/rds/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/rds/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -34,47 +106,11 @@
       </description>
     </item>
     <item>
-      <title>ECR</title>
-      <link>/tags/ecr/</link>
-      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/ecr/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>EKS</title>
-      <link>/tags/eks/</link>
-      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/eks/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Service Account</title>
       <link>/tags/service-account/</link>
       <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/service-account/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -111,18 +147,6 @@
       <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/grafana/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Kubernetes</title>
-      <link>/tags/kubernetes/</link>
-      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/kubernetes/</guid>
       <description>
       
       
@@ -219,30 +243,6 @@
       <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/mysql/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>PostgreSQL</title>
-      <link>/tags/postgresql/</link>
-      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/postgresql/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>RDS</title>
-      <link>/tags/rds/</link>
-      <pubDate>Tue, 08 Feb 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/rds/</guid>
       <description>
       
       

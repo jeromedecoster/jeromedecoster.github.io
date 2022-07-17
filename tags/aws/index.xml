@@ -5,10 +5,22 @@
     <link>/tags/aws/</link>
     <description>Recent content in AWS on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 07 Jul 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 15 Jul 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/aws/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>EKS &#43; RDS &#43; PostgreSQL</title>
+      <link>/aws/eks--rds--postgresql/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--rds--postgresql/</guid>
+      <description>
+      
+      Interract with **RDS for PostgreSQL** from an **EKS cluster**.
+      
+      </description>
+    </item>
     <item>
       <title>EKS &#43; DynamoDB</title>
       <link>/aws/eks--dynamodb/</link>

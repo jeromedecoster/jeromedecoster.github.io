@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.101.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,EKS,Kubernetes,RDS,PostgreSQL,Terraform,ECR'><meta name="description" content='Interract with RDS for PostgreSQL from an EKS cluster.'><meta property="og:title" content="EKS &#43; RDS &#43; PostgreSQL" />
+<meta property="og:description" content="Interract with **RDS for PostgreSQL** from an **EKS cluster**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/eks--rds--postgresql/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-07-15T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-07-15T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="EKS &#43; RDS &#43; PostgreSQL"/>
+<meta name="twitter:description" content="Interract with **RDS for PostgreSQL** from an **EKS cluster**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>EKS &#43; RDS &#43; PostgreSQL | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-application">The application</a></li>
+        <li><a href="#using-docker-compose">Using docker-compose</a></li>
+        <li><a href="#creating-the-rds-postgresql--ecr-repository">Creating the RDS PostgreSQL + ECR repository</a></li>
+        <li><a href="#creating-the-bastion-host">Creating the bastion host</a></li>
+        <li><a href="#creating-the-eks-cluster">Creating the EKS cluster</a></li>
+        <li><a href="#connect-the-cluster-with-the-rds-database">Connect the cluster with the RDS database</a></li>
+        <li><a href="#deploying-the-application">Deploying the application</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">15</span>
+<span class="rest">Jul 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">EKS &#43; RDS &#43; PostgreSQL</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create a <strong>voting app</strong></li>
+<li>Run locally using docker image and docker-compose</li>
+<li>Create a <strong>private RDS PostgreSQL database</strong> to store the votes</li>
+<li>Run the application locally using an <strong>EC2 bastion host + a SSH tunnel</strong></li>
+<li>Create an <strong>ECR repository</strong> and host our docker image</li>
+<li>Create an <strong>EKS cluster</strong></li>
+<li>Test <strong>EKS pods connexion to the RDS instance</strong></li>
+<li>Deploy the application to the EKS cluster</li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="the-application">The application</h3>
+<p>You can fork this <a href="https://github.com/jeromedecoster/eks-rds-postgresql" target="_blank" rel="noopener">project</a></p>
+<p>We will <strong>first run the app locally</strong> to showcase it</p>
+<p>We start the <strong>PostgreSQL docker image</strong> with this command :</p>
+<pre><code class="language-bash"># run postgres alpine docker image
+$ make pg
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L55-L60" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">docker run \
+    --rm \
+    --name postgres \
+    --env POSTGRES_PASSWORD=password \
+    --publish 5432:5432 \
+    postgres:14.3-alpine
+</code></pre>
+<p>We <strong>add content</strong> to this database</p>
+<p>In a new terminal window, run the following command :</p>
+<pre><code class="language-bash"># seed postgres instance
+$ make seed
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L67" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">psql postgresql://postgres:password@0.0.0.0:5432/postgres &lt; sql/create.sql
+</code></pre>
+<p>We now start the <strong>node application</strong> :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode
+$ make vote
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L75-L81" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">npx livereload . --wait 200 --extraExts 'njk' &amp; \
+    NODE_ENV=development \
+    VERSION=od1s2faz \
+    WEBSITE_PORT=4000 \
+    POSTGRES_DATABASE=postgres \
+    POSTGRES_PASSWORD=password \
+    npx nodemon --ext js,json,njk index.js
+</code></pre>
+<p>The application runs at <a href="http://localhost:4000" target="_blank" rel="noopener">http://localhost:4000</a> :</p>
+<p><img loading="lazy" src="img/localhost-pg.png" alt="localhost-pg.png"  /></p>
+<p>You can <strong>close all processes and terminal windows</strong></p>
+<h3 id="using-docker-compose">Using docker-compose</h3>
+<p>To simplify our life, we can <strong>reduce the previous steps using docker-compose</strong> :</p>
+<pre><code class="language-bash"># run the project using docker-compose (same as pg + seed + vote)
+$ make up
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L88-L95" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">docker-compose \
+    --file docker-compose.dev.yml \
+    up \
+    --remove-orphans \
+    --force-recreate \
+    --build \
+    --no-deps 
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/docker-compose.dev.yml" target="_blank" rel="noopener">docker-compose.dev.yml</a> file <strong>starts PostgreSQL and initializes the table before starting the node application</strong> :</p>
+<pre><code class="language-yaml">services:
+  vote:
+    container_name: vote
+    build:
+      context: ./vote
+      dockerfile: Dockerfile.dev
+    volumes:
+      - &quot;./vote:/app&quot;
+    # ...
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+  postgres:
+    container_name: postgres
+    image: postgres:14.3-alpine
+    ports:
+      - &quot;5432:5432&quot;
+    environment:
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ./sql/create.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: &quot;exit 0&quot;
+    networks:
+      - backend
+</code></pre>
+<p>The application runs at <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> :</p>
+<p><img loading="lazy" src="img/localhost-compose.png" alt="localhost-compose.png"  /></p>
+<p>To <strong>properly terminate</strong> the application, run this command in a new terminal window :</p>
+<pre><code class="language-bash"># stop docker-compose + remove volumes
+$ make down
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L100-L104" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">docker-compose \
+    --file docker-compose.dev.yml \
+    down \
+    --volumes
+</code></pre>
+<h3 id="creating-the-rds-postgresql--ecr-repository">Creating the RDS PostgreSQL + ECR repository</h3>
+<p>We <strong>create a VPC and RDS PostgreSQL</strong> using this command :</p>
+<pre><code class="language-bash"># terraform create vpc + rds postgresql db + ecr repo
+$ make rds-ecr-create
+</code></pre>
+<p>This command creates our resources by using a new <a href="https://github.com/jeromedecoster/eks-rds-postgresql/tree/master/terraform/rds-ecr" target="_blank" rel="noopener">Terraform project</a></p>
+<p>Our <strong>private database</strong> has been created :</p>
+<p><img loading="lazy" src="img/db-vote.png" alt="db-vote.png"  /></p>
+<p>The <strong>ECR repository</strong> has been created :</p>
+<p><img loading="lazy" src="img/ecr-repo.png" alt="ecr-repo.png"  /></p>
+<h3 id="creating-the-bastion-host">Creating the bastion host</h3>
+<p>The <strong>PostgreSQL database we created is private</strong></p>
+<p>We <strong>can&rsquo;t connect to it from our local computer</strong></p>
+<p>We need to <strong>create an EC2 instance</strong>, which will serve <strong>as a bastion host</strong>, to <strong>create an SSH tunnel</strong> in order to <strong>be able to connect to the database</strong></p>
+<p>We execute this command :</p>
+<pre><code class="language-bash"># terraform create ec2 bastion for ssh tunnel
+$ make bastion-ssh-create
+</code></pre>
+<p>This command creates our resources by using a new <a href="https://github.com/jeromedecoster/eks-rds-postgresql/tree/master/terraform/bastion-ssh" target="_blank" rel="noopener">Terraform project</a></p>
+<p>The <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/bastion-ssh/ec2.tf#L3-L9" target="_blank" rel="noopener">bastion is created</a> in the <strong>same VPC than the database</strong> :</p>
+<pre><code class="language-hcl">resource &quot;aws_instance&quot; &quot;bastion&quot; {
+  ami                         = data.aws_ami.latest_amazon_linux.id
+  instance_type               = &quot;t2.micro&quot;
+  key_name                    = aws_key_pair.key_pair.id
+  associate_public_ip_address = true
+  subnet_id                   = data.aws_subnets.subnets_public.ids[0]
+  security_groups             = [aws_security_group.bastion_security_group.id]
+
+  # ...
+</code></pre>
+<p>Only <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/bastion-ssh/ec2.tf#L31-L42" target="_blank" rel="noopener">port 22 is open</a> for this instance :</p>
+<pre><code class="language-hcl">resource &quot;aws_security_group&quot; &quot;bastion_security_group&quot; {
+  name   = &quot;${var.project_name}-bastion-sg&quot;
+  vpc_id = data.aws_vpc.vpc.id
+
+  ingress {
+    protocol  = &quot;tcp&quot;
+    from_port = 22
+    to_port   = 22
+    cidr_blocks = [&quot;${data.http.my_ip.body}/32&quot;]
+  }
+
+  # ...
+</code></pre>
+<p>And <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/bastion-ssh/data.tf#L55-L57" target="_blank" rel="noopener">only my machine</a> can interact with it :</p>
+<pre><code class="language-hcl">data &quot;http&quot; &quot;my_ip&quot; {
+  url = &quot;https://ifconfig.me&quot;
+}
+</code></pre>
+<p>Once the EC2 instance is created, we <strong>open the SSH tunnel</strong> :</p>
+<pre><code class="language-bash"># create ssh tunnel
+$ make ssh-create
+</code></pre>
+<p>The creation of the tunnel is done via <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/scripts/ssh-create.sh#L59" target="_blank" rel="noopener">this line</a> :</p>
+<pre><code class="language-bash">ssh -i &quot;$BASTION_KEY_FILE&quot; -f -N -L 5433:$DB_ADDRESS:5432 ec2-user@$BASTION_PUBLIC_DNS -v
+</code></pre>
+<p>We <strong>add content</strong> to this database via <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L131" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash"># seed rds postgresql
+$ make seed-aws
+</code></pre>
+<p>You can <strong>interact with the database</strong> through the SSH tunnel in a new terminal window :</p>
+<pre><code class="language-bash"># connection
+$ psql postgresql://master:masterpass@127.0.0.1:5433/vote?sslmode=require
+
+# query
+vote=&gt; select * from vote;
+ name | value 
+------+-------
+ up   |     0
+ down |     0
+(2 rows)
+</code></pre>
+<p>We now start a <strong>version of our local site that connects to our database via the SSH tunnel</strong> :</p>
+<pre><code class="language-bash"># run vote website using npm - dev mode (livereload + nodemon)
+$ make vote-aws
+</code></pre>
+<p>This command runs <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L139-L148" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash">npx livereload . --wait 750 --extraExts 'njk' &amp; \
+    NODE_ENV=development \
+    VERSION=od1s2faz \
+    WEBSITE_PORT=4000 \
+    POSTGRES_HOST=127.0.0.1 \
+    POSTGRES_DATABASE=$POSTGRES_DATABASE \
+    POSTGRES_USER=$POSTGRES_USERNAME \
+    POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+    POSTGRES_PORT=5433 \
+    npx nodemon --ext js,json,njk index.js
+</code></pre>
+<p>Note the <strong>variables</strong> :</p>
+<ul>
+<li>The <strong>local host</strong> : <code>POSTGRES_HOST=127.0.0.1</code></li>
+<li>The <strong>shifted port</strong> : <code>POSTGRES_PORT=5433</code></li>
+</ul>
+<p>The site works when on opens at <a href="http://localhost:4000" target="_blank" rel="noopener">http://localhost:4000</a> :</p>
+<p><img loading="lazy" src="img/localhost.png" alt="localhost.png"  /></p>
+<p>If we <strong>query our table</strong> in the still active terminal window :</p>
+<pre><code class="language-bash">vote=&gt; select * from vote;
+ name | value 
+------+-------
+ up   |     2
+ down |     1
+(2 rows)
+</code></pre>
+<p>Our <strong>bastion demo is over</strong>, we can <strong>destroy our resources</strong> :</p>
+<pre><code class="language-bash"># close ssh tunnel
+$ make ssh-close
+
+# terraform destroy ec2 bastion for ssh tunnel
+$ make bastion-ssh-destroy
+</code></pre>
+<h3 id="creating-the-eks-cluster">Creating the EKS cluster</h3>
+<p>We need to <strong>create a docker image</strong> of our application to be able to deploy it in our cluster :</p>
+<pre><code class="language-bash"># push vote image to ecr
+$ make ecr-push
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L183-L193" target="_blank" rel="noopener">command</a> <strong>creates the image and pushes it to ECR</strong> :</p>
+<pre><code class="language-bash"># ... build ...
+
+aws ecr get-login-password \
+    --region $AWS_REGION \
+    --profile $AWS_PROFILE \
+    | docker login \
+    --username AWS \
+    --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+docker tag vote $REPOSITORY_URL:vote
+docker push $REPOSITORY_URL:vote
+</code></pre>
+<p>The image is online :</p>
+<p><img loading="lazy" src="img/ecr-image.png" alt="ecr-image.png"  /></p>
+<p>We create our <strong>EKS cluster</strong> using a <a href="https://github.com/jeromedecoster/eks-rds-postgresql/tree/master/terraform/eks" target="_blank" rel="noopener">Terraform project</a> :</p>
+<pre><code class="language-bash"># terraform create eks cluster
+$ make eks-create
+</code></pre>
+<p>The cluster <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/eks/eks.tf#L43-L53" target="_blank" rel="noopener">creates</a> a <strong>node group</strong> named <code>green</code> :</p>
+<pre><code class="language-hcl">eks_managed_node_groups = {
+
+  green = {
+    min_size     = 1
+    max_size     = 2
+    desired_size = 1
+
+    instance_types = [&quot;t2.medium&quot;]
+    capacity_type  = &quot;ON_DEMAND&quot;
+  }
+}
+</code></pre>
+<p>After a <strong>long wait</strong>, the cluster is created :</p>
+<p><img loading="lazy" src="img/eks-cluster.png" alt="eks-cluster.png"  /></p>
+<p>We can see our <strong>node group</strong> named <code>green</code> :</p>
+<p><img loading="lazy" src="img/eks-node.png" alt="eks-node.png"  /></p>
+<p><strong>TIP</strong> : kubectl is <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/eks/eks.tf#L79-L85" target="_blank" rel="noopener">configured</a> via a <code>null_resource</code> :</p>
+<pre><code class="language-hcl">resource &quot;null_resource&quot; &quot;update_kubeconfig&quot; {
+  provisioner &quot;local-exec&quot; {
+    command = &quot;aws eks update-kubeconfig --name ${module.eks.cluster_id} --region ${var.region}&quot;
+  }
+
+  depends_on = [module.eks]
+}
+</code></pre>
+<p>We can <strong>query the cluster</strong> :</p>
+<pre><code class="language-bash">$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   5m
+kube-node-lease   Active   5m
+kube-public       Active   5m
+kube-system       Active   5m
+</code></pre>
+<h3 id="connect-the-cluster-with-the-rds-database">Connect the cluster with the RDS database</h3>
+<p>We will <strong>test the connection</strong> with our PostgreSQL database</p>
+<p>In a new terminal window we <strong>show the contents</strong> of the <code>vote</code> namespace :</p>
+<pre><code class="language-bash">$ watch kubectl get all -n vote
+</code></pre>
+<p><strong>Nothing is displayed</strong> for the moment since the namespace does not exist yet !</p>
+<p>We <strong>create our namespace</strong> in another terminal window :</p>
+<pre><code class="language-bash">$ kubectl create ns vote
+</code></pre>
+<p>We start an <strong>interactive alpine image</strong> :</p>
+<pre><code class="language-bash">$ kubectl run alpine --image=alpine -i --tty -n vote
+</code></pre>
+<p>Our previous window displays the status of our resources :</p>
+<pre><code class="language-bash">NAME         READY   STATUS    RESTARTS   AGE
+pod/alpine   1/1     Running   0          10s
+</code></pre>
+<p>We are <strong>connected to the alpine instance</strong>, we <strong>install postgresql</strong> :</p>
+<pre><code class="language-bash">apk --update add postgresql-client
+</code></pre>
+<p>We will try to connect</p>
+<p><strong>IMPORTANT</strong> : the <code>POSTGRES_HOST</code> variable <strong>must be defined with the value contained</strong> in the <code>.env_DB_ADDRESS</code> file which is at the root of the project</p>
+<pre><code class="language-bash">POSTGRES_USERNAME=master
+POSTGRES_PASSWORD=masterpass
+POSTGRES_HOST=vote.xxxxx.eu-west-3.rds.amazonaws.com
+POSTGRES_DATABASE=vote
+psql postgresql://$POSTGRES_USERNAME:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DATABASE?sslmode=require
+</code></pre>
+<p>The <strong>connection fails</strong></p>
+<p>You can <strong>leave</strong> the connection attempt via a <code>Ctrl+C</code></p>
+<p>If we look at the <strong>default security group of our VPC</strong>, we see that it <strong>allows all traffic on itself</strong> :</p>
+<p><img loading="lazy" src="img/vpc-defaut-sg.png" alt="vpc-defaut-sg.png"  /></p>
+<p>We will <strong>create add a new inbound rule by uncommenting</strong> <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/terraform/eks/eks.tf#L95-L118" target="_blank" rel="noopener">this script</a> :</p>
+<p>This rule <strong>allows traffic</strong> on port <code>5432</code> from the <strong>security group linked to node group</strong> <code>green</code> :</p>
+<pre><code class="language-hcl">resource &quot;aws_security_group_rule&quot; &quot;postgresql_ec2_instances_sg&quot; {
+  security_group_id = data.aws_security_group.default_security_group.id
+  type      = &quot;ingress&quot;
+  protocol  = &quot;tcp&quot;
+  from_port = 5432
+  to_port   = 5432
+
+  source_security_group_id = module.eks.eks_managed_node_groups.green.security_group_id
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+</code></pre>
+<p>The security group was created previously by the terraform module</p>
+<p>We <strong>deploy again</strong> :</p>
+<pre><code class="language-bash"># terraform create eks cluster
+$ make eks-create
+</code></pre>
+<p>The <strong>rule has been added</strong> :</p>
+<p><img loading="lazy" src="img/vpc-new-sg.png" alt="vpc-new-sg.png"  /></p>
+<p>The <strong>source of our rule is the security group linked to the group node</strong> <code>green</code></p>
+<p>If we display it, we see that <strong>this one has no rules</strong> :</p>
+<p><img loading="lazy" src="img/eks-node-sg.png" alt="eks-node-sg.png"  /></p>
+<p>Where do we find this security group ?</p>
+<p>Let&rsquo;s go see our <strong>group node</strong> <code>green</code> :</p>
+<p><img loading="lazy" src="img/eks-nodes-link.png" alt="eks-nodes-link.png"  /></p>
+<p>We click to access its <code>Launch template</code> :</p>
+<p><img loading="lazy" src="img/eks-node-link-launch-template.png" alt="eks-node-link-launch-template.png"  /></p>
+<p>Here we <strong>find the reference to our security group</strong> :</p>
+<p><img loading="lazy" src="img/ec2-launch-template.png" alt="ec2-launch-template.png"  /></p>
+<p>In our previous <strong>alpine terminal window</strong>, we try to <strong>connect again</strong> :</p>
+<pre><code class="language-bash">psql postgresql://$POSTGRES_USERNAME:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DATABASE?sslmode=require
+
+vote=&gt; select * from vote;
+ name | value 
+------+-------
+ up   |     2
+ down |     1
+(2 rows)
+</code></pre>
+<h3 id="deploying-the-application">Deploying the application</h3>
+<p>We <strong>deploy the application</strong> with this command :</p>
+<pre><code class="language-bash"># kubectl deploy vote
+$ make kubectl-vote
+</code></pre>
+<p><strong>Important</strong> : this command uses the <a href="https://github.com/frigus02/kyml" target="_blank" rel="noopener">kyml application</a> which must be installed</p>
+<p>Here is <a href="https://www.youtube.com/watch?v=cpAaI8p4R60&amp;t=543s" target="_blank" rel="noopener">a video demonstration</a> of using kyml</p>
+<p>We use the <a href="https://github.com/frigus02/kyml/blob/master/README.md#kyml-tmpl---inject-dynamic-values" target="_blank" rel="noopener">kyml tmpl subcommand</a> to <strong>inject variables</strong> <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L212-L223" target="_blank" rel="noopener">into our template</a> :</p>
+<pre><code class="language-bash">kubectl apply --filename k8s/namespace.yaml
+kubectl apply --filename k8s/service.yaml
+
+kyml tmpl \
+    -v DOCKER_IMAGE=$REPOSITORY_URL:vote \
+    -v POSTGRES_HOST=$DB_ADDRESS \
+    -v POSTGRES_DATABASE=$POSTGRES_DATABASE \
+    -v POSTGRES_USER=$POSTGRES_USERNAME \
+    -v POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+    &lt; k8s/deployment.yaml \
+    | kubectl apply -f -
+</code></pre>
+<p>Our <strong>resources are updated</strong> in our watching terminal :</p>
+<pre><code class="language-bash">NAME                        READY   STATUS    RESTARTS   AGE
+pod/alpine                  1/1     Running   0          25m
+pod/vote-6664df474b-lz8nn   1/1     Running   0          20s
+
+NAME           TYPE           CLUSTER-IP       EXTERNAL-IP                               PORT(S)        AGE
+service/vote   LoadBalancer   172.20.188.227   xxxxx-xxxxx.eu-west-3.elb.amazonaws.com   80:32693/TCP   25s
+
+NAME                   READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/vote   1/1     1            1           20s
+
+NAME                              DESIRED   CURRENT   READY   AGE
+replicaset.apps/vote-6664df474b   1         1         1       20s
+</code></pre>
+<p>We <a href="https://github.com/jeromedecoster/eks-rds-postgresql/blob/master/make.sh#L228-L231" target="_blank" rel="noopener">get</a> the <strong>URL of our Load balancer</strong> :</p>
+<pre><code class="language-bash"># get load balancer url
+$ make load-balancer
+xxxxx-xxxxx.eu-west-3.elb.amazonaws.com
+</code></pre>
+<p><strong>After a wait</strong>, our website is available and working :</p>
+<p><img loading="lazy" src="img/website-online.png" alt="website-online.png"  /></p>
+<p>We can <strong>query our table</strong> in our connected terminal via the alpine image :</p>
+<pre><code class="language-bash">vote=&gt; select * from vote;
+ name | value 
+------+-------
+ down |     1
+ up   |     4
+(2 rows)
+</code></pre>
+<p>This demonstration is over, it is important to <strong>remove all resources</strong> :</p>
+<pre><code class="language-bash"># terraform destroy eks cluster
+$ make eks-destroy
+</code></pre>
+<p><strong>Wait for the previous script to complete</strong> to run this one :</p>
+<pre><code class="language-bash"># terraform destroy vpc + rds postgresql db + ecr repo
+$ make rds-ecr-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/eks/">eks</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/postgresql/">postgresql</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/rds/">rds</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 17 Jul 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

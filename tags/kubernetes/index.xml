@@ -5,10 +5,34 @@
     <link>/tags/kubernetes/</link>
     <description>Recent content in Kubernetes on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 20 Apr 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 15 Jul 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>EKS &#43; RDS &#43; PostgreSQL</title>
+      <link>/aws/eks--rds--postgresql/</link>
+      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--rds--postgresql/</guid>
+      <description>
+      
+      Interract with **RDS for PostgreSQL** from an **EKS cluster**.
+      
+      </description>
+    </item>
+    <item>
+      <title>EKS &#43; DynamoDB</title>
+      <link>/aws/eks--dynamodb/</link>
+      <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/eks--dynamodb/</guid>
+      <description>
+      
+      Interract with **DynamoDB** from an **EKS cluster** with a **Service Account**.
+      
+      </description>
+    </item>
     <item>
       <title>Kubernetes &#43; Adapter Pattern &#43; Minikube</title>
       <link>/note/kubernetes--adapter-pattern--minikube/</link>
