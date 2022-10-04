@@ -5,10 +5,22 @@
     <link>/tags/docker-hub/</link>
     <description>Recent content in Docker Hub on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 19 Jun 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 03 Oct 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/docker-hub/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD &#43; Image Updater</title>
+      <link>/aws/argocd--image-updater/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/argocd--image-updater/</guid>
+      <description>
+      
+      Playing with **ArgoCD Image Updater** and **public** and **private repositories**.
+      
+      </description>
+    </item>
     <item>
       <title>ECS &#43; Service Discovery &#43; Node &#43; Redis</title>
       <link>/aws/ecs--service-discovery--node--redis/</link>

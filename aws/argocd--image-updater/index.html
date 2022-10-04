@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.104.2" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,ArgoCD,ArgoCD Image Updater,Minikube,Github,Kubernetes,Terraform,ECR,Docker Hub'><meta name="description" content='Playing with ArgoCD Image Updater and public and private repositories.'><meta property="og:title" content="ArgoCD &#43; Image Updater" />
+<meta property="og:description" content="Playing with **ArgoCD Image Updater** and **public** and **private repositories**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/argocd--image-updater/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-10-03T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-10-03T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ArgoCD &#43; Image Updater"/>
+<meta name="twitter:description" content="Playing with **ArgoCD Image Updater** and **public** and **private repositories**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>ArgoCD &#43; Image Updater | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-application">The application</a></li>
+        <li><a href="#setup-the-env-file">Setup the .env file</a></li>
+        <li><a href="#setup-the-infrastructure">Setup the infrastructure</a></li>
+        <li><a href="#start-minikube-install-argocd--argocd-image-updater">Start minikube, Install ArgoCD + ArgoCD Image Updater</a></li>
+        <li><a href="#using-docker-public-repository">Using Docker public repository</a></li>
+        <li><a href="#push-a-new-image-version">Push a new image version</a></li>
+        <li><a href="#using-ecr-public-repository">Using ECR public repository</a></li>
+        <li><a href="#using-ecr-private-repository">Using ECR private repository</a></li>
+        <li><a href="#cleaning">Cleaning</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">03</span>
+<span class="rest">Oct 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">ArgoCD &#43; Image Updater</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Deploy <strong>ArgoCD</strong> + <strong>ArgoCD Image Updater</strong> in a <strong>minikube</strong> cluster</li>
+<li><strong>Speed up</strong> ArgoCD and Image Updater <strong>check intervals</strong></li>
+<li>Deploy an <strong>image to docker hub</strong> and an <strong>ArgoCD application</strong></li>
+<li>Deploy <strong>new image and see automatic deployment</strong></li>
+<li>Repeat the same with a <strong>public ECR repository</strong></li>
+<li>Repeat the same with a <strong>private ECR repository</strong></li>
+<li>A <strong>CronJob will rotate ECR credentials</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="the-application">The application</h3>
+<p>You can fork this <a href="https://github.com/jeromedecoster/argocd-image-updater" target="_blank" rel="noopener">project</a></p>
+<p><strong>Important</strong> : make sure your repository is <strong>private</strong> as it will contain <strong>sensitive data</strong> !</p>
+<p>The <code>app-version</code> application is a node application <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/app-version/index.js#L15-L18" target="_blank" rel="noopener">returns simple JSON</a> :</p>
+<pre><code class="language-js">app.get('/', (req, res) =&gt; {
+    const json = require('./package.json')
+    return res.json({[json.name]: json.version})
+})
+</code></pre>
+<p>The JSON displays the <strong>current version</strong> of the application :</p>
+<pre><code class="language-json">{&quot;app-version&quot;: &quot;0.0.1&quot;}
+</code></pre>
+<h3 id="setup-the-env-file">Setup the .env file</h3>
+<p>The <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L52-L66" target="_blank" rel="noopener">env-create</a> script creates an <code>.env</code> file at the root of the project :</p>
+<pre><code class="language-bash">make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+<li><code>GITHUB_OWNER</code></li>
+<li><code>GITHUB_REPO</code></li>
+<li><code>DOCKER_ACCOUNT_ID</code></li>
+<li><code>GITHUB_TOKEN</code></li>
+</ul>
+<p>You need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">Github Token</a></p>
+<p>You need to <strong>select</strong> <code>repo</code> :</p>
+<p><img loading="lazy" src="img/token-repo.png" alt="token-repo.png"  /></p>
+<p>You need to <strong>select</strong> <code>admin:public_key</code> :</p>
+<p><img loading="lazy" src="img/token-admin-key.png" alt="token-admin-key.png"  /></p>
+<p>This Github Token is used by Terraform&rsquo;s <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/providers.tf#L25-L28" target="_blank" rel="noopener">github provider</a> :</p>
+<pre><code class="language-hcl">provider &quot;github&quot; {
+  owner = var.github_owner
+  token = var.github_token
+}
+</code></pre>
+<p>To <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/ssh_key.tf#L34-L37" target="_blank" rel="noopener">assign an SSH key</a> to your Github account :</p>
+<pre><code class="language-hcl">resource &quot;github_user_ssh_key&quot; &quot;ssh_key&quot; {
+  title = var.project_name
+  key   = tls_private_key.private_key.public_key_openssh
+}
+</code></pre>
+<h3 id="setup-the-infrastructure">Setup the infrastructure</h3>
+<pre><code class="language-bash">make terraform create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/ssh_key.tf" target="_blank" rel="noopener">SSH key</a> and add it to your Github account so you can <strong>interact with a private repository</strong></li>
+<li>Create <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/ecr.tf" target="_blank" rel="noopener">2 ECR repositories</a>, <strong>1 public</strong> and <strong>1 private</strong></li>
+<li>Generate <strong>kubernetes manifests</strong> from <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/templates.tf" target="_blank" rel="noopener">templates</a></li>
+<li>These templates will <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/main.tf#L27-L41" target="_blank" rel="noopener">inject variables</a> into <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/overlays/docker/kustomization.tmpl.yaml" target="_blank" rel="noopener">multiple</a> &hellip; <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/argocd-docker.tmpl.yaml" target="_blank" rel="noopener">manifests</a></li>
+<li>Add <strong>new variables</strong> to the <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/terraform/main.tf#L50-L65" target="_blank" rel="noopener">.env file</a></li>
+</ul>
+<p><strong>Important</strong> : generated files <strong>must be added</strong> to your git repository:</p>
+<pre><code class="language-bash">git add . &amp;&amp; git commit -m update &amp;&amp; git push -u origin master
+</code></pre>
+<h3 id="start-minikube-install-argocd--argocd-image-updater">Start minikube, Install ArgoCD + ArgoCD Image Updater</h3>
+<pre><code class="language-bash">make minikube-create
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L131-L165" target="_blank" rel="noopener">minikube-create</a> command starts minikube</p>
+<p>It installs a <strong>patched version</strong> <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L135-L137" target="_blank" rel="noopener">of ArgoCD</a> :</p>
+<pre><code class="language-bash"># install argocd
+export TIMEOUT_RECONCILIATION=30s
+scripts/argocd-install.sh
+</code></pre>
+<p>By default, ArgoCD <strong>waits 3 minutes</strong> (<code>180 seconds</code>) before testing the <strong>possible update of a git repository</strong>. (<a href="https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/upgrading/2.0-2.1.md#replacing---app-resync-flag-with-timeoutreconciliation-setting" target="_blank" rel="noopener">Resync operation</a>).</p>
+<p>We <strong>reduce this duration</strong> to <code>30 seconds</code> during our experimentation phase to be able to <strong>work faster</strong></p>
+<p>We <strong>kustomize</strong> the <strong>install manifests</strong> by adding a <code>argocd-cm</code> <strong>ConfigMap</strong> containing the value <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/scripts/argocd-install.sh#L55-L83" target="_blank" rel="noopener">timeout.reconciliation</a> :</p>
+<pre><code class="language-bash">cat &gt;$TEMP_DIR/kustomization.yaml &lt;&lt;EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- install.yaml
+patches:
+- target:
+    kind: ConfigMap
+    name: argocd-cm
+  patch: |-
+    - op: add
+      path: /data
+      value:
+        timeout.reconciliation: $TIMEOUT_RECONCILIATION
+EOF
+
+kustomize build $TEMP_DIR \
+  | kubectl apply \
+      --namespace argocd \
+      --filename -
+</code></pre>
+<p>The <code>minikube-create</code> command also installs a <strong>patched version</strong> of <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L139-L140" target="_blank" rel="noopener">ArgoCD Image Updater</a> :</p>
+<pre><code class="language-bash">export CHECK_INTERVAL=30s
+scripts/argocd-image-updater-install.sh
+</code></pre>
+<p>By default, ArgoCD Image Updater <strong>waits 2 minutes</strong> (<code>2m0s</code>) before testing the <strong>possible update of a docker repository</strong>. (<a href="https://github.com/argoproj-labs/argocd-image-updater/blob/master/docs/install/reference.md#flags" target="_blank" rel="noopener">Interval option</a>).</p>
+<p>We <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/scripts/argocd-image-updater-install.sh#L50-L73" target="_blank" rel="noopener">reduce this duration</a> to <code>30 seconds</code> during our experimentation phase to be able to <strong>work faster</strong> :</p>
+<pre><code class="language-bash">cat &gt;$TEMP_DIR/kustomization.yaml &lt;&lt;EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- install.yaml
+patches:
+- target:
+    kind: Deployment
+    name: argocd-image-updater
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args
+      value: ['--interval', '$CHECK_INTERVAL']
+EOF
+
+kustomize build $TEMP_DIR \
+  | kubectl apply \
+      --namespace argocd \
+      --filename - 
+</code></pre>
+<p>To access the ArgoCD web interface, use the information displayed in the terminal :</p>
+<p><img loading="lazy" src="img/argocd-login.png" alt="argocd-login.png"  /></p>
+<p><strong>Important</strong> : I <strong>update</strong> my <code>/etc/hosts</code> file to <strong>adds this line</strong> :</p>
+<pre><code class="language-bash">192.168.49.2 minikube
+</code></pre>
+<h3 id="using-docker-public-repository">Using Docker public repository</h3>
+<p>We are <strong>building</strong> version <code>0.0.1</code> of the <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L101-L108" target="_blank" rel="noopener">app-version image</a> :</p>
+<pre><code class="language-bash">make prod-build
+</code></pre>
+<p>We push this image <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L173-L185" target="_blank" rel="noopener">to docker hub</a> :</p>
+<pre><code class="language-bash">make docker-push
+</code></pre>
+<p>The docker image is online :</p>
+<p><img loading="lazy" src="img/docker-hub.png" alt="docker-hub.png"  /></p>
+<p>We install the <code>argocd-app</code> application which was generated from <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/argocd-docker.tmpl.yaml" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-bash">kubectl apply -f argocd/argocd-docker.yaml
+</code></pre>
+<p><img loading="lazy" src="img/argocd-docker-1.png" alt="argocd-docker-1.png"  /></p>
+<p><img loading="lazy" src="img/argocd-docker-2.png" alt="argocd-docker-2.png"  /></p>
+<h3 id="push-a-new-image-version">Push a new image version</h3>
+<p>Run the following command in a new terminal window :</p>
+<pre><code class="language-bash">make docker-watch
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L320-L355" target="_blank" rel="noopener">command</a> displays the following informations <strong>every 15 seconds</strong> :</p>
+<ul>
+<li>The <strong>local version</strong> written in the <code>package.json</code> file</li>
+<li>The <strong>most recent tag</strong> available on our docker hub repository</li>
+<li>The <strong>current SHA</strong> of our git repository <strong>on github</strong></li>
+<li>The <strong>SHA</strong> on which our <strong>ArgoCD application is currently synchronized</strong></li>
+<li>The <strong>JSON returned</strong> the application <strong>running locally</strong></li>
+</ul>
+<p><img loading="lazy" src="img/docker-watch-1.png" alt="docker-watch-1.png"  /></p>
+<p>Run the following command in <strong>another terminal window</strong>:</p>
+<pre><code class="language-bash">make image-updater-logs
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L361-L363" target="_blank" rel="noopener">command</a> displays the <strong>logs</strong> of the <code>argocd-image-updater</code> application :</p>
+<p><img loading="lazy" src="img/image-logs.png" alt="image-logs.png"  /></p>
+<p>We are <strong>updating our local version</strong> :</p>
+<pre><code class="language-bash">make update-patch
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L302-L314" target="_blank" rel="noopener">command</a> increments the <code>version</code> value</p>
+<p>This <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/app-version/package.json#L3" target="_blank" rel="noopener">script</a>  <strong>modifies</strong> the <code>package.json</code> file</p>
+<p>It changes from <code>0.0.1</code> to <code>0.0.2</code> :</p>
+<pre><code class="language-JSON">{
+  &quot;version&quot;: &quot;0.0.2&quot;
+}
+</code></pre>
+<p>We <strong>build</strong> the image again: :</p>
+<pre><code class="language-bash">make prod-build
+</code></pre>
+<p>We push it <strong>on docker hub</strong> :</p>
+<pre><code class="language-bash">make docker-push
+</code></pre>
+<p>After a few moments the <strong>SHA github is updated</strong> :</p>
+<p><img loading="lazy" src="img/docker-watch-2.png" alt="docker-watch-2.png"  /></p>
+<p>ArgoCD Image Updater <strong>commit and push</strong> a <code>.argocd-source-argocd-app.yaml</code> file :</p>
+<p><img loading="lazy" src="img/github-update-1.png" alt="github-update-1.png"  /></p>
+<p>This file indicates the <strong>new version of the image</strong> to use :</p>
+<p><img loading="lazy" src="img/github-update-2.png" alt="github-update-2.png"  /></p>
+<p>After a few more seconds, the site is updated by ArgoCD</p>
+<p>The locally running application now returns the JSON <code>{&quot;app-vesion&quot;:&quot;0.0.2&quot;}</code> :</p>
+<p><img loading="lazy" src="img/docker-watch-3.png" alt="docker-watch-3.png"  /></p>
+<p>This part of the demonstration is over, we <strong>uninstall our application</strong> :</p>
+<pre><code class="language-bash">kubectl delete -f argocd/argocd-docker.yaml
+</code></pre>
+<h3 id="using-ecr-public-repository">Using ECR public repository</h3>
+<p>There is <strong>no real difference</strong> between hosting your images on docker hub or on a public ECR repository.</p>
+<p>Let&rsquo;s push our <strong>current version to ECR</strong> :</p>
+<pre><code class="language-bash">make ecr-public-push
+</code></pre>
+<p>The image is pushed :</p>
+<p><img loading="lazy" src="img/ecr-public.png" alt="ecr-public.png"  /></p>
+<p>We install the <code>argocd-app</code> application which was generated <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/argocd-ecr-public.tmpl.yaml" target="_blank" rel="noopener">from this template</a> :</p>
+<pre><code class="language-bash">kubectl apply -f argocd/argocd-ecr-public.yaml
+</code></pre>
+<p><img loading="lazy" src="img/argo-ecr-public.png" alt="argo-ecr-public.png"  /></p>
+<p>We can <strong>restart our command</strong> <code>docker-watch</code> :</p>
+<p><img loading="lazy" src="img/docker-watch-public-1.png" alt="docker-watch-public-1.png"  /></p>
+<p>The <code>NEWEST_DOCKER_TAG</code> value will <strong>no longer be updated</strong> but the other information will <strong>still be interesting</strong></p>
+<p>We are pushing a new version <code>0.0.3</code> :</p>
+<pre><code class="language-bash">make update-patch \
+  &amp;&amp; make prod-build \
+  &amp;&amp; make ecr-public-push
+</code></pre>
+<p>After a few moments the SHA github is updated :</p>
+<p><img loading="lazy" src="img/docker-watch-public-2.png" alt="docker-watch-public-2.png"  /></p>
+<p>After a few more seconds, the <strong>application is updated by ArgoCD</strong></p>
+<p>The locally running application now returns the JSON <code>{&quot;app-vesion&quot;:&quot;0.0.3&quot;}</code> :</p>
+<p><img loading="lazy" src="img/docker-watch-public-3.png" alt="docker-watch-public-3.png"  /></p>
+<p>This part of the demonstration is over, we <strong>uninstall our application</strong> :</p>
+<pre><code class="language-bash">kubectl delete -f argocd/argocd-ecr-public.yaml
+</code></pre>
+<h3 id="using-ecr-private-repository">Using ECR private repository</h3>
+<p>Using a <strong>private ECR repository is more complex</strong> because :</p>
+<ul>
+<li>Kubernetes and ArgoCD Image Updater must have <strong>credentials to be able to retrieve private images</strong></li>
+<li>Credentials generated by AWS are <strong>valid for 12 hours</strong>. They must therefore be <strong>updated automatically</strong></li>
+</ul>
+<p>ArgoCD Image Updater retrieves image <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/argocd-ecr-private.tmpl.yaml#L8-L12" target="_blank" rel="noopener">using</a> <strong>credentials via the annotation</strong> <code>&lt;image_alias&gt;.pull-secret</code> :</p>
+<pre><code class="language-yaml">annotations:
+  # https://argocd-image-updater.readthedocs.io/en/stable/configuration/images/#available-annotations
+  argocd-image-updater.argoproj.io/image-list: app-version=${ecr_repo_private}
+  argocd-image-updater.argoproj.io/app-version.pull-secret: secret:argocd/aws-ecr-creds#creds
+  argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
+</code></pre>
+<p>The credential <code>aws-ecr-creds</code> is created by <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L258-L265" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash"># used to pull image from private ECR by argocd-image-updater
+TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
+kubectl create secret generic aws-ecr-creds \
+    --from-literal=creds=AWS:$TOKEN \
+    --dry-run=client \
+    --namespace argocd \
+    --output yaml \
+    | kubectl apply --filename -
+</code></pre>
+<p>We <strong>need to add</strong> the <a href="https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret" target="_blank" rel="noopener">imagePullSecrets property</a> to the Deployment manifest :</p>
+<p>It is added via a <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/overlays/ecr-private/kustomization.tmpl.yaml#L20-L28" target="_blank" rel="noopener">Kustomization file</a> :</p>
+<pre><code class="language-yaml">- target:
+    kind: Deployment
+    name: app-version
+  patch: |-
+    - op: add
+      path: /spec/template/spec/imagePullSecrets
+      value: 
+        - name: regcred
+
+resources:
+- creds-secret-cm.yaml
+- creds.yaml
+</code></pre>
+<p><code>regcred</code> credentials are created by <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L269-L273" target="_blank" rel="noopener">this script</a> :</p>
+<pre><code class="language-bash"># used to pull image from private ECR by the deployment manifest
+kubectl create secret docker-registry regcred -n my-app \
+    --docker-server=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com \
+    --docker-username=AWS \
+    --docker-password=$(aws ecr get-login-password --region $AWS_REGION)
+</code></pre>
+<p>To <strong>update our credentials before the</strong> <code>12 hour</code> <strong>delay</strong>, we use a <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/overlays/ecr-private/creds.yaml" target="_blank" rel="noopener">CrongJob</a> :</p>
+<p>For the demonstration, the job repeats <strong>every 5 minutes</strong> <code>*/5 * * * *</code></p>
+<p>But <strong>every 10 hours</strong> <code>0 */10 * * 0</code> is a more <strong>realistic rate</strong></p>
+<p>The <code>CronJob</code> uses the <a href="https://hub.docker.com/r/odaniait/aws-kubectl" target="_blank" rel="noopener">odaniait/aws-kubectl:latest</a>  image which contains a version of <code>aws-cli</code> <strong>and</strong> <code>kubectl</code> <strong>pre-installed</strong></p>
+<p>The image <strong>hasn&rsquo;t been updated for a long time</strong> and these commands are <strong>several years old,</strong> but they <strong>still work perfectly</strong></p>
+<pre><code class="language-yaml">apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-private-cronjob
+  namespace: my-app
+spec:
+  schedule: &quot;*/5 * * * *&quot; # &quot;0 */10 * * 0&quot; 
+  successfulJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ecr-private-sa
+          containers:
+          - name: ecr-registry-helper
+            image: odaniait/aws-kubectl:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+              - secretRef:
+                  name: ecr-private-secret
+              - configMapRef:
+                  name: ecr-private-cm
+            command:
+              - /bin/sh
+              - -c
+              - |-
+                ECR_TOKEN=`aws ecr get-login-password --region ${AWS_REGION}`
+                NAMESPACE=my-app
+                kubectl delete secret --ignore-not-found $DOCKER_SECRET_NAME -n $NAMESPACE
+                kubectl create secret docker-registry $DOCKER_SECRET_NAME \
+                  --docker-server=https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+                  --docker-username=AWS \
+                  --docker-password=&quot;${ECR_TOKEN}&quot; \
+                  --namespace=$NAMESPACE
+                echo &quot;Secret was successfully updated at $(date)&quot;
+          restartPolicy: Never
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecr-private-sa
+  namespace: my-app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: my-app
+  name: role-full-access-to-secrets
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  resourceNames: [&quot;regcred&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;delete&quot;]
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;create&quot;]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ecr-private-role-binding
+  namespace: my-app
+subjects:
+- kind: ServiceAccount
+  name: ecr-private-sa
+  namespace: my-app
+  apiGroup: &quot;&quot;
+roleRef:
+  kind: Role
+  name: role-full-access-to-secrets
+  apiGroup: &quot;&quot;
+---
+</code></pre>
+<p>Note in the manifest file above :</p>
+<ul>
+<li>The <code>role-full-access-to-secrets</code> role gives the <strong>ability to create a secret</strong> :</li>
+</ul>
+<pre><code class="language-yaml">- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;create&quot;]
+</code></pre>
+<ul>
+<li>To <strong>delete only the secret named</strong> <code>regcred</code> :</li>
+</ul>
+<pre><code class="language-yaml">- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  resourceNames: [&quot;regcred&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;delete&quot;]
+</code></pre>
+<p>The instance uses <strong>environment variables retrieved from these 2 sources</strong> :</p>
+<pre><code class="language-yaml">image: odaniait/aws-kubectl:latest
+envFrom:
+  - secretRef:
+      name: ecr-private-secret
+  - configMapRef:
+      name: ecr-private-cm
+</code></pre>
+<p>Variables are defined via <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/overlays/ecr-private/creds-secret-cm.tmpl.yaml" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: ecr-private-secret
+  namespace: my-app
+stringData:
+  AWS_ACCESS_KEY_ID: &quot;${aws_access_key_id}&quot;
+  AWS_SECRET_ACCESS_KEY: &quot;${aws_secret_access_key}&quot;
+  AWS_ACCOUNT_ID: &quot;${aws_account_id}&quot;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecr-private-cm
+  namespace: my-app
+data:
+  AWS_REGION: &quot;${aws_region}&quot;
+  DOCKER_SECRET_NAME: regcred
+---
+</code></pre>
+<p>Let&rsquo;s <strong>define</strong> the <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/make.sh#L258-L273" target="_blank" rel="noopener">starting credentials</a> :</p>
+<pre><code class="language-bash">make secret-ecr-creds
+</code></pre>
+<p>Let&rsquo;s push our <strong>current version to ECR</strong> :</p>
+<pre><code class="language-bash">make ecr-private-push
+</code></pre>
+<p>The image is pushed :</p>
+<p><img loading="lazy" src="img/ecr-private.png" alt="ecr-private.png"  /></p>
+<p>We install the <code>argocd-app</code> application which was generated from <a href="https://github.com/jeromedecoster/argocd-image-updater/blob/master/argocd/.tmpl/argocd-ecr-private.tmpl.yaml" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-bash">kubectl apply -f argocd/argocd-ecr-private.yaml 
+</code></pre>
+<p><img loading="lazy" src="img/argocd-ecr-private-1.png" alt="argocd-ecr-private-1.png"  /></p>
+<p><img loading="lazy" src="img/argocd-ecr-private-2.png" alt="argocd-ecr-private-2.png"  /></p>
+<p>We can <strong>restart our command</strong> <code>docker-watch</code> :</p>
+<p><img loading="lazy" src="img/docker-watch-private-1.png" alt="docker-watch-private-1.png"  /></p>
+<p>We are pushing a new version <code>0.0.4</code> :</p>
+<pre><code class="language-bash">make update-patch \
+  &amp;&amp; make prod-build \
+  &amp;&amp; make ecr-private-push
+</code></pre>
+<p>After a few moments the SHA github is updated :</p>
+<p><img loading="lazy" src="img/docker-watch-private-2.png" alt="docker-watch-private-2.png"  /></p>
+<p>After a few more seconds, the <strong>application is updated by ArgoCD</strong></p>
+<p>The locally running application now returns the JSON <code>{&quot;app-vesion&quot;:&quot;0.0.4&quot;}</code> :</p>
+<p><img loading="lazy" src="img/docker-watch-private-3.png" alt="docker-watch-private-3.png"  /></p>
+<p>This part of the demonstration is over, we <strong>uninstall our application</strong> :</p>
+<pre><code class="language-bash">kubectl delete -f argocd/argocd-ecr-private.yaml
+</code></pre>
+<h3 id="cleaning">Cleaning</h3>
+<p>This demonstration is now over, we are <strong>destroying the resources</strong> :</p>
+<pre><code class="language-bash">make terraform-destroy \
+  &amp;&amp; minikube stop
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd-image-updater/">argocd-image-updater</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/docker-hub/">docker-hub</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/minikube/">minikube</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 4 Oct 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

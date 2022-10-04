@@ -5,10 +5,22 @@
     <link>/tags/argocd/</link>
     <description>Recent content in ArgoCD on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 03 Jun 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 03 Oct 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/argocd/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD &#43; Image Updater</title>
+      <link>/aws/argocd--image-updater/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/argocd--image-updater/</guid>
+      <description>
+      
+      Playing with **ArgoCD Image Updater** and **public** and **private repositories**.
+      
+      </description>
+    </item>
     <item>
       <title>EKS &#43; ArgoCD &#43; Multi-Environments and Multi-clusters Gitops</title>
       <link>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</link>

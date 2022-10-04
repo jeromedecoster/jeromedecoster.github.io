@@ -5,14 +5,38 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 15 Jul 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 03 Oct 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>ArgoCD</title>
+      <link>/tags/argocd/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ArgoCD Image Updater</title>
+      <link>/tags/argocd-image-updater/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd-image-updater/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
       <title>AWS</title>
       <link>/tags/aws/</link>
-      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/aws/</guid>
       <description>
@@ -22,11 +46,71 @@
       </description>
     </item>
     <item>
+      <title>Docker Hub</title>
+      <link>/tags/docker-hub/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/docker-hub/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
       <title>ECR</title>
       <link>/tags/ecr/</link>
-      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github</title>
+      <link>/tags/github/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Minikube</title>
+      <link>/tags/minikube/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/minikube/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -39,18 +123,6 @@
       <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/eks/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Kubernetes</title>
-      <link>/tags/kubernetes/</link>
-      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/kubernetes/</guid>
       <description>
       
       
@@ -82,18 +154,6 @@
       </description>
     </item>
     <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Fri, 15 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>DynamoDB</title>
       <link>/tags/dynamodb/</link>
       <pubDate>Thu, 07 Jul 2022 00:00:00 +0000</pubDate>
@@ -118,47 +178,11 @@
       </description>
     </item>
     <item>
-      <title>ArgoCD</title>
-      <link>/tags/argocd/</link>
-      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/argocd/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Github</title>
-      <link>/tags/github/</link>
-      <pubDate>Fri, 03 Jun 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/github/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Grafana</title>
       <link>/tags/grafana/</link>
       <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/grafana/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Minikube</title>
-      <link>/tags/minikube/</link>
-      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/minikube/</guid>
       <description>
       
       
@@ -567,18 +591,6 @@
       <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/cloud-map/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Docker Hub</title>
-      <link>/tags/docker-hub/</link>
-      <pubDate>Fri, 19 Jun 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/docker-hub/</guid>
       <description>
       
       
