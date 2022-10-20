@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Kind on Jérôme Decoster</title>
+    <link>/tags/kind/</link>
+    <description>Recent content in Kind on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 18 Oct 2022 00:00:00 +0000</lastBuildDate>
+    
+    <atom:link href="/tags/kind/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater</title>
+      <link>/aws/microservice--argocd-applicationset--image-updater/</link>
+      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/microservice--argocd-applicationset--image-updater/</guid>
+      <description>
+      
+      Deploying microservice using **ArgoCD ApplicationSet** and **ArgoCD Image Updater** in a **Kind** cluster with **Terraform**.
+      
+      </description>
+    </item>
+    
+  </channel>
+</rss>

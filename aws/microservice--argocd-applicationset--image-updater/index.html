@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.104.3" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,Black & White,ArgoCD,ApplicationSet,ArgoCD Image Updater,Kind,Github,Kubernetes,Terraform,ECR'><meta name="description" content='Deploying microservice using ArgoCD ApplicationSet and ArgoCD Image Updater in a Kind cluster with Terraform.'><meta property="og:title" content="Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater" />
+<meta property="og:description" content="Deploying microservice using **ArgoCD ApplicationSet** and **ArgoCD Image Updater** in a **Kind** cluster with **Terraform**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/microservice--argocd-applicationset--image-updater/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-10-18T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-10-18T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater"/>
+<meta name="twitter:description" content="Deploying microservice using **ArgoCD ApplicationSet** and **ArgoCD Image Updater** in a **Kind** cluster with **Terraform**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-application">The application</a></li>
+        <li><a href="#storage-repository">Storage repository</a></li>
+        <li><a href="#convert-repository">Convert repository</a></li>
+        <li><a href="#website-repository">Website repository</a></li>
+        <li><a href="#infra-repository">Infra repository</a></li>
+        <li><a href="#kind">Kind</a></li>
+        <li><a href="#applicationset">ApplicationSet</a></li>
+        <li><a href="#udating-the-convert-image">Udating the convert image</a></li>
+        <li><a href="#udating-the-website-image">Udating the website image</a></li>
+        <li><a href="#cleaning">Cleaning</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">18</span>
+<span class="rest">Oct 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Build a <strong>microservice</strong> consisting of <strong>3 different Docker images</strong></li>
+<li>Build images are pushed to <strong>separate private ECR repositories</strong></li>
+<li>Deploy <strong>ArgoCD</strong> + <strong>ArgoCD Image Updater</strong> in a <strong>Kind</strong> cluster</li>
+<li>Use an <strong>ApplicationSet manifest</strong> to manage the 3 applications</li>
+<li>Update of an application module</li>
+<li>Deploy a <strong>new Docker image and see automatic deployment in Kubernetes</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/architecture.svg" alt="architecture.svg"  /></p>
+<h3 id="the-application">The application</h3>
+<p>This project is composed of different repositories :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/applicationset-storage" target="_blank" rel="noopener">storage</a> : this module is used to <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/storage/index.js" target="_blank" rel="noopener">push a file to an S3 bucket</a></li>
+<li><a href="https://github.com/jeromedecoster/applicationset-convert" target="_blank" rel="noopener">convert</a> : this module is used to <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/convert/index.js" target="_blank" rel="noopener">convert an image to black and white</a></li>
+<li><a href="https://github.com/jeromedecoster/applicationset-website" target="_blank" rel="noopener">website</a> : this module is the <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/website/index.js" target="_blank" rel="noopener">website that displays the converted images</a></li>
+<li><a href="https://github.com/jeromedecoster/applicationset-infra" target="_blank" rel="noopener">infra</a> : this module is used to manage the infrastructure (<a href="https://github.com/jeromedecoster/applicationset-infra/tree/master/terraform" target="_blank" rel="noopener">terraform</a> + <a href="https://github.com/jeromedecoster/applicationset-infra/tree/master/argocd" target="_blank" rel="noopener">argocd</a>)</li>
+</ul>
+<p>You can fork this differents repositories on your machine</p>
+<p><strong>Important</strong> : make sure your repositories are <strong>private</strong> as they will contain <strong>sensitive data</strong> !</p>
+<h3 id="storage-repository">Storage repository</h3>
+<p>Let&rsquo;s start by initializing the storage module</p>
+<p>The <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/make.sh#L39-L66" target="_blank" rel="noopener">env-create</a> script creates an <code>.env</code> file at the root of the project and installs <a href="https://github.com/davidrjonas/semver-cli" target="_blank" rel="noopener">semver-cli</a> if needed :</p>
+<pre><code class="language-bash"># create .env file + install semver-cli
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+</ul>
+<p>Let&rsquo;s now initialize terraform :</p>
+<pre><code class="language-bash"># terraform init (updgrade) + validate
+make terraform-init
+</code></pre>
+<p>We create the <a href="https://github.com/jeromedecoster/applicationset-storage/tree/master/terraform" target="_blank" rel="noopener">infrastructure</a> with terraform :</p>
+<pre><code class="language-bash"># terraform create s3 bucket + ecr repo + iam user + setup .env file
+make terraform-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/terraform/ecr.tf" target="_blank" rel="noopener">ECR repository</a></li>
+<li>Create an <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/terraform/s3.tf" target="_blank" rel="noopener">S3 bucket</a></li>
+<li>Create an <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/terraform/iam.tf" target="_blank" rel="noopener">IAM user with access key</a></li>
+<li>Store some <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/terraform/ssm.tf" target="_blank" rel="noopener">variables in System Manager Parameter Store</a></li>
+<li>Add <strong>new variables</strong> to the <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/terraform/main.tf#L15-L27" target="_blank" rel="noopener">.env file</a></li>
+</ul>
+<p><img loading="lazy" src="img/sm-parameter-store.png" alt="sm-parameter-store.png"  /></p>
+<p>Let&rsquo;s start the <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/make.sh#L89-L93" target="_blank" rel="noopener">local module</a> :</p>
+<pre><code class="language-bash"># run storage server using npm - dev mode
+make storage
+</code></pre>
+<p>Run the following command in <strong>another terminal window</strong> :</p>
+<pre><code class="language-bash"># test storage
+make test
+</code></pre>
+<p>A test image has been successfully <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/make.sh#L104-L107" target="_blank" rel="noopener">uploaded to our S3 bucket</a> :</p>
+<p><img loading="lazy" src="img/s3-01.png" alt="s3-01.png"  /></p>
+<p>We <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/make.sh#L143-L145" target="_blank" rel="noopener">build</a> and <a href="https://github.com/jeromedecoster/applicationset-storage/blob/master/make.sh#L197-L220" target="_blank" rel="noopener">push</a> this <strong>image to ECR</strong> :</p>
+<pre><code class="language-bash"># build storage image
+make prod-build
+
+# push storage image to ecr
+make ecr-push
+</code></pre>
+<p>The image is in our repository :</p>
+<p><img loading="lazy" src="img/ecr-storage.png" alt="ecr-storage.png"  /></p>
+<h3 id="convert-repository">Convert repository</h3>
+<p>We initialize the convert module :</p>
+<pre><code class="language-bash"># create .env file
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+</ul>
+<p>Let&rsquo;s now initialize terraform :</p>
+<pre><code class="language-bash"># terraform init (updgrade) + validate
+make terraform-init
+</code></pre>
+<p>We create the <a href="https://github.com/jeromedecoster/applicationset-convert/tree/master/terraform" target="_blank" rel="noopener">infrastructure</a> with terraform :</p>
+<pre><code class="language-bash"># terraform create ecr repo + setup .env file
+make terraform-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/terraform/ecr.tf" target="_blank" rel="noopener">ECR repository</a></li>
+<li>Add <strong>new variables</strong> to the <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/terraform/main.tf#L13-L22" target="_blank" rel="noopener">.env file</a></li>
+</ul>
+<p>Let&rsquo;s start the local module :</p>
+<pre><code class="language-bash"># run convert server using npm - dev mode
+make convert
+</code></pre>
+<p>Run the following command in <strong>another terminal window</strong> :</p>
+<pre><code class="language-bash"># test convert
+make test
+</code></pre>
+<p>Our <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/test/rhino.jpg" target="_blank" rel="noopener">image</a> :</p>
+<p><img loading="lazy" src="img/rhino-origin.jpg" alt="rhino-origin.jpg"  /></p>
+<p>is <strong>converted to black and white</strong> at the root of our project :</p>
+<p><img loading="lazy" src="img/rhino-converted.jpg" alt="rhino-converted.jpg"  /></p>
+<p>We <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/make.sh#L149-L151" target="_blank" rel="noopener">build</a> and <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/make.sh#L202-L225" target="_blank" rel="noopener">push</a> this <strong>image to ECR</strong> :</p>
+<pre><code class="language-bash"># build convert image
+make prod-build
+
+# push convert image to ecr
+make ecr-push
+</code></pre>
+<p>The image is in our repository :</p>
+<p><img loading="lazy" src="img/ecr-convert.png" alt="ecr-convert.png"  /></p>
+<h3 id="website-repository">Website repository</h3>
+<p>We <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/make.sh#L41-L54" target="_blank" rel="noopener">initialize</a> the website module :</p>
+<pre><code class="language-bash"># create .env file
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+</ul>
+<p>Let&rsquo;s now initialize terraform :</p>
+<pre><code class="language-bash"># terraform init (updgrade) + validate
+make terraform-init
+</code></pre>
+<p>We create the <a href="https://github.com/jeromedecoster/applicationset-website/tree/master/terraform" target="_blank" rel="noopener">infrastructure</a> with terraform :</p>
+<pre><code class="language-bash"># terraform create ecr repo + setup .env file
+make terraform-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an E<a href="https://github.com/jeromedecoster/applicationset-website/blob/master/terraform/ecr.tf" target="_blank" rel="noopener">CR repository</a></li>
+<li>Add <strong>new variables</strong> to the <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/terraform/main.tf#L13-L22" target="_blank" rel="noopener">.env file</a></li>
+</ul>
+<p>Let&rsquo;s start the local project :</p>
+<pre><code class="language-bash"># run website server using npm - dev mode
+make website
+</code></pre>
+<p><strong>Attention</strong>, if you have a <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/make.sh#L87-L93" target="_blank" rel="noopener">similar error</a> &hellip;</p>
+<pre><code class="language-bash">CONVERT_PORT  4000 ABORT  localhost:4000 is not working. Status Code 200 required.
+</code></pre>
+<p>&hellip; you <strong>need to run the others modules</strong> on your machine from <strong>other terminal windows</strong> :</p>
+<pre><code class="language-bash"># run storage server using npm - dev mode
+make storage
+
+# run convert server using npm - dev mode
+make convert
+</code></pre>
+<p>You can see the website at <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a> :</p>
+<p><img loading="lazy" src="img/localhost.png" alt="localhost.png"  /></p>
+<p>We <strong>upload</strong> the <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/test/rhino.png" target="_blank" rel="noopener">rhino.png image</a> located in the <code>applicationset-convert/test</code> directory :</p>
+<p><img loading="lazy" src="img/upload.png" alt="upload.png"  /></p>
+<p>The image is <strong>converted</strong> :</p>
+<p><img loading="lazy" src="img/converted.png" alt="converted.png"  /></p>
+<p>We <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/make.sh#L170-L172" target="_blank" rel="noopener">build</a> and <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/make.sh#L233-L256" target="_blank" rel="noopener">push</a> this <strong>image to ECR</strong></p>
+<pre><code class="language-bash"># build website image
+make prod-build
+
+# push website image to ecr
+make ecr-push
+</code></pre>
+<p>The image is in our repository :</p>
+<p><img loading="lazy" src="img/ecr-website.png" alt="ecr-website.png"  /></p>
+<h3 id="infra-repository">Infra repository</h3>
+<p>The <strong>most interesting part</strong> starts now !</p>
+<p>We <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/make.sh#L55-L70" target="_blank" rel="noopener">initialize</a> the infra module :</p>
+<pre><code class="language-bash"># create .env file
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+<li><code>GITHUB_OWNER</code></li>
+<li><code>GITHUB_REPO_STORAGE</code></li>
+<li><code>GITHUB_REPO_CONVERT</code></li>
+<li><code>GITHUB_REPO_WEBSITE</code></li>
+<li><code>GITHUB_REPO_INFRA</code></li>
+</ul>
+<p>You need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">Github Token</a></p>
+<p>You need to <strong>select</strong> <code>repo</code> :</p>
+<p><img loading="lazy" src="img/token-repo.png" alt="token-repo.png"  /></p>
+<p>You need to <strong>select</strong> <code>admin:public_key</code> :</p>
+<p><img loading="lazy" src="img/token-admin-key.png" alt="token-admin-key.png"  /></p>
+<p>This Github Token is used by Terraform’s <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/providers.tf#L88-L91" target="_blank" rel="noopener">github provider</a> :</p>
+<pre><code class="language-hcl">provider &quot;github&quot; {
+  owner = var.github_owner
+  token = var.github_token
+}
+</code></pre>
+<p>To <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/ssh_key.tf#L42-L45" target="_blank" rel="noopener">assign an SSH key</a> to your Github account :</p>
+<pre><code class="language-hcl">resource &quot;github_user_ssh_key&quot; &quot;ssh_key&quot; {
+  title = var.project_name
+  key   = tls_private_key.private_key.public_key_openssh
+}
+</code></pre>
+<p>Now <strong>add</strong> the <code>.env</code> file with your own <code>GITHUB_TOKEN</code></p>
+<p>Let&rsquo;s now initialize terraform :</p>
+<pre><code class="language-bash"># terraform init (updgrade) + validate
+make terraform-init
+</code></pre>
+<p>We create the <a href="https://github.com/jeromedecoster/applicationset-infra/tree/master/terraform" target="_blank" rel="noopener">infrastructure</a> with terraform :</p>
+<pre><code class="language-bash"># terraform valiate + apply
+make terraform-create
+</code></pre>
+<p><strong>Warning</strong> : the creation time is <strong>long</strong> (<code>~ 8 minutes</code>) !</p>
+<p>Terraform is used to :</p>
+<ul>
+<li>Start a <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/kind.tf" target="_blank" rel="noopener">Kind cluster</a></li>
+<li>Create an <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/ssh_key.tf" target="_blank" rel="noopener">SSH key and add it to Github</a></li>
+<li>Install <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/argocd.tf" target="_blank" rel="noopener">ArgoCD and ArgoCD Image Updater</a></li>
+<li>ArgoCD&rsquo;s <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/argocd.tf#L13-L22" target="_blank" rel="noopener">check interval</a> is defined to <code>30 seconds</code> (instead of the default <code>3 minutes</code>) and the service is defined to <code>NodePort</code> to be able to <strong>access it</strong></li>
+<li>ArgoCD Image Updater <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/argocd.tf#L46-L50" target="_blank" rel="noopener">check interval</a> is defined to <code>30 seconds</code> (instead of the default <code>2 minutes</code>)</li>
+<li><a href="https://github.com/jeromedecoster/applicationset-infra/tree/master/argocd/.tmpl" target="_blank" rel="noopener">Templates</a> are <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/templates.tf" target="_blank" rel="noopener">interpreted</a> with these <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/main.tf#L28-L32" target="_blank" rel="noopener">values</a></li>
+<li><a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/terraform/kubernetes.tf" target="_blank" rel="noopener">Namespaces and secrets</a> are defined</li>
+</ul>
+<h3 id="kind">Kind</h3>
+<p><a href="https://kind.sigs.k8s.io/docs/user/quick-start#installation" target="_blank" rel="noopener">Kind</a> (<strong>K</strong>ubernetes <strong>IN</strong> <strong>D</strong>ocker) must be previously <a href="https://github.com/kubernetes-sigs/kind" target="_blank" rel="noopener">installed</a> on your machine</p>
+<p>Minikube is very flexible but its <strong>startup time is quite long</strong>. Kind greatly <strong>reduces this time</strong>.</p>
+<p>Here is a <a href="https://shipit.dev/posts/minikube-vs-kind-vs-k3s.html#summary" target="_blank" rel="noopener">good comparison</a> <strong>minikube</strong> / <strong>kind</strong> / <strong>k3s</strong></p>
+<p>The <strong>major disadvantage</strong> of Kind is to have to be <a href="https://github.com/tehcyx/terraform-provider-kind/blob/master/kind/schema_kind_config.go#L60-L74" target="_blank" rel="noopener">completely reset</a> (<strong>destroyed then created again</strong>) when <strong>changing its configuration</strong></p>
+<p>It&rsquo;s rather <strong>annoying</strong> because sometimes you need to <a href="https://github.com/kyma-incubator/terraform-provider-kind/issues/46#issuecomment-936676694" target="_blank" rel="noopener">change the configuration</a> <strong>regularly</strong></p>
+<p>When the creation of the resources is finished, we <strong>open</strong> the <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/make.sh#L94-L107" target="_blank" rel="noopener">ArgoCD web interface</a> :</p>
+<pre><code class="language-bash"># open argocd (website)
+make argocd-open
+</code></pre>
+<p><img loading="lazy" src="img/argocd.png" alt="argocd.png"  /></p>
+<p><strong>Templates have been generated</strong> in your <a href="https://github.com/jeromedecoster/applicationset-infra/tree/master/argocd" target="_blank" rel="noopener">argocd directory</a></p>
+<p>You have to <strong>push</strong> them to the git repository :</p>
+<p><strong>Important</strong> : make sure your repositories are private as they will <strong>contain sensitive data</strong> !</p>
+<pre><code class="language-bash">git add . &amp;&amp; git commit -m :boom: &amp;&amp; git push -u origin master
+</code></pre>
+<h3 id="applicationset">ApplicationSet</h3>
+<p>The <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/" target="_blank" rel="noopener">ApplicationSet Controller</a> is a <strong>factory</strong> of <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#applications" target="_blank" rel="noopener">ArgoCD Application</a></p>
+<p>We use a series of <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators/" target="_blank" rel="noopener">Generators</a> to <strong>create multiple applications</strong> from one place</p>
+<p>Our project uses the <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-List/" target="_blank" rel="noopener">List Generator</a> to <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/argocd/.tmpl/applicationset.yaml#L6-L19" target="_blank" rel="noopener">generate 3 applications</a></p>
+<p>A <strong>very good</strong> <a href="https://www.youtube.com/watch?v=f27sfzUiaK4" target="_blank" rel="noopener">video</a> explaining <strong>how ApplicationSet works</strong></p>
+<p><strong>Note</strong> : sometimes it is <strong>difficult to debug</strong> an ApplicationSet that does not start correctly</p>
+<p>And we sometimes <strong>lose time</strong> when <strong>3 simple Application would have been simpler</strong> !</p>
+<p>We launch our ApplicationSet :</p>
+<pre><code class="language-bash">kubectl apply -f argocd/applicationset.yaml
+</code></pre>
+<p>The 3 applications are <strong>installing</strong> :</p>
+<p><img loading="lazy" src="img/argocd-as-installing.png" alt="argocd-as-installing.png"  /></p>
+<p>They are now <strong>installed</strong> :</p>
+<p><img loading="lazy" src="img/argocd-as-installed.png" alt="argocd-as-installed.png"  /></p>
+<p>We open our browser on <a href="http://0.0.0.0:9000/" target="_blank" rel="noopener">http://0.0.0.0:9000/</a> :</p>
+<p><img loading="lazy" src="img/localhost-9000.png" alt="localhost-9000.png"  /></p>
+<p>We select an <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/test/rhino.jpg" target="_blank" rel="noopener">image in the applicationset-convert</a> module and then <strong>upload</strong> it  :</p>
+<p><img loading="lazy" src="img/localhost-9000-upload.png" alt="localhost-9000-upload.png"  /></p>
+<p>The image is <strong>converted</strong> :</p>
+<p><img loading="lazy" src="img/localhost-9000-converted.png" alt="localhost-9000-converted.png"  /></p>
+<h3 id="udating-the-convert-image">Udating the convert image</h3>
+<p>Before we start, let&rsquo;s open a <strong>new terminal window</strong> in our <strong>infra</strong> module</p>
+<p>We display the <strong>continuous logs</strong> of the <a href="https://github.com/jeromedecoster/applicationset-infra/blob/master/make.sh#L168-L170" target="_blank" rel="noopener">argocd image updater application</a> :</p>
+<pre><code class="language-bash">#argocd image updater logs
+make image-updater-logs
+</code></pre>
+<p>In the convert module we <strong>modify</strong> the <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/convert/index.js#L78-L82" target="_blank" rel="noopener">Javascript code</a></p>
+<p>We <strong>switch</strong> from this version :</p>
+<pre><code class="language-js">.greyscale() // version 0.0.1
+//.tint({ r: 255, g: 0, b: 0 }) // 0.0.2
+</code></pre>
+<p>to this version :</p>
+<pre><code class="language-js">//.greyscale() // version 0.0.1
+.tint({ r: 255, g: 0, b: 0 }) // 0.0.2
+</code></pre>
+<p>We will <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/make.sh#L177-L187" target="_blank" rel="noopener">increment our version</a>, from <code>0.0.1</code> to <code>0.0.2</code></p>
+<p>Then <a href="https://github.com/jeromedecoster/applicationset-convert/blob/master/make.sh#L252-L258" target="_blank" rel="noopener">build and push</a> this <strong>new image to ECR</strong> :</p>
+<pre><code class="language-bash"># update-patch + ecr-push
+make increase-build-push
+</code></pre>
+<p>The image is <strong>pushed</strong> to ECR :</p>
+<p><img loading="lazy" src="img/ecr-convert-0.0.2.png" alt="ecr-convert-0.0.2.png"  /></p>
+<p>After a few seconds, <strong>ArgoCD Image Updater commits</strong> a <code>.argocd-source-convert.yaml</code> file :</p>
+<p><img loading="lazy" src="img/github-convert.png" alt="github-convert.png"  /></p>
+<p>And after another delay, ArgoCD is <strong>updating the docker image</strong> :</p>
+<p><img loading="lazy" src="img/argocd-convert-updating.png" alt="argocd-convert-updating.png"  /></p>
+<p>The <strong>docker image is updated within kubernetes</strong> :</p>
+<p><img loading="lazy" src="img/argocd-convert-updated.png" alt="argocd-convert-updated.png"  /></p>
+<p>We are <strong>uploading</strong> a new image :</p>
+<p><img loading="lazy" src="img/convert-update-upload.png" alt="convert-update-upload.png"  /></p>
+<p>The image has been successfully <strong>converted</strong> :</p>
+<p><img loading="lazy" src="img/convert-update-converted.png" alt="convert-update-converted.png"  /></p>
+<h3 id="udating-the-website-image">Udating the website image</h3>
+<p>In the website module we <strong>modify</strong> the <a href="https://github.com/jeromedecoster/applicationset-website/blob/master/website/views/index.njk#L11-L27" target="_blank" rel="noopener">CSS code</a></p>
+<p>We <strong>switch</strong> from this version :</p>
+<pre><code class="language-css">h2 {
+    margin-bottom: .8em;
+
+    /* version 0.0.2 */
+    /*
+    font-size: 1.8em;
+    font-style: italic;
+    color: red;
+    */
+</code></pre>
+<p>to this version :</p>
+<pre><code class="language-css">h2 {
+    margin-bottom: .8em;
+
+    /* version 0.0.2 */
+    /* */
+    font-size: 1.8em;
+    font-style: italic;
+    color: red;
+</code></pre>
+<p>We <strong>increment</strong>, <strong>build</strong> again and <strong>push</strong> the new image to ECR :</p>
+<pre><code class="language-bash"># update-patch + ecr-push
+make increase-build-push
+</code></pre>
+<p>The image is <strong>pushed</strong> :</p>
+<p><img loading="lazy" src="img/ecr-website-0.0.2.png" alt="ecr-website-0.0.2.png"  /></p>
+<p>Then the file <code>.argocd-source-convert.yaml</code> is <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/github-website.png" alt="github-website.png"  /></p>
+<p>ArgoCD is <strong>updating the docker image</strong> :</p>
+<p><img loading="lazy" src="img/argocd-website-updating.png" alt="argocd-website-updating.png"  /></p>
+<p>The image is <strong>updated</strong> :</p>
+<p><img loading="lazy" src="img/argocd-website-updated.png" alt="argocd-website-updated.png"  /></p>
+<p>After a few seconds, we reload <a href="http://0.0.0.0:9000/" target="_blank" rel="noopener">http://0.0.0.0:9000/</a></p>
+<p>The <strong>title has changed</strong> :</p>
+<p><img loading="lazy" src="img/website-0.0.2.png" alt="website-0.0.2.png"  /></p>
+<h3 id="cleaning">Cleaning</h3>
+<p>This demonstration is now over, we are <strong>destroying the resources</strong> :</p>
+<pre><code class="language-bash">kubectl delete -f argocd/applicationset.yaml
+</code></pre>
+<p><img loading="lazy" src="img/argocd-destroying.png" alt="argocd-destroying.png"  /></p>
+<p>In <strong>each module</strong>, execute the following commands :</p>
+<pre><code class="language-bash"># terraform destroy
+make terraform-destroy
+
+# clear builded docker images
+make clear
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/applicationset/">applicationset</a>
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd-image-updater/">argocd-image-updater</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/black-white/">black-white</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kind/">kind</a>
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 20 Oct 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>
