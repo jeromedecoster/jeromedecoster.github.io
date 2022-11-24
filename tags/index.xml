@@ -5,10 +5,118 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Tue, 18 Oct 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Nov 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD</title>
+      <link>/tags/argocd/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ArgoCD Image Updater</title>
+      <link>/tags/argocd-image-updater/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd-image-updater/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>AWS</title>
+      <link>/tags/aws/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ECR</title>
+      <link>/tags/ecr/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ecr/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github</title>
+      <link>/tags/github/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kind</title>
+      <link>/tags/kind/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kind/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Sync Wave</title>
+      <link>/tags/sync-wave/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/sync-wave/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
     <item>
       <title>ApplicationSet</title>
       <link>/tags/applicationset/</link>
@@ -22,107 +130,11 @@
       </description>
     </item>
     <item>
-      <title>ArgoCD</title>
-      <link>/tags/argocd/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/argocd/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>ArgoCD Image Updater</title>
-      <link>/tags/argocd-image-updater/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/argocd-image-updater/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>AWS</title>
-      <link>/tags/aws/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/aws/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Black-White</title>
       <link>/tags/black-white/</link>
       <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/black-white/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>ECR</title>
-      <link>/tags/ecr/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/ecr/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Github</title>
-      <link>/tags/github/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/github/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Kind</title>
-      <link>/tags/kind/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/kind/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Kubernetes</title>
-      <link>/tags/kubernetes/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/kubernetes/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       

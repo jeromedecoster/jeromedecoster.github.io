@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.106.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,ArgoCD,Sync Wave,ArgoCD Image Updater,Kind,Github,Kubernetes,Terraform,ECR'><meta name="description" content='Deploying app to Kubernetes and setup Postgres database using ArgoCD Sync Wave in a Kind cluster with Terraform.'><meta property="og:title" content="ArgoCD Sync Wave &#43; Postgres" />
+<meta property="og:description" content="Deploying app to Kubernetes and setup Postgres database using **ArgoCD Sync Wave** in a **Kind** cluster with **Terraform**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/argocd-sync-wave--postgres/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-11-22T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-11-22T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ArgoCD Sync Wave &#43; Postgres"/>
+<meta name="twitter:description" content="Deploying app to Kubernetes and setup Postgres database using **ArgoCD Sync Wave** in a **Kind** cluster with **Terraform**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>ArgoCD Sync Wave &#43; Postgres | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-application">The application</a></li>
+        <li><a href="#setup">Setup</a></li>
+        <li><a href="#setup-the-infrastructure">Setup the infrastructure</a></li>
+        <li><a href="#build-and-push-the-image-to-ecr">Build and push the image to ECR</a></li>
+        <li><a href="#start-kind-install-argocd--argocd-image-updater">Start Kind, install ArgoCD + ArgoCD Image Updater</a></li>
+        <li><a href="#create-namespaces--secrets">Create namespaces + secrets</a></li>
+        <li><a href="#build-manifest-files-from-templates">Build manifest files from templates</a></li>
+        <li><a href="#watch">Watch</a></li>
+        <li><a href="#deployment-without-sync">Deployment without sync</a></li>
+        <li><a href="#deployment-with-sync-wave">Deployment with Sync Wave</a></li>
+        <li><a href="#cleaning">Cleaning</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">22</span>
+<span class="rest">Nov 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">ArgoCD Sync Wave &#43; Postgres</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Build a voting app with <strong>Nodejs</strong> and <strong>Postgres</strong></li>
+<li>Docker images are pushed to a <strong>private ECR repository</strong></li>
+<li>Deploy <strong>ArgoCD</strong> + <strong>ArgoCD Image Updater</strong> in a <strong>Kind</strong> cluster</li>
+<li>Deploy the application <strong>without ArgoCD Sync Wave</strong></li>
+<li>A Kubernetes <strong>Job is used to configure and populate the database</strong></li>
+<li>Watch and analyze deployment behavior</li>
+<li>Then deploy the application <strong>with ArgoCD Sync Wave</strong></li>
+<li>Watch and analyze the <strong>difference in behavior between deployments</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/banner.png" alt="banner.png"  /></p>
+<h3 id="the-application">The application</h3>
+<p>This project is composed by :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/vote" target="_blank" rel="noopener">vote</a> : the voting application (a website in Nodejs)</li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/terraform" target="_blank" rel="noopener">terraform</a> : several terraform projects to manage the different stages of creation of the main project (<strong>reduce bash scripts and replace them with terraform code</strong>)</li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests" target="_blank" rel="noopener">manifests</a> : the  kubenetes templates</li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/argocd/.tmpl" target="_blank" rel="noopener">argocd</a> : the templates that define argocd applications</li>
+</ul>
+<p>The voting application is defined with a few <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/no-sync/.tmpl/vote-deployment.yaml" target="_blank" rel="noopener">environment variables</a> :</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website
+  namespace: vote-app
+spec:
+  selector:
+    matchLabels:
+      app: website
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: website
+    spec:
+      containers:
+      - name: website
+        image: ${website_image}
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: VERSION
+            value: &quot;1.0.0&quot;
+          - name: WEBSITE_PORT
+            value: &quot;3000&quot;
+          - name: POSTGRES_USER
+            value: &quot;admin&quot;
+          - name: POSTGRES_HOST
+            value: &quot;postgres&quot;
+          - name: POSTGRES_DATABASE
+            value: &quot;vote&quot;
+          - name: POSTGRES_PASSWORD
+            value: &quot;password&quot;
+          - name: POSTGRES_PORT
+            value: &quot;5432&quot;
+        ports:
+        - containerPort: 3000
+      imagePullSecrets:
+        - name: regcred
+</code></pre>
+<p>The application uses a <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/no-sync/postgres-deployment.yaml" target="_blank" rel="noopener">Postgres database</a> :</p>
+<pre><code class="language-yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: vote-app
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.3-alpine
+          imagePullPolicy: Always
+          ports:
+            - name: tcp
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: vote
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: password
+</code></pre>
+<p>The <strong>database is configured and populated</strong> via <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/no-sync/postgres-seed.yaml" target="_blank" rel="noopener">a Job</a> :</p>
+<pre><code class="language-yaml">kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: postgres-script
+  namespace: vote-app
+data:
+  SQL_SCRIPT: |-
+    drop table if exists vote;
+    --
+    -- Create table `vote`
+    --
+    CREATE TABLE vote (
+      name varchar(255),
+      value integer
+    );
+    -- 
+    -- Insert values into `vote`
+    --
+    INSERT INTO vote VALUES
+    ('up', '0'),
+    ('down', '0');
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-fill
+  namespace: vote-app
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 10
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: script
+          configMap:
+            name: postgres-script
+            items:
+              - key: SQL_SCRIPT
+                path: SQL_SCRIPT_DUMP
+      initContainers:
+      - name: init-vote
+        image: busybox:latest
+        command: ['sh', '-c', 'until nc -vz postgres 5432 ; do sleep 1; done;']
+      containers:
+        - name: postgres-fill
+          image: postgres:14.3-alpine
+          volumeMounts:
+            - name: script
+              mountPath: '/script'
+          env:
+            - name: POSTGRES_DB
+              value: vote
+            - name: POSTGRES_USER
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: password
+            - name: POSTGRES_HOST
+              value: &quot;postgres&quot;
+            - name: SQL_SCRIPT
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-script
+                  key: SQL_SCRIPT
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB} --command=&quot;${SQL_SCRIPT}&quot;
+</code></pre>
+<p>You can fork <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres" target="_blank" rel="noopener">this repository</a></p>
+<p><strong>Important</strong> : make sure your repository is <strong>private</strong> as it will contain <strong>sensitive data</strong> !</p>
+<h3 id="setup">Setup</h3>
+<p>The <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L53-L66" target="_blank" rel="noopener">env-create</a> script creates an <code>.env</code> file at the root of the project and installs <a href="https://github.com/stern/stern" target="_blank" rel="noopener">stern</a> if needed :</p>
+<pre><code class="language-bash"># create .env file + install stern
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+<li><code>GITHUB_OWNER</code></li>
+<li><code>GITHUB_REPO</code></li>
+<li><code>GITHUB_TOKEN</code></li>
+</ul>
+<p>You need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">Github Token</a></p>
+<p>You need to <strong>select</strong> <code>repo</code> :</p>
+<p><img loading="lazy" src="img/token-repo.png" alt="token-repo.png"  /></p>
+<p>You need to <strong>select</strong> <code>admin:public_key</code> :</p>
+<p><img loading="lazy" src="img/token-admin-key.png" alt="token-admin-key.png"  /></p>
+<p>This Github Token is used by Terraform&rsquo;s <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/infra/providers.tf#L26-L29" target="_blank" rel="noopener">github provider</a> :</p>
+<pre><code class="language-hcl">provider &quot;github&quot; {
+  owner = var.github_owner
+  token = var.github_token
+}
+</code></pre>
+<p>To <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/infra/ssh_key.tf#L33-L36" target="_blank" rel="noopener">assign an SSH key</a> to your Github account :</p>
+<pre><code class="language-hcl">resource &quot;github_user_ssh_key&quot; &quot;ssh_key&quot; {
+  title = var.project_name
+  key   = tls_private_key.private_key.public_key_openssh
+}
+</code></pre>
+<p>Let&rsquo;s now <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L148-L152" target="_blank" rel="noopener">initialize terraform</a> <strong>projects</strong> :</p>
+<pre><code class="language-bash"># terraform init (updgrade) + validate
+make terraform-init
+</code></pre>
+<h3 id="setup-the-infrastructure">Setup the infrastructure</h3>
+<pre><code class="language-bash"># terraform create ecr repo + ssh key
+make infra-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/infra/ssh_key.tf" target="_blank" rel="noopener">SSH key</a> and add it to your Github account so you can <strong>interact with a private repository</strong></li>
+<li>Create an <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/infra/ecr.tf" target="_blank" rel="noopener">ECR repository</a></li>
+</ul>
+<p><img loading="lazy" src="img/ecr-repo.png" alt="ecr-repo.png"  /></p>
+<h3 id="build-and-push-the-image-to-ecr">Build and push the image to ECR</h3>
+<pre><code class="language-bash"># build + push docker image to ecr
+make build-ecr-push
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/build-push/docker.tf" target="_blank" rel="noopener">Build and push</a> the docker image</li>
+</ul>
+<p><img loading="lazy" src="img/ecr-image.png" alt="ecr-image.png"  /></p>
+<h3 id="start-kind-install-argocd--argocd-image-updater">Start Kind, install ArgoCD + ArgoCD Image Updater</h3>
+<pre><code class="language-bash"># setup kind + argocd + image updater
+make kind-argocd-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Start a <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/kind-argocd/kind.tf" target="_blank" rel="noopener">Kind cluster</a></li>
+<li>Install and setup <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/kind-argocd/argocd.tf" target="_blank" rel="noopener">ArgoCD and Image Updater</a></li>
+</ul>
+<pre><code class="language-bash">kubectl get ns
+NAME                 STATUS   AGE
+argocd               Active   10s
+default              Active   80s
+kube-node-lease      Active   90s
+kube-public          Active   90s
+kube-system          Active   90s
+local-path-storage   Active   70s
+</code></pre>
+<h3 id="create-namespaces--secrets">Create namespaces + secrets</h3>
+<pre><code class="language-bash"># create namespaces + secrets
+make secrets-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/secrets/kubernetes.tf" target="_blank" rel="noopener">namepsaces and secrets</a></li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/namespaces" target="_blank" rel="noopener">Namespaces</a> are defined with these templates</li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/secrets" target="_blank" rel="noopener">Secrets</a> are defined with these templates</li>
+</ul>
+<pre><code class="language-bash">kubectl get secrets -n vote-app
+NAME      TYPE                             DATA   AGE
+regcred   kubernetes.io/dockerconfigjson   1      10s
+</code></pre>
+<h3 id="build-manifest-files-from-templates">Build manifest files from templates</h3>
+<pre><code class="language-bash"># create files using templates
+make templates-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Build some <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/terraform/templates/templates.tf" target="_blank" rel="noopener">files from templates</a></li>
+<li>Inject variables within <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/argocd/.tmpl" target="_blank" rel="noopener">ArgoCD applications</a></li>
+<li>Inject variables within <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/no-sync/.tmpl" target="_blank" rel="noopener">deployements</a> <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/sync/.tmpl" target="_blank" rel="noopener">files</a></li>
+</ul>
+<p><strong>Important</strong> : generated files <strong>must be added</strong> to your git repository :</p>
+<pre><code class="language-bash">git add . &amp;&amp; git commit -m update &amp;&amp; git push -u origin master
+</code></pre>
+<p>We open the ArgoCD web interface :</p>
+<pre><code class="language-bash"># open argocd (website)
+make argocd-open
+</code></pre>
+<p><img loading="lazy" src="img/argocd.png" alt="argocd.png"  /></p>
+<h3 id="watch">Watch</h3>
+<p>Here are 4 useful ways to monitor logs and activity in our cluster</p>
+<p><strong>1.</strong> In a new terminal window <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L229-L231" target="_blank" rel="noopener">run the command</a> :</p>
+<pre><code class="language-bash"># watch logs using stern
+make watch-logs
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L229-L231" target="_blank" rel="noopener">command uses Stern</a>, a <strong>very nice tool</strong></p>
+<pre><code class="language-bash">stern . --namespace vote-app
+</code></pre>
+<blockquote>
+<p><a href="https://github.com/stern/stern" target="_blank" rel="noopener">Stern</a> allows you to <strong>tail multiple pods</strong> on Kubernetes and <strong>multiple containers within the pod</strong>. Each result is <strong>color coded for quicker debugging</strong>.</p>
+</blockquote>
+<p><strong>2.</strong> In a new terminal window run <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L234-L236" target="_blank" rel="noopener">the command</a> :</p>
+<pre><code class="language-bash"># watch all within namespace
+make watch-all
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L234-L236" target="_blank" rel="noopener">command refresh each second</a> you terminal to <strong>list all content</strong> within the <code>vote-app</code> namespace</p>
+<p><strong>3.</strong> In a new terminal window run <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L239-L241" target="_blank" rel="noopener">the command</a> :</p>
+<pre><code class="language-bash"># watch pods using kubectl
+make watch-pods
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L239-L241" target="_blank" rel="noopener">command</a> uses the <code>--watch</code> option of kubectl. <strong>Only new states are displayed</strong>. <strong>No refresh</strong> of the complete display of the terminal. So it&rsquo;s a <strong>useful history</strong>.</p>
+<p><strong>4.</strong> In a new terminal window run <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L243-L249" target="_blank" rel="noopener">the command</a> :</p>
+<pre><code class="language-bash"># watch events using kubectl
+make watch-events
+</code></pre>
+<p>This <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L243-L249" target="_blank" rel="noopener">command</a> retrieve the <code>events</code> with <code>kubectl</code> with a combination of <a href="https://kubernetes.io/docs/reference/kubectl/#custom-columns" target="_blank" rel="noopener">custom-columns</a>. It&rsquo;s practical and <strong>very detailed</strong> (sometimes too much).</p>
+<pre><code class="language-bash">kubectl get event \
+    --output=custom-columns=TIME:.firstTimestamp,NAME:.metadata.name,REASON:.reason \
+    --namespace vote-app \
+    --watch
+</code></pre>
+<h3 id="deployment-without-sync">Deployment without sync</h3>
+<pre><code class="language-bash"># create app (no sync)
+make app-no-sync-create
+</code></pre>
+<p>We deploy the ArgoCD <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/argocd/.tmpl/application-no-sync.yaml" target="_blank" rel="noopener">no-sync-wave application</a></p>
+<p>The application deploys the manifests contained in the <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/no-sync" target="_blank" rel="noopener">manifests/no-sync folder</a></p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: no-sync-wave
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: website=${website_image}
+    argocd-image-updater.argoproj.io/website.pull-secret: secret:argocd/aws-ecr-creds#creds
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
+spec:
+  project: default
+
+  source:
+    repoURL: ${git_repo_url}
+    targetRevision: HEAD
+    path: manifests/no-sync
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: default
+</code></pre>
+<p><strong>Important</strong> : if you use <a href="https://kubernetes.io/docs/concepts/workloads/controllers/job/" target="_blank" rel="noopener">Job</a> / <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/" target="_blank" rel="noopener">CronJob</a> + <a href="https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/" target="_blank" rel="noopener">ttlSecondsAfterFinished</a> with ArgoCD, <strong>ArgoCD will instantly recreate the job</strong>.</p>
+<p>Because <strong>the desired state differs from the new current state</strong> (ArgoCD ignore your <code>ttlSecondsAfterFinished</code> declaration)</p>
+<p>To resolve this use the <strong>annotations</strong> : <code>hook: Sync</code> + <code>hook-delete-policy: HookSucceeded</code></p>
+<pre><code class="language-yaml">annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+</code></pre>
+<p><a href="https://argo-cd.readthedocs.io/en/stable/user-guide/resource_hooks/#usage" target="_blank" rel="noopener">Hooks</a> are simply Kubernetes manifests tracked in the source repository of your Argo CD Application using the <strong>annotation</strong> <code>hook</code></p>
+<ul>
+<li><code>hook: Sync</code> : Executes after all <code>PreSync</code> hooks completed and were successful, at the same time as the application of the manifests</li>
+</ul>
+<p><a href="https://argo-cd.readthedocs.io/en/stable/user-guide/resource_hooks/#hook-deletion-policies" target="_blank" rel="noopener">Hooks</a> can be deleted in an automatic fashion using the <strong>annotation</strong> <code>hook-delete-policy</code></p>
+<ul>
+<li><code>hook-delete-policy: HookSucceeded</code> : The hook resource is deleted after the hook succeeded (e.g. Job/Workflow completed successfully)</li>
+</ul>
+<p>By <strong>analyzing the logs</strong> in the different terminals, we will see :</p>
+<ul>
+<li>The <code>website</code> pod is <strong>running before</strong> <code>postgres</code> pod :</li>
+</ul>
+<p><img loading="lazy" src="img/no-sync-argocd.png" alt="no-sync-argocd.png"  /></p>
+<ul>
+<li>The logs show <strong>connection errors</strong> :</li>
+</ul>
+<p><img loading="lazy" src="img/no-sync-website-error.png" alt="no-sync-website-error.png"  /></p>
+<ul>
+<li>The <strong>log history shows the number of failed tries</strong> :</li>
+</ul>
+<pre><code class="language-bash">postgres-5cb5b9584d-psnc8   0/1     Pending   0          0s
+website-85984b8d5d-jbv6z    0/1     Pending   0          0s
+postgres-5cb5b9584d-psnc8   0/1     Pending   0          0s
+website-85984b8d5d-jbv6z    0/1     Pending   0          0s
+postgres-5cb5b9584d-psnc8   0/1     ContainerCreating   0          0s
+website-85984b8d5d-jbv6z    0/1     ContainerCreating   0          1s
+postgres-fill-9vz9k         0/1     Pending             0          0s
+postgres-fill-9vz9k         0/1     Pending             0          0s
+postgres-fill-9vz9k         0/1     Init:0/1            0          0s
+website-85984b8d5d-jbv6z    1/1     Running             0          36s
+website-85984b8d5d-jbv6z    0/1     Error               0          57s
+website-85984b8d5d-jbv6z    1/1     Running             1 (23s ago)   59s
+website-85984b8d5d-jbv6z    0/1     Error               1 (25s ago)   61s
+website-85984b8d5d-jbv6z    0/1     CrashLoopBackOff    1 (13s ago)   72s
+website-85984b8d5d-jbv6z    1/1     Running             2 (14s ago)   73s
+website-85984b8d5d-jbv6z    0/1     Error               2 (17s ago)   76s
+postgres-5cb5b9584d-psnc8   1/1     Running             0             84s
+website-85984b8d5d-jbv6z    0/1     CrashLoopBackOff    2 (18s ago)   92s
+postgres-fill-9vz9k         0/1     Init:0/1            0             97s
+website-85984b8d5d-jbv6z    1/1     Running             3 (37s ago)   111s
+website-85984b8d5d-jbv6z    0/1     Error               3 (46s ago)   2m
+postgres-fill-9vz9k         0/1     PodInitializing     0             2m2s
+postgres-fill-9vz9k         1/1     Running             0             2m3s
+postgres-fill-9vz9k         0/1     Completed           0             2m4s
+postgres-fill-9vz9k         0/1     Completed           0             2m7s
+postgres-fill-9vz9k         0/1     Completed           0             2m8s
+postgres-fill-9vz9k         0/1     Terminating         0             2m9s
+postgres-fill-9vz9k         0/1     Terminating         0             2m10s
+website-85984b8d5d-jbv6z    0/1     CrashLoopBackOff    3 (21s ago)   2m12s
+website-85984b8d5d-jbv6z    1/1     Running             4 (47s ago)   2m38s
+</code></pre>
+<p>We remove the application by running <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/make.sh#L255-L257" target="_blank" rel="noopener">this command</a> :</p>
+<pre><code class="language-bash"># destroy app (no sync)
+make app-no-sync-destroy
+</code></pre>
+<h3 id="deployment-with-sync-wave">Deployment with Sync Wave</h3>
+<p>ArgoCD Sync Waves are defined by the following annotation :</p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: &quot;5&quot;
+</code></pre>
+<p>Default value is <code>0</code>. A wave <strong>can be negative</strong></p>
+<p>Each wave represents <strong>a step to complete before moving on to the next wave</strong> (lowest values first)</p>
+<p><strong>Within a wave</strong>, the resources are executed in <a href="https://github.com/argoproj/gitops-engine/blob/bc9ce5764fa306f58cf59199a94f6c968c775a2d/pkg/sync/sync_tasks.go#L27-L66" target="_blank" rel="noopener">this order</a> : <code>namespaces</code> <strong>then the other resources</strong> &hellip;</p>
+<p>The current <strong>delay between each sync wave</strong> is <code>2 seconds</code></p>
+<p>Exhaustive ArgoCD <a href="https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/" target="_blank" rel="noopener">Sync Waves documentation</a></p>
+<pre><code class="language-bash"># create app (no sync)
+make app-sync-create
+</code></pre>
+<p>We deploy the ArgoCD <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/argocd/.tmpl/application-sync.yaml" target="_blank" rel="noopener">Sync Wave application</a></p>
+<p>The application deploys the manifests contained in the <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/manifests/sync" target="_blank" rel="noopener">manifests/sync</a> folder</p>
+<p>Here are some <strong>interesting steps defined</strong> for the deployment of our application :</p>
+<ol>
+<li>
+<p><code>sync-wave: &quot;0&quot;</code> : <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/sync/postgres-deployment.yaml#L8" target="_blank" rel="noopener">Postgres database</a> deployment</p>
+</li>
+<li>
+<p><code>sync-wave: &quot;1&quot;</code> : Creation of a <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/sync/postgres-seed.yaml#L7" target="_blank" rel="noopener">ConfigMap containing the SQL script</a></p>
+</li>
+<li>
+<p><code>sync-wave: &quot;1&quot;</code> : Job to <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/sync/postgres-seed.yaml#L33" target="_blank" rel="noopener">create the schema and seed</a> the database</p>
+</li>
+<li>
+<p><code>sync-wave: &quot;2&quot;</code> : Deploying the <a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/blob/master/manifests/sync/.tmpl/vote-deployment.yaml#L7" target="_blank" rel="noopener">Node app</a></p>
+</li>
+</ol>
+<p>By <strong>analyzing the logs</strong> in the different terminals, we will see :</p>
+<ul>
+<li>The <code>website</code> pod is <strong>waiting</strong> the <code>postgres</code> + <code>postgres-fill</code> pods :</li>
+</ul>
+<p><img loading="lazy" src="img/sync-argocd.png" alt="sync-argocd.png"  /></p>
+<ul>
+<li>The logs show <strong>no errors</strong> and a <strong>fast and clean execution</strong> :</li>
+</ul>
+<p><img loading="lazy" src="img/sync-steps.png" alt="sync-steps.png"  /></p>
+<ul>
+<li>The <strong>log history shows fast and clean steps</strong> :</li>
+</ul>
+<pre><code class="language-bash">make watch-pods
+NAME                        READY   STATUS    RESTARTS   AGE
+postgres-5cb5b9584d-dz9m9   0/1     Pending   0          0s
+postgres-5cb5b9584d-dz9m9   0/1     Pending   0          0s
+postgres-5cb5b9584d-dz9m9   0/1     ContainerCreating   0          0s
+postgres-5cb5b9584d-dz9m9   1/1     Running             0          4s
+postgres-fill-925b5         0/1     Pending             0          0s
+postgres-fill-925b5         0/1     Pending             0          0s
+postgres-fill-925b5         0/1     Init:0/1            0          1s
+postgres-fill-925b5         0/1     Init:0/1            0          8s
+postgres-fill-925b5         0/1     PodInitializing     0          13s
+postgres-fill-925b5         1/1     Running             0          14s
+postgres-fill-925b5         0/1     Completed           0          15s
+postgres-fill-925b5         0/1     Completed           0          17s
+postgres-fill-925b5         0/1     Completed           0          18s
+website-85984b8d5d-hrtx7    0/1     Pending             0          0s
+website-85984b8d5d-hrtx7    0/1     Pending             0          0s
+website-85984b8d5d-hrtx7    0/1     ContainerCreating   0          1s
+postgres-fill-925b5         0/1     Terminating         0          22s
+postgres-fill-925b5         0/1     Terminating         0          22s
+website-85984b8d5d-hrtx7    1/1     Running             0          4s
+</code></pre>
+<p>We open our browser on <a href="http://localhost:9000/" target="_blank" rel="noopener">http://0.0.0.0:9000/</a> :</p>
+<p><img loading="lazy" src="img/vote.png" alt="vote.png"  /></p>
+<h3 id="cleaning">Cleaning</h3>
+<p>This demonstration is now over, we are <strong>destroying the resources</strong> :</p>
+<pre><code class="language-bash"># terraform destroy kind + argocd
+make kind-argocd-destroy
+
+# terraform destroy ecr repo + ssh key
+make infra-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd-image-updater/">argocd-image-updater</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kind/">kind</a>
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/sync-wave/">sync-wave</a>
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 24 Nov 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>
