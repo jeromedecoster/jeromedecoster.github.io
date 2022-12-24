@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.109.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='AWS,ArgoCD,Pull Request,Github,Kind,Github,Kubernetes,Terraform,ECR'><meta name="description" content='Deploying app to Kubernetes. Creating a new environment for each pull request.'><meta property="og:title" content="Create temporary environment from Pull Request with ArgoCD ApplicationSet" />
+<meta property="og:description" content="Deploying app to Kubernetes. Creating a **new environment for each pull request**." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/aws/create-temporary-environment-from-pull-request-with-argocd-applicationset/" /><meta property="article:section" content="aws" />
+<meta property="article:published_time" content="2022-12-21T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-12-21T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Create temporary environment from Pull Request with ArgoCD ApplicationSet"/>
+<meta name="twitter:description" content="Deploying app to Kubernetes. Creating a **new environment for each pull request**."/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Create temporary environment from Pull Request with ArgoCD ApplicationSet | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-application">The application</a></li>
+        <li><a href="#setup">Setup</a></li>
+        <li><a href="#setup-the-infrastructure">Setup the infrastructure</a></li>
+        <li><a href="#start-kind-install-argocd">Start Kind, install ArgoCD</a></li>
+        <li><a href="#create-namespaces--secrets">Create namespaces + secrets</a></li>
+        <li><a href="#build-manifest-files-from-templates">Build manifest files from templates</a></li>
+        <li><a href="#the-vote-repository">The vote repository</a></li>
+        <li><a href="#master-application">Master Application</a></li>
+        <li><a href="#pull-request-applicationset">Pull Request ApplicationSet</a></li>
+        <li><a href="#first-pull-request-using-github-website">First Pull Request using github website</a></li>
+        <li><a href="#second-pull-request-using-github-cli">Second Pull Request using github cli</a></li>
+        <li><a href="#merging-to-master-using-github-website">Merging to master using github website</a></li>
+        <li><a href="#merging-to-master-using-github-cli">Merging to master using github cli</a></li>
+        <li><a href="#cleaning">Cleaning</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">21</span>
+<span class="rest">Dec 2022</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Create temporary environment from Pull Request with ArgoCD ApplicationSet</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Build a voting app with <strong>Nodejs</strong> and <strong>Postgres</strong></li>
+<li>Docker images are pushed to a <strong>private ECR repository</strong></li>
+<li>Deploy <strong>ArgoCD</strong> in a <strong>Kind</strong> cluster</li>
+<li>Each git <strong>push on the master branch</strong> will build an image and <strong>update the app in kubernetes</strong></li>
+<li>Creating a <strong>Pull Request</strong> on Github will <strong>create a new environment available in a specific port</strong></li>
+<li>Each git <strong>push on this git branch</strong> will build an image and <strong>update the app in this environment</strong></li>
+<li>Closing the pull request will <strong>terminate the environment and clean the docker registry</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/banner.png" alt="banner.png"  /></p>
+<h3 id="the-application">The application</h3>
+<p>This project is composed by :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/argocd-pull-request-vote" target="_blank" rel="noopener">vote</a> : the voting application (a website in Nodejs)</li>
+<li><a href="https://github.com/jeromedecoster/argocd-pull-request-infra" target="_blank" rel="noopener">infra</a> : this module is used to manage the infrastructure</li>
+<li><a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/terraform" target="_blank" rel="noopener">terraform</a> : several terraform projects to manage the different stages of creation of the main project (<strong>reduce bash scripts and replace them with terraform code</strong>)</li>
+<li><a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/manifests" target="_blank" rel="noopener">manifests</a> : the  kubenetes templates</li>
+<li><a href="https://github.com/jeromedecoster/argocd-sync-wave-postgres/tree/master/argocd/.tmpl" target="_blank" rel="noopener">argocd</a> : the templates that define argocd applications</li>
+<li><a href="https://github.com/jeromedecoster/argocd-pull-request-vote/tree/master/.github/workflows" target="_blank" rel="noopener">workflows</a> : the voting app use <strong>3 github actions workflows</strong></li>
+</ul>
+<p>You can fork this <strong>2 repositories</strong> on your machine</p>
+<p><strong>Important</strong> : make sure your repository is <strong>private</strong> as it will contain <strong>sensitive data</strong> !</p>
+<h3 id="setup">Setup</h3>
+<p>Let&rsquo;s start by initializing the infra module</p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/make.sh#L49-L74" target="_blank" rel="noopener">env-create</a> script creates an <code>.env</code> file at the root of the project :</p>
+<pre><code class="language-bash"># create .env file
+make env-create
+</code></pre>
+<p>You must <strong>modify</strong> the generated <code>.env</code> file with <strong>your own variables</strong> :</p>
+<ul>
+<li><code>AWS_REGION</code></li>
+<li><code>GITHUB_OWNER</code></li>
+<li><code>GITHUB_REPO_URL_INFRA</code></li>
+<li><code>GITHUB_REPO_URL_VOTE</code></li>
+<li><code>GITHUB_TOKEN</code></li>
+</ul>
+<p>You need to create a <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">Github Token</a></p>
+<p>You need to <strong>select</strong> <code>repo</code> :</p>
+<p><img loading="lazy" src="img/token-repo.png" alt="token-repo.png"  /></p>
+<p>You need to <strong>select</strong> <code>admin:public_key</code> :</p>
+<p><img loading="lazy" src="img/token-admin-key.png" alt="token-admin-key.png"  /></p>
+<p>This Github Token is used by Terraform&rsquo;s <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/infra/providers.tf#L45-L48" target="_blank" rel="noopener">github provider</a> :</p>
+<pre><code class="language-hcl">provider &quot;github&quot; {
+  owner = var.github_owner
+  token = var.github_token
+}
+</code></pre>
+<p>To <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/infra/ssh_key.tf#L33-L36" target="_blank" rel="noopener">assign an SSH key</a> to your Github account :</p>
+<pre><code class="language-hcl">resource &quot;github_user_ssh_key&quot; &quot;ssh_key&quot; {
+  title = var.project_name
+  key   = tls_private_key.private_key.public_key_openssh
+}
+</code></pre>
+<p>Let&rsquo;s now <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/make.sh#L79-L82" target="_blank" rel="noopener">initialize terraform</a> <strong>projects</strong> :</p>
+<pre><code class="language-bash"># terraform init (upgrade) + validate
+make terraform-init
+</code></pre>
+<h3 id="setup-the-infrastructure">Setup the infrastructure</h3>
+<pre><code class="language-bash"># terraform create ecr repo + ssh key
+make infra-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create an <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/infra/ssh_key.tf" target="_blank" rel="noopener">SSH key</a> and add it to your Github account so you can <strong>interact with a private repository</strong></li>
+<li>Create an <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/infra/ecr.tf" target="_blank" rel="noopener">ECR repository</a></li>
+</ul>
+<p><img loading="lazy" src="img/ecr-repo.png" alt="ecr-repo.png"  /></p>
+<p>The <a href="https://github.com/settings/keys" target="_blank" rel="noopener">github key</a> is created :</p>
+<p><img loading="lazy" src="img/github-key.png" alt="github-key.png"  /></p>
+<h3 id="start-kind-install-argocd">Start Kind, install ArgoCD</h3>
+<pre><code class="language-bash"># setup kind + argocd
+make kind-argocd-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Start a <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/kind-argocd/kind.tf" target="_blank" rel="noopener">Kind cluster</a></li>
+<li>Install and setup <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/kind-argocd/argocd.tf" target="_blank" rel="noopener">ArgoCD</a></li>
+</ul>
+<pre><code class="language-bash">kubectl get ns
+NAME                 STATUS   AGE
+argocd               Active   10s
+default              Active   80s
+kube-node-lease      Active   90s
+kube-public          Active   90s
+kube-system          Active   90s
+local-path-storage   Active   70s
+</code></pre>
+<p>We open the ArgoCD web interface :</p>
+<pre><code class="language-bash"># open argocd (website)
+make argocd-open
+</code></pre>
+<p><img loading="lazy" src="img/argocd-init.png" alt="argocd-init.png"  /></p>
+<h3 id="create-namespaces--secrets">Create namespaces + secrets</h3>
+<pre><code class="language-bash"># create namespaces + secrets
+make secrets-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Create <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/secrets/kubernetes.tf" target="_blank" rel="noopener">namepsaces and secrets</a></li>
+<li>Manifests used for <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/manifests/namespaces" target="_blank" rel="noopener">namespaces</a></li>
+<li>Manifests used <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/manifests/secrets" target="_blank" rel="noopener">secrets</a></li>
+<li>Manifests used <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/manifests/jobs" target="_blank" rel="noopener">jobs</a></li>
+</ul>
+<p>The <strong>ECR token</strong> is used to <strong>allow Kubernetes to download your images from a private ECR repository</strong></p>
+<p>The token generated by AWS is <strong>only valid</strong> <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html" target="_blank" rel="noopener">12 hours</a> !</p>
+<p>We therefore need to create a <strong>CronJob which will update this token</strong> every <code>10 hours</code></p>
+<p>For this demo a new token is requested every <code>3 minutes</code></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/manifests/jobs/aws-ecr-auth-docker-config-updater.yaml" target="_blank" rel="noopener">aws-ecr-auth-docker-config-updater job</a> is used to <strong>update the ECR credentials</strong> :</p>
+<pre><code class="language-yaml">schedule: &quot;*/2 * * * *&quot;
+jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: aws-ecr-auth-docker-config-updater
+          restartPolicy: Never
+          volumes:
+          - emptyDir:
+              medium: Memory
+            name: store
+          initContainers:
+            - image: amazon/aws-cli
+              name: get-token
+              envFrom:
+              - secretRef:
+                  name: aws-access-keys
+              volumeMounts:
+                - mountPath: /store
+                  name: store
+              command:
+                - /bin/sh
+                - -ce
+                - aws ecr get-login-password --region ${aws_region} &gt; /store/token
+          containers:
+            - image: bitnami/kubectl
+              name: kubectl
+              volumeMounts:
+                - mountPath: /store
+                  name: store
+              command:
+                - /bin/sh
+                - -c
+                - |-
+                  date &quot;+%Y-%d-%m %H:%M:%S config-updater&quot;
+                  
+                  DATE=$(date &quot;+%Y-%m-%dT%H:%M:%SZ&quot;)
+                  kubectl create secret docker-registry aws-ecr-auth-docker-config \
+                    --docker-server=${docker_server} \
+                    --docker-username=AWS \
+                    --docker-password=&quot;$(cat /store/token)&quot; \
+                    --dry-run=client \
+                    --namespace vote \
+                    --output json |
+                    jq --arg v $DATE 'del(.metadata.creationTimestamp) | .metadata.annotations.updateTimestamp = $v' |
+                    kubectl apply -f -
+</code></pre>
+<p>The previously created secret is <strong>only valid in a single namespace</strong></p>
+<p>In our project, each <a href="https://docs.github.com/en/pull-requests" target="_blank" rel="noopener">Pull Request</a> will create a <strong>new environment within a dedicated namespace</strong></p>
+<p>It is therefore necessary to <strong>copy this automatically updated secret into these new namespaces</strong></p>
+<p>A <strong>trick</strong> is to create a <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/manifests/jobs/aws-ecr-auth-docker-config-replicator.yaml" target="_blank" rel="noopener">job</a> that <strong>runs continuously and duplicates the referral secret</strong> <code>every x seconds</code> in the other namespaces :</p>
+<pre><code class="language-yaml">template:
+  spec:
+    serviceAccountName: aws-ecr-auth-docker-config-replicator
+    restartPolicy: Never
+    containers:
+      - image: bitnami/kubectl
+        name: kubectl
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            while true; do
+            date &quot;+%Y-%d-%m %H:%M:%S config-replicator&quot;
+            kubectl get ns -o custom-columns=:.metadata.name | 
+            grep vote-pr |
+            while read ns; do 
+                kubectl get secret aws-ecr-auth-docker-config \
+                --namespace vote \
+                --output json | 
+                jq &quot;del(.metadata | .resourceVersion, .uid) | .metadata.namespace=\&quot;$ns\&quot;&quot; |
+                kubectl apply -f -
+            done
+            sleep 10; 
+            done
+</code></pre>
+<p>Let&rsquo;s <strong>test our job</strong> with this command in the terminal :</p>
+<pre><code class="language-bash">watch -n 1 kubectl get secret -A
+</code></pre>
+<p>The output :</p>
+<pre><code class="language-bash">NAMESPACE     NAME                           TYPE                             DATA   AGE
+argocd        argocd-initial-admin-secret    Opaque                           1      4m0s
+argocd        argocd-notifications-secret    Opaque                           0      6m0s
+argocd        argocd-secret                  Opaque                           5      6m0s
+argocd        github-token                   Opaque                           1      10s
+vote          aws-access-keys                Opaque                           2      10s
+vote          aws-ecr-auth-docker-config     kubernetes.io/dockerconfigjson   1      10s
+</code></pre>
+<p>In an other terminal window we <strong>create a new namespace</strong> named <code>vote-pr-test</code> :</p>
+<pre><code class="language-bash">kubectl create ns vote-pr-test
+</code></pre>
+<p>Our <strong>secret is added a few seconds later</strong> :</p>
+<pre><code class="language-bash">NAMESPACE      NAME                           TYPE                             DATA   AGE
+argocd         argocd-initial-admin-secret    Opaque                           1      5m0s
+argocd         argocd-notifications-secret    Opaque                           0      7m0s
+argocd         argocd-secret                  Opaque                           5      7m0s
+argocd         github-token                   Opaque                           1      40s
+vote-pr-test   aws-ecr-auth-docker-config     kubernetes.io/dockerconfigjson   1      1s
+vote           aws-access-keys                Opaque                           2      40s
+vote           aws-ecr-auth-docker-config     kubernetes.io/dockerconfigjson   1      40s
+</code></pre>
+<p>We can see our <code>aws-access-keys</code> secret with this command :</p>
+<pre><code class="language-bash">kubectl get secret aws-access-keys -n vote -o yaml
+</code></pre>
+<p>And the <code>aws-ecr-auth-docker-config</code> secret with this command:</p>
+<pre><code class="language-bash">kubectl get secret aws-ecr-auth-docker-config -n vote -o json | 
+  jq -r '.data[&quot;.dockerconfigjson&quot;]' | 
+  base64 -d
+</code></pre>
+<h3 id="build-manifest-files-from-templates">Build manifest files from templates</h3>
+<pre><code class="language-bash"># create files using templates
+make templates-create
+</code></pre>
+<p>Terraform is used to :</p>
+<ul>
+<li>Build some <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/terraform/templates/templates.tf" target="_blank" rel="noopener">files from templates</a></li>
+<li>Inject variables within <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/argocd/.tmpl" target="_blank" rel="noopener">ArgoCD applications</a></li>
+<li>Inject variables within <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/manifests/overlays/.tmpl/kustomization.yaml" target="_blank" rel="noopener">kustomization.yaml</a></li>
+</ul>
+<p><strong>Important</strong> : generated files <strong>must be added</strong> to your git repository :</p>
+<pre><code class="language-bash">git add . &amp;&amp; git commit -m update &amp;&amp; git push -u origin master
+</code></pre>
+<h3 id="the-vote-repository">The vote repository</h3>
+<p>When you push a commit to the vote repository, the <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> <strong>github workflow will build the docker image and push it to ECR</strong>  :</p>
+<pre><code class="language-yaml">- name: Build, tag, and push image to Amazon ECR
+  id: build-image
+  run: |
+    log()   { echo -e &quot;\e[30;47m ${1} \e[0m ${@:2}&quot;; }
+
+    VERSION=${{ env.VERSION }}
+    log VERSION ${VERSION}
+
+    TAG_VERSION=${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY_NAME }}:${VERSION}
+    log TAG_VERSION ${TAG_VERSION}
+
+    TAG_SHA=${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY_NAME }}:${GITHUB_SHA}
+    log TAG_SHA ${TAG_SHA}
+    
+    cd vote
+    docker image build --tag ${TAG_VERSION} --tag ${TAG_SHA} .
+    docker push ${TAG_VERSION}
+    docker push ${TAG_SHA}
+</code></pre>
+<p>The building step :</p>
+<p><img loading="lazy" src="img/vote-workflow-cd-build.png" alt="vote-workflow-cd-build.png"  /></p>
+<p>Then <strong>create or replace</strong> the <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/manifests/overlays/.tmpl/kustomization.yaml" target="_blank" rel="noopener">kustomization.yaml</a> template in the <code>/manifests/overlays/master/</code> path of the <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/tree/master/manifests/overlays" target="_blank" rel="noopener">argocd-pull-request-infra</a> repository:</p>
+<pre><code class="language-yaml">- name: Push to infra repo
+  env:
+    OVERLAY_PATH: &quot;manifests/overlays/master&quot;
+  run: |
+    cd infra
+    mkdir --parents ${{ env.OVERLAY_PATH }}
+    export vote_image=${{ env.TAG_VERSION }}
+    export vote_version=${{ env.VERSION }}
+    export vote_nodeport=30000
+    envsubst &lt; manifests/overlays/.tmpl/kustomization.yaml &gt; ${{ env.OVERLAY_PATH }}/kustomization.yaml
+    git config user.name github-actions
+    git config user.email github-actions@github.com
+    git add .
+    git commit -m &quot;github actions: ${{ env.OVERLAY_PATH }}&quot;
+    git push
+</code></pre>
+<p>The ECR repository contains now our docker image defined by <code>2 tags</code> :</p>
+<ul>
+<li>The git commit <a href="https://www.git-scm.com/book/en/v2/Git-Internals-Git-Objects" target="_blank" rel="noopener">SHA-1</a></li>
+<li>The application <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/vote/package.json#L3" target="_blank" rel="noopener">version</a></li>
+</ul>
+<p><img loading="lazy" src="img/vote-workflow-cd-push.png" alt="vote-workflow-cd-push.png"  /></p>
+<h3 id="master-application">Master Application</h3>
+<p>In our <code>argocd-pull-request-infra</code> project, we create our <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#applications" target="_blank" rel="noopener">ArgoCD Application</a> via this command :</p>
+<pre><code class="language-bash">make master-app-create
+</code></pre>
+<p>It installs the <strong>application previously generated</strong> via <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/argocd/.tmpl/vote-master.yaml" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${project_name}-master
+  namespace: argocd # /!\ important
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: ${github_repo_url_infra}
+    targetRevision: HEAD
+    path: manifests/overlays/master
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: vote # default
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      selfHeal: true
+      prune: true
+</code></pre>
+<p>It is <strong>important to note that the targeted path</strong> is <code>manifests/overlays/master</code></p>
+<p>Its content was generated by the <code>Push to infra repo step</code> of the workflow <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/cd.yml#L91-L105" target="_blank" rel="noopener">cd.yml</a> of the repository vote</p>
+<p>The application is being installed :</p>
+<p><img loading="lazy" src="img/argocd-master-app.png" alt="argocd-master-app.png"  /></p>
+<p>The application is installed correctly :</p>
+<p><img loading="lazy" src="img/argocd-master-content.png" alt="argocd-master-content.png"  /></p>
+<p>We open our browser on <a href="http://0.0.0.0:9000" target="_blank" rel="noopener">http://0.0.0.0:9000</a> :</p>
+<p><img loading="lazy" src="img/localhost-0.0.1.png" alt="localhost-0.0.1.png"  /></p>
+<p>We can query the <code>application</code> type with <code>kubectl</code> :</p>
+<pre><code class="language-bash">kubectl get application -n argocd
+NAME                  SYNC STATUS   HEALTH STATUS
+pull-request-master   Synced        Healthy
+</code></pre>
+<h3 id="pull-request-applicationset">Pull Request ApplicationSet</h3>
+<p>We create our <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/" target="_blank" rel="noopener">ApplicationSet</a> via this command :</p>
+<pre><code class="language-bash">make pull-request-appset-create
+</code></pre>
+<p>The <strong>ApplicationSet is declared but nothing new is visible yet</strong> within the ArgoCD interface :</p>
+<p><img loading="lazy" src="img/argocd-no-applicationset.png" alt="argocd-no-applicationset.png"  /></p>
+<p>We can query the <code>applicationset</code> type with <code>kubectl</code> :</p>
+<pre><code class="language-bash">kubectl get applicationset -n argocd
+NAME              AGE
+pull-request-pr   50s
+</code></pre>
+<p>It installs the <code>ApplicationSet</code> generated previously via <a href="https://github.com/jeromedecoster/argocd-pull-request-infra/blob/master/argocd/.tmpl/vote-pull-request.yaml" target="_blank" rel="noopener">this template</a> :</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ${project_name}-pr
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  generators:
+  - pullRequest:
+      github:
+        # gitHub organization or user
+        owner: ${github_owner}
+        # The Github repository
+        repo: ${github_repo_name_vote}
+        # reference to a secret containing an access token
+        tokenRef:
+          secretName: github-token
+          key: token
+        # labels is used to filter the PRs that you want to target
+        labels:
+        - preview
+      requeueAfterSeconds: 90
+  # https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Pull-Request/#template
+  template:
+    metadata:
+      name: '${project_name}-{{branch}}-{{number}}'
+      namespace: argocd
+    spec:
+      project: default
+
+      source:
+        repoURL: ${github_repo_url_infra}
+        # targetRevision: '{{head_sha}}'
+        path: manifests/overlays/pr-{{number}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: vote-pr-{{number}} # /!\ important : must be uniq
+        
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          selfHeal: true
+          prune: true
+</code></pre>
+<p>It is <strong>important to note that the targeted path</strong> is <code>manifests/overlays/pr-{{number}}</code></p>
+<p>Its content was <strong>generated by the step</strong> <code>Push to infra repo</code> of the workflow <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L76-L97" target="_blank" rel="noopener">pull-request.yml</a> of the repository vote :</p>
+<pre><code class="language-yaml">- name: Push to infra repo
+  run: |
+    cd infra
+    mkdir --parents ${{ env.OVERLAY_PATH }}
+    export vote_namespace=vote-pr-${{ github.event.pull_request.number }}
+    export vote_image=${{ env.TAG_SHA }}
+    export vote_version=${GITHUB_SHA}
+    export vote_nodeport=${{ env.WEBSITE_PORT }}
+    envsubst &lt; manifests/overlays/.tmpl/kustomization.yaml &gt; ${{ env.OVERLAY_PATH }}/kustomization.yaml
+    
+    git config user.name github-actions
+    git config user.email github-actions@github.com
+    git add .
+    git commit -m &quot;github actions: ${{ env.OVERLAY_PATH }}&quot;
+    git push
+</code></pre>
+<p>The <code>kustomization.yaml</code> file will be <strong>generated in the path</strong> defined by :</p>
+<pre><code class="language-yaml">env: 
+  OVERLAY_PATH: &quot;manifests/overlays/pr-${{ github.event.pull_request.number }}&quot;
+</code></pre>
+<h3 id="first-pull-request-using-github-website">First Pull Request using github website</h3>
+<p>Back to our <code>argocd-pull-request-vote</code> project</p>
+<p>Our goal is to <strong>update the background color</strong> of the website</p>
+<p>We are on the <code>master</code> branch :</p>
+<pre><code class="language-bash">git branch
+* master
+</code></pre>
+<p>We <strong>create a new branch</strong> <code>change-background-color</code> using the <a href="https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt-emgitcheckoutem-b-Bltnew-branchgtltstart-pointgt" target="_blank" rel="noopener">checkout</a> command :</p>
+<pre><code class="language-bash">git checkout -b &quot;change-background-color&quot;
+</code></pre>
+<p>We <strong>change the color</strong> in the <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/vote/public/css/main.css#L5" target="_blank" rel="noopener">main.css</a> file :</p>
+<pre><code class="language-diff">body {
+-    background-color: #cfd8dc;
++    background-color: indianred;
+    font-size: 1em;
+    overflow: hidden;
+}
+</code></pre>
+<p>We commit and <a href="https://git-scm.com/docs/git-push#Documentation/git-push.txt--u" target="_blank" rel="noopener">push this new branch</a> :</p>
+<pre><code class="language-bash">git add .
+git commit -m indianred
+git push --set-upstream origin change-background-color
+</code></pre>
+<p>We <a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request" target="_blank" rel="noopener">create the Pull Request</a> by <strong>clicking this button</strong> :</p>
+<p><img loading="lazy" src="img/github-create-pr.png" alt="github-create-pr.png"  /></p>
+<p>We <strong>change</strong> the Pull Request <strong>title</strong> add this <strong>comment</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-comment.png" alt="github-pr-1-comment.png"  /></p>
+<p>The Pull Request is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-created.png" alt="github-pr-1-created.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml" target="_blank" rel="noopener">pull-request.yml</a> <strong>workflow is started</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-workflow.png" alt="github-pr-1-workflow.png"  /></p>
+<p>A <strong>new ECR repository</strong> is created :</p>
+<p><img loading="lazy" src="img/ecr-repo-pr-1.png" alt="ecr-repo-pr-1.png"  /></p>
+<p>This ECR repository contains a docker image defined by <code>1 tag</code> :</p>
+<ul>
+<li>The git commit <a href="https://www.git-scm.com/book/en/v2/Git-Internals-Git-Objects" target="_blank" rel="noopener">SHA-1</a></li>
+</ul>
+<p><img loading="lazy" src="img/ecr-repo-pr-1-image.png" alt="ecr-repo-pr-1-image.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L76-L97" target="_blank" rel="noopener">infra repository</a> is <strong>updated</strong> :</p>
+<p><img loading="lazy" src="img/infra-overlays.png" alt="infra-overlays.png"  /></p>
+<p>The <code>preview</code> <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L99-L103" target="_blank" rel="noopener">label</a> is <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-label.png" alt="github-pr-1-label.png"  /></p>
+<p>Managing labels <a href="https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels" target="_blank" rel="noopener">documentation</a></p>
+<p>The Pull Request with <code>preview</code> label is <a href="https://argocd-applicationset.readthedocs.io/en/stable/Generators-Pull-Request/#github" target="_blank" rel="noopener">detected by ArgoCD</a></p>
+<p>The Application <code>pull-request-change-background-color-1</code> is created :</p>
+<p><img loading="lazy" src="img/argocd-pr-1-app.png" alt="argocd-pr-1-app.png"  /></p>
+<p>After a few moments we can open <a href="http://0.0.0.0:9001" target="_blank" rel="noopener">http://0.0.0.0:9001</a> :</p>
+<p><img loading="lazy" src="img/localhost-pr-1.png" alt="localhost-pr-1.png"  /></p>
+<p>The <code>kustomization.yaml</code> file is <strong>the key to generating the environment</strong> :</p>
+<pre><code class="language-yaml">bases:
+- ../../base
+
+namespace: vote-pr-1
+
+patches:
+- target:
+    kind: Service
+    name: vote
+    namespace: vote
+  patch: |-
+    - op: replace
+      path: /spec/ports/0/nodePort
+      value: 30001
+
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: vote
+    namespace: vote
+  spec:
+    template:
+      spec:
+        containers:
+          - name: vote
+            image: xxxxx.dkr.ecr.xxx.amazonaws.com/pull-request-vote-pr-1:c0ac463cd6c8bc215db0e10014643243dc7770dd
+            env:
+            - name: VERSION
+              value: c0ac463cd6c8bc215db0e10014643243dc7770dd
+</code></pre>
+<p>We <strong>repeat these steps</strong> to change the color to <code>slateblue</code> :</p>
+<pre><code class="language-diff">body {
+-    background-color: #indianred;
++    background-color: slateblue;
+    font-size: 1em;
+    overflow: hidden;
+}
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L1" target="_blank" rel="noopener">pull-request</a> workflow is <strong>started again</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-updated.png" alt="github-pr-1-updated.png"  /></p>
+<p>A new docker image is <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/ecr-repo-pr-1-image-added.png" alt="ecr-repo-pr-1-image-added.png"  /></p>
+<p>We <strong>reload</strong> our browser tab <a href="http://0.0.0.0:9001" target="_blank" rel="noopener">http://0.0.0.0:9001</a> :</p>
+<p><img loading="lazy" src="img/localhost-pr-1-updated.png" alt="localhost-pr-1-updated.png"  /></p>
+<h3 id="second-pull-request-using-github-cli">Second Pull Request using github cli</h3>
+<p>Our <strong>new goal</strong> is to <strong>add a title</strong> to the website</p>
+<p><strong>Important</strong> : make sure we <strong>start from the</strong> <code>master</code> <strong>branch to create our new branch</strong></p>
+<pre><code class="language-bash">git checkout master
+
+git branch
+  change-background-color
+* master
+</code></pre>
+<p>We create a <strong>new branch</strong> <code>add-title</code> using <a href="https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt-emgitcheckoutem-b-Bltnew-branchgtltstart-pointgt" target="_blank" rel="noopener">checkout</a> :</p>
+<pre><code class="language-bash">git checkout -b &quot;add-title&quot;
+</code></pre>
+<p>We <strong>uncomment the div</strong> in the <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/vote/views/index.njk#L21" target="_blank" rel="noopener">index.njk</a> file :</p>
+<pre><code class="language-diff">-    {# &lt;div class=&quot;title&quot;&gt;Voting App&lt;/div&gt; #}
++    &lt;div class=&quot;title&quot;&gt;Voting App&lt;/div&gt;
+</code></pre>
+<p>We commit and <a href="https://git-scm.com/docs/git-push#Documentation/git-push.txt--u" target="_blank" rel="noopener">push this new branch</a> :</p>
+<pre><code class="language-bash">git add .
+git commit -m title
+git push --set-upstream origin add-title
+</code></pre>
+<p>We <strong>create</strong> the Pull Request with the <strong>gh</strong> <a href="https://cli.github.com/manual/gh_pr_create" target="_blank" rel="noopener">pr create</a> command :</p>
+<pre><code class="language-bash">gh pr create --title &quot;add-title&quot; --body &quot;add a title&quot;
+</code></pre>
+<p>The Pull Request is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-2-created.png" alt="github-pr-2-created.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L1" target="_blank" rel="noopener">pull-request</a> workflow is <strong>started</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-2-started.png" alt="github-pr-2-started.png"  /></p>
+<p>The workflow is <strong>completed</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-2-workflow-done.png" alt="github-pr-2-workflow-done.png"  /></p>
+<p>A <strong>new ECR repository</strong> is created :</p>
+<p><img loading="lazy" src="img/ecr-repo-pr-2.png" alt="ecr-repo-pr-2.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request.yml#L76-L97" target="_blank" rel="noopener">infra repository</a> is <strong>updated</strong></p>
+<p>The Pull Request <strong>associated with the</strong> <code>preview</code> <strong>label</strong> is detected by ArgoCD</p>
+<p>The application <code>pull-request-add-title-2</code> is <strong>created</strong> :</p>
+<p><img loading="lazy" src="img/argocd-pr-2-app.png" alt="argocd-pr-2-app.png"  /></p>
+<p>After a few moments we can open <a href="http://0.0.0.0:9002" target="_blank" rel="noopener">http://0.0.0.0:9002</a> :</p>
+<p><img loading="lazy" src="img/localhost-pr-2.png" alt="localhost-pr-2.png"  /></p>
+<h3 id="merging-to-master-using-github-website">Merging to master using github website</h3>
+<p>We merge the <code>#2</code> Pull Request by <strong>clicking this button</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-1-merge.png" alt="github-pr-1-merge.png"  /></p>
+<p>To <strong>disable</strong> the <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/cd.yml" target="_blank" rel="noopener">cd.yml</a> workflow, we <strong>add</strong> <code>[no ci]</code> to the <a href="https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs" target="_blank" rel="noopener">commit message</a> :</p>
+<p><img loading="lazy" src="img/github-pr-1-merge-comment.png" alt="github-pr-1-merge-comment.png"  /></p>
+<p>On our local machine we <a href="https://git-scm.com/docs/git-checkout" target="_blank" rel="noopener">switch</a> to the <code>master</code> branch then <a href="https://git-scm.com/docs/git-pull" target="_blank" rel="noopener">pull</a> the remote content :</p>
+<pre><code class="language-bash">git checkout master
+
+git pull
+</code></pre>
+<p>Then we <strong>update</strong> the <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/vote/package.json#L3" target="_blank" rel="noopener">application version</a> :</p>
+<pre><code class="language-diff">-  &quot;version&quot;: &quot;0.0.1&quot;,
++  &quot;version&quot;: &quot;0.0.2&quot;,
+</code></pre>
+<p>We commit and push this update :</p>
+<pre><code class="language-bash">git add .
+git commit -m 0.0.2
+git push
+</code></pre>
+<p>The workflow is <strong>started</strong> :</p>
+<p><img loading="lazy" src="img/github-push-0.0.2.png" alt="github-push-0.0.2.png"  /></p>
+<p>After a few moments the <code>overlays/master/kustomization.yml</code> file is <strong>updated</strong> :</p>
+<pre><code class="language-yaml">bases:
+- ../../base
+
+# /!\ important !
+# https://kubectl.docs.kubernetes.io/references/kustomize/builtins/#_namespacetransformer_
+namespace: 
+
+patches:
+- target:
+    kind: Service
+    name: vote
+    namespace: vote
+  patch: |-
+    - op: replace
+      path: /spec/ports/0/nodePort
+      value: 30000
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: vote
+    namespace: vote
+  spec:
+    template:
+      spec:
+        containers:
+          - name: vote
+            image: xxxxx.dkr.ecr.eu-west-3.amazonaws.com/pull-request-vote:0.0.2
+            env:
+            - name: VERSION
+              value: 0.0.2
+</code></pre>
+<p>We <strong>reload</strong> the URL <a href="http://0.0.0.0:9000" target="_blank" rel="noopener">http://0.0.0.0:9000</a> to see that the <strong>website has changed</strong> :</p>
+<p><img loading="lazy" src="img/localhost-0.0.2.png" alt="localhost-0.0.2.png"  /></p>
+<p>The <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request-close.yaml" target="_blank" rel="noopener">pull-request-close.yaml</a> workflow is <strong>triggered when a Pull Request is closed</strong> :</p>
+<pre><code class="language-yaml">on:
+  pull_request:
+    types: [closed]
+</code></pre>
+<p>It <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/.github/workflows/pull-request-close.yaml#L34" target="_blank" rel="noopener">deletes</a> the previously created ECR repository :</p>
+<pre><code class="language-bash">aws ecr delete-repository --repository-name ${{ env.REPOSITORY_NAME }} --force
+</code></pre>
+<p>The <code>pull-request-vote-pr-2</code> repository is <strong>deleted</strong> :</p>
+<p><img loading="lazy" src="img/ecr-repo-deleted.png" alt="ecr-repo-deleted.png"  /></p>
+<h3 id="merging-to-master-using-github-cli">Merging to master using github cli</h3>
+<p>We merge the <code>#1</code> Pull Request by <strong>using</strong> the <a href="https://cli.github.com/manual/gh_pr_merge" target="_blank" rel="noopener">pr merge</a> command :</p>
+<pre><code class="language-bash">gh pr merge 1 --squash --subject '[no ci]'
+</code></pre>
+<p>The <code>-s</code>, <code>--squash</code> option <strong>commits into one commit</strong> and merge it into the base branch</p>
+<p>The Pull Request is <strong>merged ans closed</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-2-merged.png" alt="github-pr-2-merged.png"  /></p>
+<p>The workflow is <strong>completed</strong> :</p>
+<p><img loading="lazy" src="img/github-pr-workflow-done.png" alt="github-pr-workflow-done.png"  /></p>
+<p>The <code>pull-request-vote-pr-1</code> repository is <strong>deleted</strong> :</p>
+<p><img loading="lazy" src="img/ecr-repo-deleted-again.png" alt="ecr-repo-deleted-again.png"  /></p>
+<p>The <code>pull-request-change-background-color-1</code> Application is <strong>removed</strong> :</p>
+<p><img loading="lazy" src="img/argocd-app-cleared.png" alt="argocd-app-cleared.png"  /></p>
+<p>We <a href="https://git-scm.com/docs/git-checkout" target="_blank" rel="noopener">checkout</a> and <a href="https://git-scm.com/docs/git-pull" target="_blank" rel="noopener">pull</a> :</p>
+<pre><code class="language-bash">git checkout master
+git pull
+</code></pre>
+<p>Then I <strong>update</strong> the application <a href="https://github.com/jeromedecoster/argocd-pull-request-vote/blob/master/vote/package.json#L3" target="_blank" rel="noopener">version</a> :</p>
+<pre><code class="language-diff">-  &quot;version&quot;: &quot;0.0.2&quot;,
++  &quot;version&quot;: &quot;0.0.3&quot;,
+</code></pre>
+<p>We commit and push this <strong>update</strong> :</p>
+<pre><code class="language-bash">git add .
+git commit -m 0.0.3
+git push
+</code></pre>
+<p>A new docker image is <strong>added</strong> :</p>
+<p><img loading="lazy" src="img/ecr-repo-master-updated.png" alt="ecr-repo-master-updated.png"  /></p>
+<p>We <strong>reload</strong> the URL <a href="http://0.0.0.0:9000" target="_blank" rel="noopener">http://0.0.0.0:9000</a> to see that the <strong>website has changed</strong> :</p>
+<p><img loading="lazy" src="img/localhost-0.0.3.png" alt="localhost-0.0.3.png"  /></p>
+<h3 id="cleaning">Cleaning</h3>
+<p>This demonstration is now over, we are <strong>destroying the resources</strong> :</p>
+<pre><code class="language-bash"># destroy master application
+make master-app-destroy
+
+# terraform destroy namespaces + secrets
+make secrets-destroy
+
+# terraform destroy kind + argocd
+make kind-argocd-destroy
+
+# terraform destroy ecr repo + ssh key
+make infra-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/argocd/">argocd</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ecr/">ecr</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/github/">github</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kind/">kind</a>
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/kubernetes/">kubernetes</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/pull-request/">pull-request</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 24 Dec 2022 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

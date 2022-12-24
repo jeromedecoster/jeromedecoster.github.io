@@ -5,10 +5,22 @@
     <link>/tags/postgresql/</link>
     <description>Recent content in PostgreSQL on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 15 Jul 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Nov 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>ArgoCD Sync Wave &#43; Postgres</title>
+      <link>/aws/argocd-sync-wave--postgres/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/argocd-sync-wave--postgres/</guid>
+      <description>
+      
+      Deploying app to Kubernetes and setup Postgres database using **ArgoCD Sync Wave** in a **Kind** cluster with **Terraform**.
+      
+      </description>
+    </item>
     <item>
       <title>EKS &#43; RDS &#43; PostgreSQL</title>
       <link>/aws/eks--rds--postgresql/</link>
