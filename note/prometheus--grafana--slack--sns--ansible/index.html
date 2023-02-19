@@ -6,15 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   
-  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Prometheus,Grafana,Alertmanager,Ansible,Terraform,AWS,SNS,Vagrant'><meta name="description" content='Install &#43; configure a complete monitoring solution automatically with Ansible and Terraform'><meta property="og:title" content="Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible" />
-<meta property="og:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**" />
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Prometheus,Grafana,Alertmanager,Ansible,Terraform,AWS,SNS,Vagrant'><meta name="description" content='Install &#43; configure a complete monitoring solution automatically with Ansible and Terraform.'><meta property="og:title" content="Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible" />
+<meta property="og:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/note/prometheus--grafana--slack--sns--ansible/" /><meta property="article:section" content="note" />
 <meta property="article:published_time" content="2023-02-17T00:00:00+00:00" />
 <meta property="article:modified_time" content="2023-02-17T00:00:00+00:00" />
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible"/>
-<meta name="twitter:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**"/>
+<meta name="twitter:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**."/>
 
   <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
 
@@ -185,7 +185,12 @@ make infra-create
 <p>This is <strong>confirmed</strong> :</p>
 <p><img loading="lazy" src="img/sns-4-confirmation-done.png" alt="sns-4-confirmation-done.png"  /></p>
 <h3 id="create-3-machines-using-vagrant">Create 3 machines using Vagrant</h3>
-<p>A <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/vagrant/Vagrantfile" target="_blank" rel="noopener">Vagrantfile</a> is used to <strong>create 3 Ubuntu machines</strong> :</p>
+<p>A <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/vagrant/Vagrantfile" target="_blank" rel="noopener">Vagrantfile</a> is used to <strong>create 3 Ubuntu machines</strong></p>
+<p><strong>Important</strong> : <a href="https://www.virtualbox.org/manual/ch06.html#network_hostonly" target="_blank" rel="noopener">On Linux and macOS</a> VirtualBox will only allow IP addresses in <code>192.168.56.0/21</code> range to be assigned</p>
+<p>You <strong>MUST</strong> create a <code>/etc/vbox/networks.conf</code> file and <strong>add this line</strong> to be able to run this project :</p>
+<pre><code class="language-bash">* 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+</code></pre>
+<p>Start the 3 machines :</p>
 <pre><code class="language-bash"># create monitoring + node1 + node2
 vagrant-up
 </code></pre>
