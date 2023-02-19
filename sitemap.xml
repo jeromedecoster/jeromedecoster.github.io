@@ -2,13 +2,46 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>/tags/alertmanager/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/ansible/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/aws/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/grafana/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/note/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/prometheus/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/note/prometheus--grafana--slack--sns--ansible/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/sns/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/terraform/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/vagrant/</loc>
+    <lastmod>2023-02-17T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>/tags/argocd/</loc>
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/</loc>
-    <lastmod>2022-12-21T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/aws/</loc>
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/create-temporary-environment-from-pull-request-with-argocd-applicationset/</loc>
@@ -20,7 +53,10 @@
     <loc>/tags/github/</loc>
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/</loc>
+    <loc>/tags/github-actions/</loc>
+    <lastmod>2022-12-21T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>/tags/gitops/</loc>
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/kind/</loc>
@@ -30,12 +66,6 @@
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/pull-request/</loc>
-    <lastmod>2022-12-21T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/</loc>
-    <lastmod>2022-12-21T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/terraform/</loc>
     <lastmod>2022-12-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/argocd-image-updater/</loc>
@@ -89,22 +119,13 @@
     <loc>/aws/eks--argocd--multi-environments-and-multi-clusters-gitops/</loc>
     <lastmod>2022-06-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/grafana/</loc>
-    <lastmod>2022-04-20T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>/note/kubernetes--adapter-pattern--minikube/</loc>
     <lastmod>2022-04-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/note/</loc>
     <lastmod>2022-04-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/note/</loc>
-    <lastmod>2022-04-20T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>/tags/pattern/</loc>
-    <lastmod>2022-04-20T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/prometheus/</loc>
     <lastmod>2022-04-20T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/redis/</loc>
@@ -164,9 +185,6 @@
     <loc>/tags/cdktf/</loc>
     <lastmod>2021-11-22T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>/tags/ansible/</loc>
-    <lastmod>2021-10-26T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>/tags/aws-cli/</loc>
     <lastmod>2021-10-26T00:00:00+00:00</lastmod>
   </url><url>
@@ -193,9 +211,6 @@
   </url><url>
     <loc>/aws/gitlab--ecs--terraform/</loc>
     <lastmod>2021-03-10T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/github-actions/</loc>
-    <lastmod>2021-02-18T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/lambda--terraform--github-actions/</loc>
     <lastmod>2021-02-18T00:00:00+00:00</lastmod>
@@ -226,9 +241,6 @@
   </url><url>
     <loc>/tags/slack/</loc>
     <lastmod>2020-09-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/gitops/</loc>
-    <lastmod>2020-09-11T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/aws/kubernetes--eks--github-actions/</loc>
     <lastmod>2020-09-11T00:00:00+00:00</lastmod>

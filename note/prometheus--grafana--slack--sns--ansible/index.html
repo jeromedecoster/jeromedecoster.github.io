@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  
+  <meta name="generator" content="Hugo 0.110.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <meta name="author" content="Jérôme Decoster - Cloud Engineer - Cloud Architecture - DevOps"><meta name="keywords" content='Prometheus,Grafana,Alertmanager,Ansible,Terraform,AWS,SNS,Vagrant'><meta name="description" content='Install &#43; configure a complete monitoring solution automatically with Ansible and Terraform'><meta property="og:title" content="Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible" />
+<meta property="og:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/note/prometheus--grafana--slack--sns--ansible/" /><meta property="article:section" content="note" />
+<meta property="article:published_time" content="2023-02-17T00:00:00+00:00" />
+<meta property="article:modified_time" content="2023-02-17T00:00:00+00:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible"/>
+<meta name="twitter:description" content="Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**"/>
+
+  <link rel="alternate" type="application/rss+xml" href="//index.xml" title="Jérôme Decoster">
+
+
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/main.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/custom.css" />
+
+
+<title>Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible | Jérôme Decoster</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism.min.css">
+
+
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D1YYKC6NNE"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-D1YYKC6NNE');
+    </script>
+    
+    
+</head>
+<body class=""><header>
+
+  <div id="avatar">
+    <a href="/">
+      <img src="/img/photo.jpg" alt="Jérôme Decoster">
+    </a>
+  </div>
+
+  <div id="titletext"><h2 id="title"><a href="/">Jérôme Decoster</a></h2></div>
+  <div id="title-description"><p id="subtitle">3x AWS Certified - Architect, Developer, Cloud Practionner</p><div id=social>
+    <nav>
+      <ul><li><a href="https://twitter.com/jeromedecoster" target="_blank"><i title="Twitter" class="icons fab fa-twitter"></i></a></li><li><a href="https://github.com/jeromedecoster" target="_blank"><i title="Github" class="icons fab fa-github"></i></a></li><li><a href="https://linkedin.com/in/jeromedecoster/" target="_blank"><i title="Linkedin" class="icons fab fa-linkedin"></i></a></li></ul>
+    </nav>
+  </div>
+  </div>
+  <div id="mainmenu">
+    <nav>
+      <ul>
+        
+        <li><a href="/">Home</a></li>
+        
+        <li><a href="/tags">Tags</a></li>
+        
+        <li><a href="/about">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+<main><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#the-project">The project</a></li>
+        <li><a href="#setup-variables">Setup variables</a></li>
+        <li><a href="#setup-slack">Setup Slack</a></li>
+        <li><a href="#setup-infrastructure">Setup infrastructure</a></li>
+        <li><a href="#create-3-machines-using-vagrant">Create 3 machines using Vagrant</a></li>
+        <li><a href="#install-monitoring-tools-using-ansible">Install monitoring tools using Ansible</a></li>
+        <li><a href="#cpu-stress-test">CPU Stress test</a></li>
+        <li><a href="#cleaning">Cleaning</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<div class="post">
+    
+<div class="post-header">
+
+<div class="meta">
+<div class="date">
+<span class="day">17</span>
+<span class="rest">Feb 2023</span>
+</div>
+</div>
+
+<div class="matter">
+<h1 class="title">Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible</h1>
+</div>
+</div>
+
+<div class="markdown">
+<div class="goal">
+<div class="goal-title">The Goal</div>
+<div><ul>
+<li>Create <strong>3 Ubuntu VM using Vagrant</strong></li>
+<li>Install and configure <strong>Prometheus + Grafana + Alertmanager</strong> on a dedicated machine <strong>using Ansible</strong></li>
+<li>Install <strong>Node Exporter</strong> on all machines <strong>using Ansible</strong></li>
+<li>Setup <strong>SNS Email notification using Terraform</strong></li>
+<li>Setup Slack Notification on a channel dedicated to alerts</li>
+<li>Do a <strong>CPU stress test to see the dashboards react and receive notifications</strong></li>
+</ul>
+</div>
+</div>
+<ol class="toc"></ol>
+<script>
+    var toc = document.querySelector('ol.toc')
+    document.querySelectorAll('#TableOfContents a').forEach(e => toc.appendChild(e.parentNode))
+    document.querySelector('#TableOfContents').remove()
+</script>
+<p><img loading="lazy" src="img/banner.png" alt="banner.png"  /></p>
+<h3 id="the-project">The project</h3>
+<p>This <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns" target="_blank" rel="noopener">github project</a> is composed by :</p>
+<ul>
+<li><a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/tree/master/vagrant" target="_blank" rel="noopener">vagrant</a> : some vagrant assets used to create 3 VM</li>
+<li><a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/tree/master/terraform" target="_blank" rel="noopener">terraform</a> : terraform templates used to create a SNS topic + an IAM user + &hellip;</li>
+<li><a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/tree/master/ansible" target="_blank" rel="noopener">ansible</a> : an ansible playbook using 4 roles to install + configure all monitoring tools</li>
+</ul>
+<h3 id="setup-variables">Setup variables</h3>
+<p>Let&rsquo;s start by initializing the project</p>
+<p>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/make.sh#L50-L77" target="_blank" rel="noopener">env-create</a> script creates an <code>.env</code> file at the root of the project :</p>
+<pre><code class="language-bash"># create .env file
+make env-create
+</code></pre>
+<p>Now update the <code>.env</code> file to use <strong>your own variables</strong> :</p>
+<pre><code class="language-bash">SNS_EMAIL=[change-here]@gmail.com
+SLACK_API_URL=https://hooks.slack.com/services/[change-here]
+SLACK_CHANNEL=#[change-here]
+</code></pre>
+<h3 id="setup-slack">Setup Slack</h3>
+<p>Create a <strong>slack channel</strong>. I choose the name <code>alerts</code> :</p>
+<p><img loading="lazy" src="img/slack-1-canal-alerts.png" alt="slack-1-canal-alerts.png"  /></p>
+<p>Create a <strong>new Slack app</strong> :</p>
+<p><img loading="lazy" src="img/slack-2-create-app.png" alt="slack-2-create-app.png"  /></p>
+<p>Setup the <strong>name</strong> and choose a <strong>workspace</strong> :</p>
+<p><img loading="lazy" src="img/slack-3-choose-name-workspace.png" alt="slack-3-choose-name-workspace.png"  /></p>
+<p>Select <strong>Incoming Webhooks</strong> functionnality :</p>
+<p><img loading="lazy" src="img/slack-4-choose-feature.png" alt="slack-4-choose-feature.png"  /></p>
+<p><strong>Activate</strong> Incoming Webhooks :</p>
+<p><img loading="lazy" src="img/slack-5-activate-feature.png" alt="slack-5-activate-feature.png"  /></p>
+<p><strong>Enable</strong> the application :</p>
+<p><img loading="lazy" src="img/slack-6-enable-app.png" alt="slack-6-enable-app.png"  /></p>
+<p>Create a <strong>new Webhook</strong> :</p>
+<p><img loading="lazy" src="img/slack-7-allow-app.png" alt="slack-7-allow-app.png"  /></p>
+<p><strong>Important</strong> : copy / paste the <code>Hello, World!</code> <strong>curl</strong> example in a Terminal to <strong>test / activate the channel messaging</strong> :</p>
+<pre><code class="language-bash">curl -X POST -H 'Content-type: application/json' --data '{&quot;text&quot;:&quot;Hello, World!&quot;}' https://hooks...
+</code></pre>
+<p><img loading="lazy" src="img/slack-8-hello-world.png" alt="slack-8-hello-world.png"  /></p>
+<p>Copy a new <strong>Webhook URL</strong> :</p>
+<p><img loading="lazy" src="img/slack-9-copy-url.png" alt="slack-9-copy-url.png"  /></p>
+<p><strong>Paste it</strong> in the <code>.env</code> file :</p>
+<pre><code class="language-bash">SLACK_API_URL=https://hooks.slack.com/services/[change-here]
+</code></pre>
+<h3 id="setup-infrastructure">Setup infrastructure</h3>
+<p><a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/scripts/terraform-init.sh#L25-L40" target="_blank" rel="noopener">Initialize</a> the terraform project :</p>
+<pre><code class="language-bash"># terraform init (upgrade) + validate
+make terraform-init
+</code></pre>
+<p><a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/scripts/terraform-apply.sh#L54-L68" target="_blank" rel="noopener">Validate and apply</a> the terraform project :</p>
+<pre><code class="language-bash"># terraform create sns topic + ssh key + iam user ...
+make infra-create
+</code></pre>
+<p>The <strong>SNS Topic is created</strong> :</p>
+<p><img loading="lazy" src="img/sns-1-topic.png" alt="sns-1-topic.png"  /></p>
+<p>A <strong>confirmation email</strong> is received :</p>
+<p><img loading="lazy" src="img/sns-2-email-received.png" alt="sns-2-email-received.png"  /></p>
+<p>The <strong>email used</strong> is the one defined in the <code>.env</code> file :</p>
+<pre><code class="language-bash">SNS_EMAIL=[change-here]@gmail.com
+</code></pre>
+<p>Click the <strong>confirm subscription</strong> link :</p>
+<p><img loading="lazy" src="img/sns-3-email-confirmation.png" alt="sns-3-email-confirmation.png"  /></p>
+<p>This is <strong>confirmed</strong> :</p>
+<p><img loading="lazy" src="img/sns-4-confirmation-done.png" alt="sns-4-confirmation-done.png"  /></p>
+<h3 id="create-3-machines-using-vagrant">Create 3 machines using Vagrant</h3>
+<p>A <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/vagrant/Vagrantfile" target="_blank" rel="noopener">Vagrantfile</a> is used to <strong>create 3 Ubuntu machines</strong> :</p>
+<pre><code class="language-bash"># create monitoring + node1 + node2
+vagrant-up
+</code></pre>
+<p>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/make.sh#L125-L160" target="_blank" rel="noopener">script</a> also setup <code>~/.ssh/known_hosts</code> and <code>~/.ssh/config</code> :</p>
+<pre><code class="language-bash">for ip in $MONITORING_IP $NODE1_IP $NODE2_IP
+do
+  # prevent SSH warning : 
+  # @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!   @ 
+  # @ IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY! @ 
+  ssh-keygen -f &quot;$HOME/.ssh/known_hosts&quot; -R &quot;$ip&quot; 1&gt;/dev/null 2&gt;/dev/null
+
+  # prevent SSH answer :
+  # Are you sure you want to continue connecting (yes/no/[fingerprint])?
+  # /!\ important option `-p` MUST be defined BEFORE ip $SSH_HOST
+  ssh-keyscan $ip 2&gt;/dev/null &gt;&gt; ~/.ssh/known_hosts
+done
+
+if [[ -z $(grep &quot;Host monitoring $MONITORING_IP # $PROJECT_NAME&quot; ~/.ssh/config) ]];
+then
+    echo &quot;
+Host monitoring $MONITORING_IP # $PROJECT_NAME
+    HostName $MONITORING_IP
+    User vagrant
+    IdentityFile ~/.ssh/$PROJECT_NAME
+    
+    # ...
+&quot;
+fi
+</code></pre>
+<p>After that, we can <strong>connect directly to our machines</strong> with :</p>
+<pre><code class="language-bash">ssh monitoring
+# or
+ssh node1
+# or
+ssh node2
+</code></pre>
+<h3 id="install-monitoring-tools-using-ansible">Install monitoring tools using Ansible</h3>
+<p>The following command install + configure everything needed :</p>
+<pre><code class="language-bash"># install + configure prometheus + grafana + alert manager ...
+make ansible-play
+</code></pre>
+<p>Our <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/playbook.yml" target="_blank" rel="noopener">playbook</a> contains <strong>4 roles</strong> :</p>
+<pre><code class="language-yaml">- name: install node_exporter
+  hosts: all
+  become: true
+  roles:
+    - node-exporter
+
+- name: install prometheus + grafana
+  hosts: monitoring
+  become: true
+  roles:
+    - prometheus
+    - alertmanager
+    - grafana
+</code></pre>
+<ul>
+<li>
+<p>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/node-exporter/tasks/main.yml" target="_blank" rel="noopener">node-exporter</a> role is a wrapper for the <a href="https://github.com/cloudalchemy/ansible-node-exporter" target="_blank" rel="noopener">cloudalchemy/ansible-node-exporter</a> role</p>
+</li>
+<li>
+<p>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/prometheus/tasks/main.yml" target="_blank" rel="noopener">prometheus</a> role is a wrapper for the <a href="https://github.com/cloudalchemy/ansible-prometheus" target="_blank" rel="noopener">cloudalchemy/ansible-prometheus</a> role</p>
+</li>
+</ul>
+<p>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/prometheus/vars/main.yml" target="_blank" rel="noopener">vars</a> contains importants setup directives :</p>
+<pre><code class="language-yaml">prometheus_global:
+  # demo intervals
+  scrape_interval: 6s
+  scrape_timeout: 3s
+  evaluation_interval: 6s
+
+prometheus_alertmanager_config:
+  - scheme: http
+    static_configs:
+      - targets:
+        - &quot;{{ ansible_host }}:9093&quot;
+
+prometheus_alert_rules:
+  - record: 'node_cpu_percentage'
+    expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=&quot;idle&quot;}[1m])) * 100)
+
+  - alert: memory-warning
+    expr: node_cpu_percentage &gt; 50
+    labels:
+      severity: warning
+    annotations:
+      description: &quot;{% raw %}CPU load is &gt; 50%\n  VALUE = {{ $value }}{% endraw %}&quot;
+      url: &quot;http://{{ ansible_host }}:9090/alerts?search=memory-warning&quot;
+
+  - alert: memory-critical
+    expr: node_cpu_percentage &gt; 75
+    labels:
+      severity: critical
+    annotations:
+      description: &quot;{% raw %}Memory critical {{ $value }} !{% endraw %}&quot;
+      url: &quot;http://{{ ansible_host }}:9090/alerts?search=memory-critical&quot;
+</code></pre>
+<p>A <strong>must see</strong> : <a href="https://awesome-prometheus-alerts.grep.to/" target="_blank" rel="noopener">Awesome Prometheus alerts</a> website</p>
+<p>Targets are available at <a href="http://10.20.20.20:9090/targets" target="_blank" rel="noopener">http://10.20.20.20:9090/targets</a> :</p>
+<p><img loading="lazy" src="img/targets.png" alt="targets.png"  /></p>
+<p>Alerts are available at <a href="http://10.20.20.20:9090/alerts" target="_blank" rel="noopener">http://10.20.20.20:9090/alerts</a> :</p>
+<p><img loading="lazy" src="img/alerts.png" alt="alerts.png"  /></p>
+<ul>
+<li>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/alertmanager/tasks/main.yml" target="_blank" rel="noopener">alertmanager</a> role is a wrapper for the <a href="https://github.com/cloudalchemy/ansible-alertmanager" target="_blank" rel="noopener">cloudalchemy/ansible-alertmanager</a> role</li>
+</ul>
+<p><strong>Slack + email notifications</strong> are <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/alertmanager/tasks/main.yml#L56-L144" target="_blank" rel="noopener">defined here</a> :</p>
+<pre><code class="language-yaml">- ansible.builtin.include_role:
+    name: ansible-alertmanager
+  vars: 
+    alertmanager_version: &quot;{{ alertmanager_latest_version }}&quot;
+    alertmanager_template_files:
+      - &quot;{{ current_role_path }}/templates/*.tmpl&quot;
+    alertmanager_slack_api_url: &quot;{{ alertmanager_slack_url }}&quot;
+    alertmanager_receivers:
+      - name: default-dummy
+      - name: slack
+        slack_configs:
+          - send_resolved: true
+            # The channel or user to send notifications to.
+            channel:  &quot;{{ alertmanager_slack_channel }}&quot;
+            title: '{% raw %}{{ template &quot;slack-message-title&quot; . }}{% endraw %}'
+            text: '{% raw %}{{ template &quot;slack-message-description&quot; . }}{% endraw %}'
+      - name: sns
+        sns_configs:
+        - send_resolved: true
+          # SNS topic ARN, i.e. arn:aws:sns:us-east-2:698519295917:My-Topic
+          topic_arn: &quot;{{ sns_topic_arn }}&quot;
+          sigv4:
+            access_key: &quot;{{ sns_access_key }}&quot;
+            secret_key: &quot;{{ sns_secret_key }}&quot;
+            region: &quot;{{ sns_region }}&quot;
+
+    alertmanager_route:
+      # default receiver (nothing behind, we'll use routes below)
+      receiver: default-dummy
+      # To aggregate by all possible labels use the special value '...' as the sole label name, for example:
+      # group_by: ['...']
+      group_by: [...] 
+      group_interval: 6s # testing delay
+      group_wait: 6s # testing delay
+      repeat_interval: 3h
+      # Zero or more child routes.
+      routes:
+      - receiver: sns
+        continue: true
+      - receiver: slack
+        continue: true
+</code></pre>
+<ul>
+<li>The <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/grafana/tasks/main.yml" target="_blank" rel="noopener">grafana</a> role is a wrapper for the <a href="https://github.com/cloudalchemy/ansible-grafana" target="_blank" rel="noopener">cloudalchemy/ansible-grafana</a> role</li>
+</ul>
+<p><strong>Datasource and dashboards</strong> are <a href="https://github.com/jeromedecoster/prometheus-ansible-slack-sns/blob/master/ansible/roles/grafana/vars/main.yml#L10-L29" target="_blank" rel="noopener">defined here</a> :</p>
+<pre><code class="language-yaml">grafana_datasources:
+- name: prometheus
+  type: prometheus
+  access: proxy
+  url: 'http://127.0.0.1:9090'
+  basicAuth: false
+
+# https://grafana.com/grafana/dashboards/1860
+# https://grafana.com/grafana/dashboards/11074
+grafana_dashboards:
+  # Node Exporter Full
+  - dashboard_id: 1860
+    revision_id: 30
+    datasource: &quot;{{ grafana_datasources.0.name }}&quot;
+  # Node Exporter for Prometheus Dashboard
+  - dashboard_id: 11074
+    revision_id: 9
+    datasource: &quot;{{ grafana_datasources.0.name }}&quot;
+</code></pre>
+<p>Grafana is available at <a href="http://10.20.20.20:3000" target="_blank" rel="noopener">http://10.20.20.20:3000</a> :</p>
+<p><img loading="lazy" src="img/grafana-1-login.png" alt="grafana-1-login.png"  /></p>
+<p>Use <code>admin</code> / <code>password</code> to login</p>
+<p><strong>Two dashboards</strong> are available :</p>
+<p><img loading="lazy" src="img/grafana-2-dashboards.png" alt="grafana-2-dashboards.png"  /></p>
+<p>Let&rsquo;s see <code>Node Exporter Full</code> on <code>node1</code> with <code>Last 5 minutes</code> and <code>10s</code> refresh :</p>
+<p><img loading="lazy" src="img/grafana-3-node-exporter.png" alt="grafana-3-node-exporter.png"  /></p>
+<h3 id="cpu-stress-test">CPU Stress test</h3>
+<p>SSH login to <code>node1</code> :</p>
+<pre><code class="language-bash">ssh node1
+</code></pre>
+<p>Start the <a href="https://linuxnightly.com/stress-linux-command/" target="_blank" rel="noopener">CPU stress</a> test :</p>
+<pre><code class="language-bash">vagrant@node1:~$ stress --cpu 2
+</code></pre>
+<p>After few seconds :</p>
+<p><img loading="lazy" src="img/grafana-4-stress.png" alt="grafana-4-stress.png"  /></p>
+<p>The table view of the 3 machines <a href="http://10.20.20.20:9090/graph?g0.expr=node_cpu_percentage" target="_blank" rel="noopener">http://10.20.20.20:9090/graph?g0.expr=node_cpu_percentage</a> :</p>
+<p><img loading="lazy" src="img/stress-prometheus-table.png" alt="stress-prometheus-table.png"  /></p>
+<p>The graph view of the 3 machines <a href="http://10.20.20.20:9090/graph?g0.expr=node_cpu_percentage&amp;g0.tab=0&amp;g0.range_input=5m" target="_blank" rel="noopener">http://10.20.20.20:9090/graph?g0.expr=node_cpu_percentage&amp;&hellip;</a> :</p>
+<p><img loading="lazy" src="img/stress-prometheus-graph.png" alt="stress-prometheus-graph.png"  /></p>
+<p>The alerts are firing <a href="http://10.20.20.20:9090/alerts" target="_blank" rel="noopener">http://10.20.20.20:9090/alerts</a> :</p>
+<p><img loading="lazy" src="img/stress-prometheus-alerts.png" alt="stress-prometheus-alerts.png"  /></p>
+<p>Slack notifications are received :</p>
+<p><img loading="lazy" src="img/stress-slack.png" alt="stress-slack.png"  /></p>
+<p>Email notifications are received :</p>
+<p><img loading="lazy" src="img/stress-email.png" alt="stress-email.png"  /></p>
+<p>The other dashboard also show critical values :</p>
+<p><img loading="lazy" src="img/stress-dashboard-2.png" alt="stress-dashboard-2.png"  /></p>
+<h3 id="cleaning">Cleaning</h3>
+<p>This demonstration is now over, we are <strong>destroying the resources</strong> :</p>
+<pre><code class="language-bash"># destroy the 3 machines
+vagrant-destroy
+
+# terraform destroy sns topic + ssh key + iam user ...
+infra-destroy
+</code></pre>
+
+</div>
+
+<div class="tags">
+
+
+
+
+
+<p>
+
+
+
+
+<a href="/tags/alertmanager/">alertmanager</a>
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/ansible/">ansible</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a class="category" href="/tags/aws/">aws</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/grafana/">grafana</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/prometheus/">prometheus</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/sns/">sns</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/terraform/">terraform</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<a href="/tags/vagrant/">vagrant</a>
+
+
+
+
+
+
+
+</div>
+
+</div>
+
+</main><footer>
+Build on 19 Feb 2023 | <a href="https://github.com/dataCobra/hugo-vitae" target="_blank">Vitae</a> theme for <a href="https://gohugo.io" target="_blank">Hugo</a>
+</footer>
+
+
+
+
+<script>
+    window.Prism = window.Prism || {};
+    window.Prism.manual = true;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/components/prism-core.min.js"></script>
+
+<script src="/js/main.js"></script>
+</body>
+</html>

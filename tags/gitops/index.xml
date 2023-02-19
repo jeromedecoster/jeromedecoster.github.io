@@ -5,10 +5,58 @@
     <link>/tags/gitops/</link>
     <description>Recent content in GitOps on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 11 Sep 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 21 Dec 2022 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/gitops/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>Create temporary environment from Pull Request with ArgoCD ApplicationSet</title>
+      <link>/aws/create-temporary-environment-from-pull-request-with-argocd-applicationset/</link>
+      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/create-temporary-environment-from-pull-request-with-argocd-applicationset/</guid>
+      <description>
+      
+      Deploying app to Kubernetes. Creating a **new environment for each pull request**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ArgoCD Sync Wave &#43; Postgres</title>
+      <link>/aws/argocd-sync-wave--postgres/</link>
+      <pubDate>Tue, 22 Nov 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/argocd-sync-wave--postgres/</guid>
+      <description>
+      
+      Deploying app to Kubernetes and setup Postgres database using **ArgoCD Sync Wave** in a **Kind** cluster with **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>Microservice &#43; ArgoCD ApplicationSet &#43; Image Updater</title>
+      <link>/aws/microservice--argocd-applicationset--image-updater/</link>
+      <pubDate>Tue, 18 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/microservice--argocd-applicationset--image-updater/</guid>
+      <description>
+      
+      Deploying microservice using **ArgoCD ApplicationSet** and **ArgoCD Image Updater** in a **Kind** cluster with **Terraform**.
+      
+      </description>
+    </item>
+    <item>
+      <title>ArgoCD &#43; Image Updater</title>
+      <link>/aws/argocd--image-updater/</link>
+      <pubDate>Mon, 03 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/aws/argocd--image-updater/</guid>
+      <description>
+      
+      Playing with **ArgoCD Image Updater** and **public** and **private repositories**.
+      
+      </description>
+    </item>
     <item>
       <title>Kubernetes &#43; EKS &#43; Github Actions</title>
       <link>/aws/kubernetes--eks--github-actions/</link>

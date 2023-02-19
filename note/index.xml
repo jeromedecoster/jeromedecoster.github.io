@@ -5,10 +5,22 @@
     <link>/note/</link>
     <description>Recent content in Notes on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 20 Apr 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 17 Feb 2023 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/note/index.xml" rel="self" type="application/rss+xml" />
     
+    <item>
+      <title>Prometheus &#43; Grafana &#43; Slack &#43; SNS &#43; Ansible</title>
+      <link>/note/prometheus--grafana--slack--sns--ansible/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/note/prometheus--grafana--slack--sns--ansible/</guid>
+      <description>
+      
+      Install &#43; configure a **complete monitoring solution automatically** with **Ansible** and **Terraform**
+      
+      </description>
+    </item>
     <item>
       <title>Kubernetes &#43; Adapter Pattern &#43; Minikube</title>
       <link>/note/kubernetes--adapter-pattern--minikube/</link>

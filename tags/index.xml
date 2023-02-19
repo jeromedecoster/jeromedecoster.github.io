@@ -5,16 +5,28 @@
     <link>/tags/</link>
     <description>Recent content in Tags on </description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 21 Dec 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 17 Feb 2023 00:00:00 +0000</lastBuildDate>
     
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>ArgoCD</title>
-      <link>/tags/argocd/</link>
-      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      <title>Alertmanager</title>
+      <link>/tags/alertmanager/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
       
-      <guid>/tags/argocd/</guid>
+      <guid>/tags/alertmanager/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Ansible</title>
+      <link>/tags/ansible/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/ansible/</guid>
       <description>
       
       
@@ -24,9 +36,81 @@
     <item>
       <title>AWS</title>
       <link>/tags/aws/</link>
-      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
       
       <guid>/tags/aws/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Grafana</title>
+      <link>/tags/grafana/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/grafana/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Prometheus</title>
+      <link>/tags/prometheus/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/prometheus/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>SNS</title>
+      <link>/tags/sns/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/sns/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Terraform</title>
+      <link>/tags/terraform/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/terraform/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Vagrant</title>
+      <link>/tags/vagrant/</link>
+      <pubDate>Fri, 17 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/vagrant/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>ArgoCD</title>
+      <link>/tags/argocd/</link>
+      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/argocd/</guid>
       <description>
       
       
@@ -51,6 +135,30 @@
       <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/github/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>Github Actions</title>
+      <link>/tags/github-actions/</link>
+      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/github-actions/</guid>
+      <description>
+      
+      
+      
+      </description>
+    </item>
+    <item>
+      <title>GitOps</title>
+      <link>/tags/gitops/</link>
+      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/gitops/</guid>
       <description>
       
       
@@ -87,18 +195,6 @@
       <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/pull-request/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Terraform</title>
-      <link>/tags/terraform/</link>
-      <pubDate>Wed, 21 Dec 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/terraform/</guid>
       <description>
       
       
@@ -238,18 +334,6 @@
       </description>
     </item>
     <item>
-      <title>Grafana</title>
-      <link>/tags/grafana/</link>
-      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/grafana/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>Note</title>
       <link>/tags/note/</link>
       <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
@@ -267,18 +351,6 @@
       <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
       
       <guid>/tags/pattern/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Prometheus</title>
-      <link>/tags/prometheus/</link>
-      <pubDate>Wed, 20 Apr 2022 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/prometheus/</guid>
       <description>
       
       
@@ -430,18 +502,6 @@
       </description>
     </item>
     <item>
-      <title>Ansible</title>
-      <link>/tags/ansible/</link>
-      <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/ansible/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
       <title>AWS CLI</title>
       <link>/tags/aws-cli/</link>
       <pubDate>Tue, 26 Oct 2021 00:00:00 +0000</pubDate>
@@ -495,18 +555,6 @@
       <pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate>
       
       <guid>/tags/gitlab/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>Github Actions</title>
-      <link>/tags/github-actions/</link>
-      <pubDate>Thu, 18 Feb 2021 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/github-actions/</guid>
       <description>
       
       
@@ -579,18 +627,6 @@
       <pubDate>Thu, 24 Sep 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/slack/</guid>
-      <description>
-      
-      
-      
-      </description>
-    </item>
-    <item>
-      <title>GitOps</title>
-      <link>/tags/gitops/</link>
-      <pubDate>Fri, 11 Sep 2020 00:00:00 +0000</pubDate>
-      
-      <guid>/tags/gitops/</guid>
       <description>
       
       
